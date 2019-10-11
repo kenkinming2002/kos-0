@@ -1,0 +1,9 @@
+**/*.o
+
+iso/**/*
+
+program
+kernel.elf
+os.iso
+
+serial.log
