@@ -4,6 +4,9 @@
 
 extern FrameBuffer g_frameBuffer;
 
-int multiboot2_tag_framebuffer_parse(struct multiboot_tag_framebuffer *framebuffer_tag);
+namespace init::multiboot2
+{
+  int parse_framebuffer_tag(struct multiboot_tag_framebuffer *framebuffer_tag);
+}
 
 int framebuffer_init();

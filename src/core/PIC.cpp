@@ -1,4 +1,4 @@
-#include <core/pic.h>
+#include <core/PIC.hpp>
 
 #include <asm/io.h>
 
@@ -34,7 +34,13 @@
 
 #define PIC_EOI 0x20
 
-int pic_remap(uint8_t master_offset, uint8_t slave_offset)
+int PICController::init() const
+{
+  return remap(0x20, 0x2F);
+}
+
+
+int PICController::remap(uint8_t master_offset, uint8_t slave_offset) const
 {
   // Initialize an 8259 PIC
   uint8_t mask_master, mask_slave;
@@ -64,12 +70,7 @@ int pic_remap(uint8_t master_offset, uint8_t slave_offset)
   return 0;
 }
 
-int pic_init()
-{
-  return pic_remap(0x20, 0x2F);
-}
-
-int pic_acknowledge(uint32_t interrupt)
+int PICController::acknowledge(uint32_t interrupt) const
 {
   if(interrupt>=8)
     outb(PIC2_COMMAND, PIC_EOI);

@@ -1,6 +1,10 @@
 #ifndef ASM_IO_H
 #define ASM_IO_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** outb:
  *  Sends the given data to the given I/O port. Defined in io.s
  *
@@ -16,5 +20,9 @@ void outb(unsigned short port, unsigned char data);
  *  @return The read data
  */
 unsigned char inb(unsigned short port);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // ASM_IO_H

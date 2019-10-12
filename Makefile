@@ -1,7 +1,7 @@
 OBJECTS =
 OBJECTS += src/core/boot/loader.o src/core/boot/multiboot2_header.o
-OBJECTS += src/core/init/multiboot2.o src/core/init/Framebuffer.o src/core/init/mmap.o
-OBJECTS += src/core/kmain.o src/core/gdt.o src/core/interrupt.o src/core/page.o src/core/pic.o src/core/interrupt_handler.o
+OBJECTS += src/core/init/Multiboot2.o src/core/init/Framebuffer.o src/core/init/MemoryMap.o
+OBJECTS += src/core/kmain.o src/core/Segmentation.o src/core/Interrupt.o src/core/Paging.o src/core/PIC.o src/core/interrupt_handler.o
 OBJECTS += src/io/Framebuffer.o src/io/serial.o 
 OBJECTS += src/asm/io.o src/asm/gdt.o src/asm/idt.o src/asm/page.o
 

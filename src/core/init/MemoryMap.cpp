@@ -1,4 +1,4 @@
-#include <core/init/mmap.h>
+#include <core/init/MemoryMap.hpp>
 
 struct multiboot_tag_mmap *multiboot_mmap_tag;
 

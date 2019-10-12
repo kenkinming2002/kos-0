@@ -38,10 +38,10 @@ namespace utils
 
   public:
     const T* operator->() const { return reinterpret_cast<const T*>(&m_storage); }
-    T* operator->() { reinterpret_cast<T*>(&m_storage); }
+    T* operator->() { return reinterpret_cast<T*>(&m_storage); }
 
-    const T& operator*() const { *reinterpret_cast<const T*>(&m_storage); }
-    T& operator*() { *reinterpret_cast<T*>(&m_storage); }
+    const T& operator*() const { return *reinterpret_cast<const T*>(&m_storage); }
+    T& operator*() { return *reinterpret_cast<T*>(&m_storage); }
 
   public:
     const T& value() const { return *reinterpret_cast<const T*>(&m_storage); }
