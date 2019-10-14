@@ -1,4 +1,3 @@
-#include <core/interrupt_handler.h>
 
 
 #include <io/serial.h>
@@ -8,6 +7,7 @@
 #include <grub/multiboot2.h>
 
 #include <core/Interrupt.hpp>
+#include <core/InterruptHandler.hpp>
 #include <core/PIC.hpp>
 #include <core/Paging.hpp>
 #include <core/Segmentation.hpp>
@@ -63,8 +63,7 @@ extern "C" int kmain(void* addr)
 
   g_picController.init();
 
-  for(size_t i=0; i<256; ++i)
-    idtEntries[i] = IDTEntry(InterruptType::INTERRUPT_GATE_32, PrivillegeLevel::RING0, 0x08, reinterpret_cast<void*>(&keyboard_interrupt_handler));
+  initIDT(idtEntries);
   IDT(idtEntries).load();
 
   asm("int $20");
