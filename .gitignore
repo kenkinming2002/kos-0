@@ -1,6 +1,10 @@
 **/*.o
 
 iso/**/*
+!/iso/
+!/iso/boot/
+!/iso/boot/grub/
+!/iso/boot/grub/grub.cfg
 
 program
 kernel.elf
