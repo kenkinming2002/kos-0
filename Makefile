@@ -1,30 +1,21 @@
-OBJECTS =
-OBJECTS += src/core/boot/loader.o src/core/boot/multiboot2_header.o
-OBJECTS += src/core/init/Multiboot2.o src/core/init/Framebuffer.o src/core/init/MemoryMap.o
-OBJECTS += src/core/kmain.o src/core/Segmentation.o src/core/Interrupt.o src/core/Paging.o src/core/PIC.o 
-OBJECTS += src/core/InterruptHandler.o src/core/InterruptHandlerWrapper.o
-OBJECTS += src/io/Framebuffer.o src/io/serial.o 
-OBJECTS += src/asm/io.o src/asm/gdt.o src/asm/idt.o src/asm/page.o
+include build/Begin.mk
 
-CC = i686-elf-gcc
-CFLAGS = -ffreestanding -I include/ -g -O3 #-Wall -Wextra
+OBJECTS += src/kmain.o
 
-CXX = i686-elf-g++
-CXXFLAGS = -std=c++17 -ffreestanding -I include/ -g -O3 #-Wall -Wextra
+# TODO: include only the target
+generic_cwd := arch/generic
+include $(generic_cwd)/Rules.mk
+intel_cwd := arch/intel
+include $(intel_cwd)/Rules.mk
+i686_cwd := arch/i686
+include $(i686_cwd)/Rules.mk
 
-LD = i686-elf-ld
-LDFLAGS = -nostdlib -T src/link.ld --gc-sections
+include build/Rules.mk
 
-AS = nasm
-ASFLAGS = -f elf32 -g -F dwarf
-
-OBJCOPY = i686-elf-objcopy
-
-QEMUFLAGS 			= -serial file:serial.log
-QEMUFLAGS_DEBUG = -serial file:serial.log -s -S
-
-
+.DEFAULT_GOAL := all
 all: os.iso
+
+CPPFLAGS += -I include/
 
 ## ISO
 os.iso: kernel.elf program
@@ -32,24 +23,17 @@ os.iso: kernel.elf program
 	cp kernel.elf iso/boot/kernel.elf
 	grub-mkrescue -o os.iso iso -d /usr/lib/grub/i386-pc
 
-## Kernel
-kernel.elf: $(OBJECTS) src/link.ld
-	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
-
-
 ## Program
 program: src/program.s
 	$(AS) -f bin $< -o $@
 
+# QEMU
+QEMUFLAGS 			= -serial file:serial.log
+QEMUFLAGS_DEBUG = -serial file:serial.log -s -S
 
-## Phonies
-.PHONY: run clean
+.PHONY: run 
 run: os.iso
 	qemu-system-i386 -cdrom $< -m 256 -boot d $(QEMUFLAGS)
 
 run_debug: os.iso
 	./scripts/run_debug.sh "$(QEMUFLAGS_DEBUG)"
-
-clean:
-	find src/ -type f -name '*.o' -delete
-	rm -f program kernel.elf os.iso
