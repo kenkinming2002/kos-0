@@ -2,8 +2,9 @@
 
 extern "C" {
 #include <generic/io/serial.h>
-#include <i686/asm/io.h>
 }
+
+#include <intel/asm/io.hpp>
 
 namespace
 {
@@ -91,10 +92,10 @@ namespace io
   int FrameBuffer::setCursor(FrameBuffer::Cursor cursor) const
   {
     uint32_t pos = cursor.y * m_width + cursor.x;
-    outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
-    outb(FB_DATA_PORT, (pos >> 8) & 0x00FF);
-    outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
-    outb(FB_DATA_PORT, pos & 0x00FF);
+    assembly::outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
+    assembly::outb(FB_DATA_PORT, (pos >> 8) & 0x00FF);
+    assembly::outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
+    assembly::outb(FB_DATA_PORT, pos & 0x00FF);
     return 0;
   }
 

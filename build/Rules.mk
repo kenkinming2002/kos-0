@@ -20,7 +20,7 @@ CLEANFILES += kernel.elf
 	$(AR) rcs $@ $?
 
 kernel.elf: src/link.ld $(OBJECTS) $(filter %.a,$(LIBS))
-	$(LD) -T src/link.ld src/kmain.o $(LDFLAGS) $(LIBS) -o $@
+	$(LD) -T src/link.ld src/kmain.o $(LDFLAGS) --start-group $(LIBS) --end-group -o $@
 
 .PHONY: clean
 clean:

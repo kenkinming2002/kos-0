@@ -4,7 +4,6 @@ CLEANFILES += $(i686_cwd)/libi686.a
 
 i686_OBJECTS =
 i686_OBJECTS += $(i686_cwd)/src/boot/loader.o $(i686_cwd)/src/boot/multiboot2_header.o
-i686_OBJECTS += $(i686_cwd)/src/asm/gdt.o $(i686_cwd)/src/asm/idt.o $(i686_cwd)/src/asm/io.o $(i686_cwd)/src/asm/page.o
 i686_OBJECTS += $(i686_cwd)/src/core/Interrupt.o $(i686_cwd)/src/core/Paging.o $(i686_cwd)/src/core/Segmentation.o
 
 $(i686_cwd)/libi686.a: $(i686_OBJECTS)

@@ -32,8 +32,8 @@ extern "C" int kmain(void* addr)
   init::multiboot2::parseBootInformation(virtual_address(addr));
 
 
-  serial_configure(SERIAL_COM1_BASE, 1);
-  serial_write(SERIAL_COM1_BASE, str, 11);
+  //serial_configure(SERIAL_COM1_BASE, 1);
+  //serial_write(SERIAL_COM1_BASE, str, 11);
 
   for(int i=0; i<256; ++i)
     interrupt.installHandler(i, core::PrivillegeLevel::RING0, reinterpret_cast<core::Handler>(&handler));

@@ -1,6 +1,6 @@
 #include <i686/core/Segmentation.hpp>
 
-#include <i686/asm/gdt.h>
+#include <intel/asm/gdt.hpp>
 
 namespace core::i686
 {
@@ -33,8 +33,8 @@ namespace core::i686
 
   int GDT::load() const
   {
-    lgdt(this);
-    gdt_flush();
+    assembly::lgdt(this);
+    assembly::gdt_flush();
 
     return 0;
   }

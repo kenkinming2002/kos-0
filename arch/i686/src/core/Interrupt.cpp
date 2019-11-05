@@ -1,6 +1,6 @@
 #include <i686/core/Interrupt.hpp>
 
-#include <i686/asm/idt.h>
+#include <intel/asm/idt.hpp>
 
 namespace core::i686
 {
@@ -42,7 +42,7 @@ namespace core::i686
 
   int IDT::load() const
   {
-    lidt(reinterpret_cast<const void*>(this));
+    assembly::lidt(reinterpret_cast<const void*>(this));
     return 0;
   }
 }
