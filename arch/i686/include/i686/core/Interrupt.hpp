@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <utility>
 
+#include <utils/Callback.hpp>
+
 namespace core::i686
 {
   enum class InterruptType
@@ -61,8 +63,8 @@ namespace core
     Interrupt();
 
   public:
-    int installHandler(int irqNumber, PrivillegeLevel privillegeLevel, Handler irqHandler);
-    void reinstallHandler(int irqNumber, PrivillegeLevel privillegeLevel, Handler irqHandler);
+    int installHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler);
+    void reinstallHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler);
     void uninstallHandler(int irqNumber);
 
   private:
@@ -90,6 +92,6 @@ namespace core
   //However, that will incur runtime cost, which may not be desired.
   private:
     i686::IDTEntry m_idtEntries[IDT_SIZE];
-    static Handler m_irqHandlers[IDT_SIZE];
+    static utils::Callback m_irqHandlers[IDT_SIZE];
   };
 }

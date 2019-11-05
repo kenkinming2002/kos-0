@@ -49,7 +49,7 @@ namespace core::i686
 
 namespace core
 {
-  Handler Interrupt::m_irqHandlers[IDT_SIZE];
+  utils::Callback Interrupt::m_irqHandlers[IDT_SIZE];
 
   Interrupt::Interrupt()
   {
@@ -59,7 +59,7 @@ namespace core
     idt.load();
   }
 
-  int Interrupt::installHandler(int irqNumber, PrivillegeLevel privillegeLevel, Handler irqHandler)
+  int Interrupt::installHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler)
   {
     if(this->enabled(irqNumber))
       return -1;
@@ -69,7 +69,7 @@ namespace core
     return 0;
   }
 
-  void Interrupt::reinstallHandler(int irqNumber, PrivillegeLevel privillegeLevel, Handler irqHandler)
+  void Interrupt::reinstallHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler)
   {
     m_irqHandlers[irqNumber] = irqHandler; // Set up irqHandler
     this->enabled(irqNumber, true);

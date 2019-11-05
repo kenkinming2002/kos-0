@@ -35,8 +35,9 @@ extern "C" int kmain(void* addr)
   //serial_configure(SERIAL_COM1_BASE, 1);
   //serial_write(SERIAL_COM1_BASE, str, 11);
 
+  utils::Callback callback(&handler);
   for(int i=0; i<256; ++i)
-    interrupt.installHandler(i, core::PrivillegeLevel::RING0, reinterpret_cast<core::Handler>(&handler));
+    interrupt.installHandler(i, core::PrivillegeLevel::RING0, callback);
 
   io::framebuffer::init();
 
