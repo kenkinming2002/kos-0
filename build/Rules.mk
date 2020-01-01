@@ -12,12 +12,8 @@ CLEANFILES += kernel.elf
 %.d: %.s
 	touch $@
 
-%.a:
-	$(AR) rcs $@ $?
-
-kernel.elf: src/link.ld $(OBJECTS) $(filter %.a,$(LIBS))
-	$(LD) -T src/link.ld $(OBJECTS) $(LDFLAGS) --start-group $(LIBS) --end-group -o $@
-include  $(OBJECTS:.o=.d)
+kernel.elf: src/link.ld $(OBJECTS)
+	$(LD) -T src/link.ld $(OBJECTS) $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:

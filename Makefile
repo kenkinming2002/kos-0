@@ -1,6 +1,8 @@
 include build/Begin.mk
 
-OBJECTS += src/kmain.o
+KOBJECTS = src/kmain.o
+include  $(KOBJECTS:.o=.d)
+OBJECTS += $(KOBJECTS)
 
 # TODO: include only the target
 generic_cwd := arch/generic
