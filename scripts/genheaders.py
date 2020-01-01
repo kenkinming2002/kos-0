@@ -10,9 +10,11 @@ import yaml
 @contextmanager
 def open_file_overwrite(file_name : str, file_header : str):
     if os.path.exists(file_name):
-        with open(file_name, "r+") as f:
+        with open(file_name, "r") as f:
             if file_header != f.read(len(file_header)):
                 raise ValueError("Header %s is user-created" % file_name)
+
+        with open(file_name, 'a+') as f:
             f.seek(0)
             f.truncate(len(file_header))
             yield f

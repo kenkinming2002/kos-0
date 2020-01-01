@@ -1,6 +1,13 @@
 global loader
 extern kmain
 
+extern kernel_physical_end
+extern lower_half_main
+extern higher_half_main
+
+global boot_page_directory
+global boot_page_tables
+
 ; size of kernel stack
 KERNEL_STACK_SIZE equ 4096 
 
@@ -21,76 +28,38 @@ align 4096
 boot_page_directory:
   resb BOOT_PAGE_DIRECTORY_SIZE
 
-boot_page_table:
+boot_page_tables:
   resb BOOT_PAGE_TABLE_SIZE * BOOT_PAGE_TABLE_COUNT
-
-; ENTRY POINT of our loader
-section .text
-loader:
 
 %define physical_address(addr) ((addr)-0xC0000000)
 
-; Identity Map the kernel(Must Perserve ebx)
-mov ecx, 0
-.loop_page_directory:
 
-  mov edx, 0
-  .loop_page_table:
+; ENTRY POINT of our loader
+section .boot.text
+loader:
 
-  mov esi, ecx
-  shl esi, 10
-  add esi, edx
-  lea edi, [esi * 4 + physical_address(boot_page_table)] ; load physical address to page table entry
-  shl esi, 12                                            ; load physical address of page to map
-  or esi, 0x003                                          ; set present and writable bit
-  mov [edi], esi
+; Lower Half Main
+mov esp, physical_address(kernel_stack + KERNEL_STACK_SIZE) ; point esp to top of kernel stack
 
-  inc edx
-  cmp edx, 1024
-  jne .loop_page_table
+push ebx
+mov eax, lower_half_main
+call eax
 
-; Map the page table to both 0x00000000 and 0xC0000000
-mov esi, ecx
-shl esi, 12
-add esi, physical_address(boot_page_table)                             ; load physical address of page table into esi
-or  esi, 0x003
-mov [ecx * 4 + physical_address(boot_page_directory)            ], esi
-mov [ecx * 4 + physical_address(boot_page_directory) + (768 * 4)], esi
+; Call into Higher Half
+lea eax, [higher_half]
+call eax
 
-inc ecx
-cmp ecx, BOOT_PAGE_TABLE_COUNT
-jne .loop_page_directory
-
-; Enable paging
-mov ecx, physical_address(boot_page_directory)
-mov cr3, ecx
-
-mov ecx, cr0
-or ecx, 0x80010000
-mov cr0, ecx
-
-; Enter higher half
-lea edx, [higher_half]
-jmp edx
+section .text
 
 higher_half:
 
-; Paging is fully enabled, discard the identity mapping to lower half
-mov ecx, 0
-.loop_page_directory:
-
-mov [ecx * 4 + boot_page_directory], DWORD 0
-
-inc ecx
-cmp ecx, BOOT_PAGE_TABLE_COUNT
-jne .loop_page_directory
-
-; Force reload of TLB
-mov ecx, cr3
-mov cr3, ecx
-
+; Higher Half Main
 mov esp, kernel_stack + KERNEL_STACK_SIZE ; point esp to top of kernel stack
 
+mov eax, higher_half_main
+call eax
+
+; Actual Main
 push ebx
 call kmain
 

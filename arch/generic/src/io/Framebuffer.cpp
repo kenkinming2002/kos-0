@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include <intel/asm/io.hpp>
+#include <boot/lower_half.hpp>
 
 namespace
 {
@@ -27,6 +28,11 @@ namespace io
 
   FrameBuffer::FrameBuffer(uint16_t* cells, uint32_t width, uint32_t height)
     : m_cells(cells), m_width(width), m_height(height) {}
+
+  utils::Optional<FrameBuffer> FrameBuffer::create()
+  {
+    return create(&bootInformation.framebuffer);
+  }
 
   utils::Optional<FrameBuffer> FrameBuffer::create(struct multiboot_tag_framebuffer *multiboot_tag_framebuffer)
   {
@@ -105,29 +111,31 @@ namespace io
   {
     int init()
     {
-      //if(!fb_created)
+      auto fb = FrameBuffer::create();
+      if(fb)
+        frameBuffer = *fb;
+      else
         frameBuffer = FrameBuffer::createDefault();
-
       return 0;
     }
   }
 }
 
-namespace init::multiboot2
-{
-  int parse_framebuffer_tag(struct multiboot_tag_framebuffer *framebuffer_tag)
-  {
-      if(!fb_created)
-      {
-        auto frameBuffer = io::FrameBuffer::create(framebuffer_tag);
-        if(frameBuffer)
-        {
-          io::frameBuffer = *frameBuffer;
-          fb_created = true;
-        }
-      }
-
-      return 0;
-  }
-}
-
+//namespace init::multiboot2
+//{
+//  int parse_framebuffer_tag(struct multiboot_tag_framebuffer *framebuffer_tag)
+//  {
+//      if(!fb_created)
+//      {
+//        auto frameBuffer = io::FrameBuffer::create(framebuffer_tag);
+//        if(frameBuffer)
+//        {
+//          io::frameBuffer = *frameBuffer;
+//          fb_created = true;
+//        }
+//      }
+//
+//      return 0;
+//  }
+//}
+//

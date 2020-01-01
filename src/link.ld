@@ -1,11 +1,11 @@
 ENTRY(loader)
 
 SECTIONS {
-  . = 0xC0100000;
+  /* Normal sections */
+  . = 0xC0100000; /* Set Virtual Address to 1MB above 3GB mark */
 
-  kernel_virtual_start = .;
+  kernel_virtual_start  = .;
   kernel_physical_start = . - 0xC0000000;
-
 
   .text ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
   {
@@ -23,7 +23,7 @@ SECTIONS {
     *(.data)
   }
 
-  .bss ALIGN(0x1000) : AT(ADDR(.bss)-0xC0000000)
+  .bss ALIGN(0x1000) (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
   {
     *(COMMON)
     *(.bss)
@@ -31,4 +31,27 @@ SECTIONS {
 
   kernel_virtual_end = .;
   kernel_physical_end = . - 0xC0000000;
+
+  /* Boot sections */
+  . = . - 0xC0000000; /* Set Virtual Address back to 0GB mark, offset by physical address of preceding section */
+
+  .boot.text ALIGN(0x1000) :
+  {
+    *(.text.boot)
+  }
+
+  .boot.rodata ALIGN(0x1000) :
+  {
+    *(.text.rodata)
+  }
+
+  .boot.data ALIGN(0x1000) :
+  {
+    *(.text.data)
+  }
+
+  .boot.bss ALIGN(0x1000) (NOLOAD) : 
+  {
+    *(.text.data)
+  }
 }

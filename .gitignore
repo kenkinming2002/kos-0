@@ -15,3 +15,5 @@ kernel.elf
 os.iso
 
 serial.log
+
+compile_commands.json

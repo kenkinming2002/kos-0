@@ -45,6 +45,7 @@ namespace io
 
   public:
     static utils::Optional<FrameBuffer> create(struct multiboot_tag_framebuffer *multiboot_tag_framebuffer);
+    static utils::Optional<FrameBuffer> create();
     static FrameBuffer createDefault();
 
   public:

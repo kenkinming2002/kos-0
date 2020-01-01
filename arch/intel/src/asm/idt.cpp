@@ -7,6 +7,7 @@ namespace assembly
     asm volatile ( R"(
       .intel_syntax noprefix
         lidt [%[idt]]
+      .att_syntax prefix
       )"
       :
       : [idt]"r"(idt)

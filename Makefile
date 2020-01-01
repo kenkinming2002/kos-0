@@ -29,11 +29,11 @@ program: src/program.s
 
 # QEMU
 QEMUFLAGS 			= -serial file:serial.log
-QEMUFLAGS_DEBUG = -serial file:serial.log -s -S
+QEMUFLAGS_DEBUG = -serial file:serial.log -s -S 
 
 .PHONY: run 
 run: os.iso
-	qemu-system-i386 -cdrom $< -m 256 -boot d $(QEMUFLAGS)
+	qemu-system-i386 -cdrom $< -m 512 -boot d $(QEMUFLAGS)
 
 run_debug: os.iso
 	./scripts/run_debug.sh "$(QEMUFLAGS_DEBUG)"
