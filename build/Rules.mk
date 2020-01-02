@@ -12,8 +12,11 @@ CLEANFILES += kernel.elf
 %.d: %.s
 	touch $@
 
-kernel.elf: src/link.ld $(OBJECTS)
-	$(LD) -T src/link.ld $(OBJECTS) $(LDFLAGS) -o $@
+CRTBEGIN_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
+
+kernel.elf: src/link.ld $(CRTBEGIN_OBJ) $(CRTI_OBJECT) $(OBJECTS) $(CRTN_OBJECT) $(CRTEND_OBJ) $(CRT0_OBJECT)
+	$(LD) -T src/link.ld $(CRTBEGIN_OBJ) $(CRTI_OBJECT) $(OBJECTS) $(CRTN_OBJECT) $(CRTEND_OBJ) $(CRT0_OBJECT) $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:

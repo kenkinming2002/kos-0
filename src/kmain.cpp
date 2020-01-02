@@ -110,7 +110,7 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator<core::memory::Sta
       io::print("Page Frame Allocator - Failed");
 }
 
-extern "C" int kmain(void* addr)
+extern "C" int kmain()
 {
   /** Old-Styled Initialization **/
   //serial_configure(SERIAL_COM1_BASE, 1);

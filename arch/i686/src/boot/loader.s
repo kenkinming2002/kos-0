@@ -1,7 +1,6 @@
 global loader
-extern kmain
+extern _start
 
-extern kernel_physical_end
 extern lower_half_main
 extern higher_half_main
 
@@ -60,8 +59,7 @@ mov eax, higher_half_main
 call eax
 
 ; Actual Main
-push ebx
-call kmain
+call _start
 
 .fail:
   hlt
