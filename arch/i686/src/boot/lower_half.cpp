@@ -1,10 +1,11 @@
 #include <i686/boot/lower_half.hpp>
 
-#include <boot/Paging.hpp>
-
 #include <utils/Utilities.hpp>
 
 BootInformation bootInformation;
+
+__attribute__((aligned(4096))) std::byte bootPageDirectory[sizeof(boot::PageDirectory)];
+__attribute__((aligned(4096))) std::byte bootPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
 
 // Have to work around a weird quark of gcc that section attributes is silently
 // ignored for template function
@@ -47,8 +48,8 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
   }
 
   // 2: Setup Paging
-  auto& pageDirectory = utils::deref_cast<boot::PageDirectory>(to_physical(boot_page_directory));
-  auto& pageTables    = utils::deref_cast<boot::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(boot_page_tables));
+  auto& pageDirectory = utils::deref_cast<boot::PageDirectory>(to_physical(bootPageDirectory));
+  auto& pageTables    = utils::deref_cast<boot::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(bootPageTable));
   for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)
   {
     auto& pageTable = pageTables[pageDirectoryIndex];

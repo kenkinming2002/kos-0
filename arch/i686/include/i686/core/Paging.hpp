@@ -3,8 +3,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <i686/boot/loader.hpp>
-
 namespace core
 {
   enum class CacheMode  { ENABLED, DISABLED };

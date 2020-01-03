@@ -5,6 +5,7 @@
 #include <cstddef>
 
 #include <boot/boot.hpp>
+#include <boot/Paging.hpp>
 
 struct BootInformation
 {
@@ -21,7 +22,10 @@ public:
 // Output
 extern BootInformation bootInformation;
 
-extern "C"
-{
-  BOOT_FUNCTION [[gnu::noinline]] void lower_half_main(std::byte* tag);
-}
+//  TODO: set this depending on kernel size
+constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
+
+extern std::byte bootPageDirectory[sizeof(boot::PageDirectory)];
+extern std::byte bootPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
+
+extern "C" BOOT_FUNCTION [[gnu::noinline]] void lower_half_main(std::byte* tag);

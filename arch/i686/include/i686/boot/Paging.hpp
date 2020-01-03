@@ -12,7 +12,6 @@
 #include <stddef.h>
 
 #include <boot/boot.hpp>
-#include <boot/loader.hpp>
 
 namespace boot
 {

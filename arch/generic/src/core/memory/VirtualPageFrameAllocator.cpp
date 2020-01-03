@@ -4,11 +4,13 @@
 #include <tuple>
 #include <utils/Utilities.hpp>
 
+#include <boot/lower_half.hpp>
+
 namespace core::memory
 {
   std::optional<VirtualPageFrameRange> VirtualPageFrameAllocator::getUsableVirtualPageFrameRange(size_t n) const
   {
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(boot_page_directory);
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
     for(size_t i=0; i<PAGE_DIRECTORY_ENTRY_COUNT-1/* The last page directory entry is reserverd for fractal mapping*/; ++i)
     {
       auto& pageDirectoryEntry = pageDirectory[i];
@@ -42,7 +44,7 @@ namespace core::memory
   VirtualPageFrameAllocator::MapResult VirtualPageFrameAllocator::map(PhysicalPageFrameRange physicalPageFrameRange,
       VirtualPageFrameRange virtualPageFrameRange, std::optional<VirtualPageFrameRange> pageTablePhysicalMemory) const
   {
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(boot_page_directory);
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
 
     // NOTE : index = pageDirectoryIndex * PAGE_TABLE_ENTRY_COUNT +
     //                pageTableIndex
