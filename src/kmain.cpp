@@ -1,4 +1,4 @@
-#include <io/serial.h>
+#include <io/Serial.hpp>
 
 #include <grub/multiboot2.h>
 #include <boot/lower_half.hpp>
@@ -12,6 +12,8 @@
 #include <core/memory/PhysicalPageFrameAllocator.hpp>
 #include <core/memory/VirtualPageFrameAllocator.hpp>
 #include <core/memory/PageFrameAllocator.hpp>
+
+#include <generic/core/Memory.hpp>
 
 #include <intel/core/pic/8259.hpp>
 
@@ -53,12 +55,12 @@ void startup_log()
     io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint64_t)bootInformation.mmap_entries[i].addr, ", len:", (uint64_t)bootInformation.mmap_entries[i].len);
 }
 
-void test_physicalPageFrameAllocator(core::memory::StaticPhysicalPageFrameAllocator& staticPhysicalPageFrameAllocator)
+void test_physicalPageFrameAllocator(core::memory::PhysicalPageFrameAllocator& physicalPageFrameAllocator)
 {
   core::memory::PhysicalPageFrameRange chunks[10];
   for(size_t i=0; i<10; ++i)
   {
-    auto physicalPageFrameRange = staticPhysicalPageFrameAllocator.allocate(i+1);
+    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
     if(physicalPageFrameRange)
     {
       chunks[i] = physicalPageFrameRange.value();
@@ -68,15 +70,16 @@ void test_physicalPageFrameAllocator(core::memory::StaticPhysicalPageFrameAlloca
   }
 
   for(size_t i=0; i<10; ++i)
-    staticPhysicalPageFrameAllocator.deallocate(chunks[i]);
+    physicalPageFrameAllocator.deallocate(chunks[i]);
 
   for(size_t i=0; i<10; ++i)
   {
-    auto physicalPageFrameRange = staticPhysicalPageFrameAllocator.allocate(i+1);
+    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
     if(physicalPageFrameRange)
     {
       if(chunks[i].index != physicalPageFrameRange->index)
-        io::print("Discrepancy at ", i); // Reallocation should yield same physical memory chunk as merging is implemented and all chunk allocated is freed
+        // Reallocation should yield same physical memory chunk as merging is implemented and all chunk allocated is freed
+        io::print("Discrepancy at ", i); 
       chunks[i] = *physicalPageFrameRange;
     }
     else
@@ -84,19 +87,19 @@ void test_physicalPageFrameAllocator(core::memory::StaticPhysicalPageFrameAlloca
   }
 
   for(size_t i=0; i<10; ++i)
-    staticPhysicalPageFrameAllocator.deallocate(chunks[i]);
+    physicalPageFrameAllocator.deallocate(chunks[i]);
 }
 
 void test_virtualPageFrameAllocator(core::memory::VirtualPageFrameAllocator& virtualPageFrameAllocator)
 {
-  auto virtualPageFrameRange = virtualPageFrameAllocator.getUsableVirtualPageFrameRange(1);
+  auto virtualPageFrameRange = virtualPageFrameAllocator.allocate(1);
   if(virtualPageFrameRange)
     io::print("Virtual Page Frame - Index:", virtualPageFrameRange->index, ", count:", virtualPageFrameRange->count);
   else
       io::print("Virtual Page Frame Allocator - Failed");
 }
 
-void test_pageFrameAllocation(core::memory::PageFrameAllocator<core::memory::StaticPhysicalPageFrameAllocator, core::memory::VirtualPageFrameAllocator>& pageFrameAllocator)
+void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocator)
 {
   auto pageFrames = pageFrameAllocator.allocate(1);
   if(!pageFrames)
@@ -113,30 +116,35 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator<core::memory::Sta
 extern "C" int kmain()
 {
   /** Old-Styled Initialization **/
-  //serial_configure(SERIAL_COM1_BASE, 1);
+  serial_configure(SERIAL_COM1_BASE, 1);
   //serial_write(SERIAL_COM1_BASE, str, 11);
   //
 
   /** *Global* data**/
   core::Interrupt interrupt;
-  core::Segmentation segmentation;
   core::pic::Controller8259 controller8259;
-  core::memory::StaticPhysicalPageFrameAllocator staticPhysicalPageFrameAllocator(bootInformation.mmap_entries, bootInformation.mmap_entries_count);
-  core::memory::VirtualPageFrameAllocator virtualPageFrameAllocator;
 
   /** Initialize **/
   utils::Callback callback(&handler);
   for(int i=0; i<256; ++i)
     interrupt.installHandler(i, core::PrivillegeLevel::RING0, callback);
+
   io::framebuffer::init();
   /** Logging **/
   //startup_log();
-  test_physicalPageFrameAllocator(staticPhysicalPageFrameAllocator);
-  test_virtualPageFrameAllocator(virtualPageFrameAllocator);
 
-  core::memory::PageFrameAllocator pageFrameAllocator(std::move(staticPhysicalPageFrameAllocator), std::move(virtualPageFrameAllocator));
+  for(int i=0; i<10000; ++i)
+  {
+    void* mem = kmalloc(40);
+    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
+  }
 
-  test_pageFrameAllocation(pageFrameAllocator);
+  for(int i=0; i<10000; ++i)
+  {
+    void* mem = kmalloc(4);
+    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
+    kfree(mem);
+  }
   
   /** Testing **/
   asm("int $20");

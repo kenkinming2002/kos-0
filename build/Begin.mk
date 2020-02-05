@@ -2,7 +2,7 @@ CC = i686-elf-gcc
 CFLAGS += -ffreestanding -g -O0 -fno-exceptions
 
 CXX = i686-elf-g++
-CXXFLAGS += -std=c++2a -ffreestanding -g -O0 -fno-exceptions -fno-inline
+CXXFLAGS += -std=c++2a -ffreestanding -g -O0 -fno-exceptions -fno-inline -Wall -Wextra
 
 CPPFLAGS += -DARCHITECTURE_i686
 
