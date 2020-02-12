@@ -149,8 +149,6 @@ extern "C" int kmain()
   //serial_configure(SERIAL_COM1_BASE, 1);
   //serial_write(SERIAL_COM1_BASE, str, 11);
   
-  io::framebuffer::init();
-
   /** *Global* data**/
   core::interrupt::init();
   core::pic::controller8259::init();

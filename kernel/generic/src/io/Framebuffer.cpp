@@ -24,33 +24,23 @@ namespace io
     constexpr uint16_t FB_LOW_BYTE_COMMAND  = 15;
   }
 
+  FrameBuffer::FrameBuffer() : m_cells(nullptr), m_width(0), m_height(0)
+  {
+    auto& multiboot_tag_framebuffer = bootInformation.framebuffer;
+
+    if(multiboot_tag_framebuffer.common.framebuffer_type!=2) 
+      return;
+    // The highest 32 bit is not all zero. The address is not an 32-bit address, and require PAE, which we do not support
+    if(multiboot_tag_framebuffer.common.framebuffer_addr >> 32) 
+      return;
+
+    m_cells = reinterpret_cast<uint16_t*>(static_cast<uint32_t>(multiboot_tag_framebuffer.common.framebuffer_addr) + 0xC0000000);
+    m_width = multiboot_tag_framebuffer.common.framebuffer_width;
+    m_height = multiboot_tag_framebuffer.common.framebuffer_height;
+  }
+
   FrameBuffer::FrameBuffer(uint16_t* cells, uint32_t width, uint32_t height)
     : m_cells(cells), m_width(width), m_height(height) {}
-
-  std::optional<FrameBuffer> FrameBuffer::create()
-  {
-    return create(&bootInformation.framebuffer);
-  }
-
-  std::optional<FrameBuffer> FrameBuffer::create(struct multiboot_tag_framebuffer *multiboot_tag_framebuffer)
-  {
-    if(multiboot_tag_framebuffer->common.framebuffer_type!=2)
-      return std::nullopt; // Framebuffer is not in EGA text mode
-
-    // The highest 32 bit is not all zero. The address is not an 32-bit address, and require PAE, which we do not support
-    if(multiboot_tag_framebuffer->common.framebuffer_addr >> 32) return std::nullopt; 
-
-    return FrameBuffer(
-      reinterpret_cast<uint16_t*>(static_cast<uint32_t>(multiboot_tag_framebuffer->common.framebuffer_addr) + 0xC0000000),
-      multiboot_tag_framebuffer->common.framebuffer_width,
-      multiboot_tag_framebuffer->common.framebuffer_height
-    );
-  }
-
-  FrameBuffer FrameBuffer::createDefault()
-  {
-    return FrameBuffer(reinterpret_cast<uint16_t*>(0xC00B8000), 80u, 60u);
-  }
 
   int FrameBuffer::write(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const
   {
@@ -103,37 +93,5 @@ namespace io
     return 0;
   }
 
-  FrameBuffer frameBuffer;
-
-  namespace framebuffer
-  {
-    int init()
-    {
-      auto fb = FrameBuffer::create();
-      if(fb)
-        frameBuffer = *fb;
-      else
-        frameBuffer = FrameBuffer::createDefault();
-      return 0;
-    }
-  }
+  __attribute__((init_priority(101))) FrameBuffer frameBuffer;
 }
-
-//namespace init::multiboot2
-//{
-//  int parse_framebuffer_tag(struct multiboot_tag_framebuffer *framebuffer_tag)
-//  {
-//      if(!fb_created)
-//      {
-//        auto frameBuffer = io::FrameBuffer::create(framebuffer_tag);
-//        if(frameBuffer)
-//        {
-//          io::frameBuffer = *frameBuffer;
-//          fb_created = true;
-//        }
-//      }
-//
-//      return 0;
-//  }
-//}
-//

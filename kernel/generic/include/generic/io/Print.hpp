@@ -40,9 +40,9 @@ namespace io
       };
       (add(args), ...);
 
-      //io::frameBuffer.write(io::FrameBuffer::Cursor{0u, lineNumber++}, buf,
-      //    BUF_SIZE-capacity, io::FrameBuffer::Color::WHITE,
-      //    io::FrameBuffer::Color::BLACK);
+      io::frameBuffer.write(io::FrameBuffer::Cursor{0u, lineNumber++}, buf,
+          BUF_SIZE-capacity, io::FrameBuffer::Color::WHITE,
+          io::FrameBuffer::Color::BLACK);
       io::com1Port.write(buf, BUF_SIZE-capacity);
       io::com1Port.write("\n", 1);
 

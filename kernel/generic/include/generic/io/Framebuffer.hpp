@@ -40,13 +40,8 @@ namespace io
     };
 
   public:
-    FrameBuffer() = default;
+    FrameBuffer();
     FrameBuffer(uint16_t* cells, uint32_t width, uint32_t height);
-
-  public:
-    static std::optional<FrameBuffer> create(struct multiboot_tag_framebuffer *multiboot_tag_framebuffer);
-    static std::optional<FrameBuffer> create();
-    static FrameBuffer createDefault();
 
   public:
     int write(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
@@ -62,9 +57,4 @@ namespace io
   };
 
   extern FrameBuffer frameBuffer;
-
-  namespace framebuffer
-  {
-    int init();
-  }
 }
