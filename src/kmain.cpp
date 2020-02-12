@@ -16,6 +16,7 @@
 #include <generic/core/Memory.hpp>
 
 #include <intel/core/pic/8259.hpp>
+#include <intel/asm/io.hpp>
 
 #include <io/Framebuffer.hpp>
 
@@ -113,23 +114,55 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocat
       io::print("Page Frame Allocator - Failed");
 }
 
+[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void null_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
+{
+  io::print("Interrupt START");
+}
+
+[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void general_pretection_fault_handler([[maybe_unused]]core::interrupt::frame* frame, core::interrupt::uword_t error_code)
+{
+  io::print("GPF START ", (uint32_t)error_code); 
+  asm("hlt");
+}
+
+[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void keyboard_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
+{
+  io::print("KEYBOARD INTERRUPT");
+
+  uint8_t scanCode = assembly::inb(0x60);
+  io::print("Scan code:", (uint16_t)scanCode);
+
+  core::pic::controller8259::acknowledge(0x1);
+  io::print("KEYBOARD INTERRUPT acknowledged");
+}
+
+[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
+{
+  io::print("TIMER INTERRUPT");
+  core::pic::controller8259::acknowledge(0x0);
+  io::print("TIMER INTERRUPT acknowledged");
+}
+
 extern "C" int kmain()
 {
   /** Old-Styled Initialization **/
   serial_configure(SERIAL_COM1_BASE, 1);
   //serial_write(SERIAL_COM1_BASE, str, 11);
-  //
+  
+  io::framebuffer::init();
 
   /** *Global* data**/
-  core::Interrupt interrupt;
-  core::pic::Controller8259 controller8259;
+  core::interrupt::init();
+  core::pic::controller8259::init();
 
-  /** Initialize **/
-  utils::Callback callback(&handler);
-  for(int i=0; i<256; ++i)
-    interrupt.installHandler(i, core::PrivillegeLevel::RING0, callback);
+  core::interrupt::install_handler(0x0D, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&general_pretection_fault_handler));
+  core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
+  core::interrupt::install_handler(0x21, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&keyboard_interrupt_handler));
+  core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
 
-  io::framebuffer::init();
+  core::pic::controller8259::clearMask(0); // Enable timer
+  core::pic::controller8259::clearMask(1); // Enable keyboard
+
   /** Logging **/
   //startup_log();
 
@@ -147,7 +180,10 @@ extern "C" int kmain()
   }
   
   /** Testing **/
-  asm("int $20");
+  asm("int $0x22");
+  asm("int $0x22");
+
+  asm("hlt");
 
   return 0;
 }

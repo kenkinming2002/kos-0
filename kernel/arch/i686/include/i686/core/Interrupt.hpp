@@ -5,9 +5,7 @@
 #include <stdint.h>
 #include <utility>
 
-#include <utils/Callback.hpp>
-
-namespace core::i686
+namespace core::interrupt
 {
   enum class InterruptType
   {
@@ -19,7 +17,7 @@ namespace core::i686
     TRAP_GATE_32      = 0xF
   };
 
-  using Handler = void(*)();
+  using Handler = uintptr_t;
 
   class IDTEntry
   {
@@ -51,47 +49,25 @@ namespace core::i686
     uint16_t m_size;
     uint32_t m_offset;
   }__attribute__((packed));
-}
 
-namespace core
-{
-  using Handler = void(*)();
+#ifdef __x86_64__
+  typedef unsigned long long int uword_t;
+#else
+  typedef unsigned int uword_t;
+#endif
 
-  class Interrupt
+  struct frame
   {
-  public:
-    Interrupt();
-
-  public:
-    int installHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler);
-    void reinstallHandler(int irqNumber, PrivillegeLevel privillegeLevel, utils::Callback irqHandler);
-    void uninstallHandler(int irqNumber);
-
-  private:
-    void enabled(int irqNumber, bool state);
-    bool enabled(int irqNumber) const;
-
-  private:
-    void initEntries();
-
-    template<size_t... Is>
-    void initEntries(std::index_sequence<Is...>);
-
-    template<size_t I>
-    void initEntry();
-
-    template<size_t I>
-    __attribute__((naked)) static void rawHandler();
-
-  public:
-    constexpr static size_t IDT_SIZE = 256;
-
-
-  //SUGGESTION: If needed m_irqHandlers can be converted to non-static member,
-  //by using a global pointer into the currently active Interrupt class.
-  //However, that will incur runtime cost, which may not be desired.
-  private:
-    i686::IDTEntry m_idtEntries[IDT_SIZE];
-    static utils::Callback m_irqHandlers[IDT_SIZE];
+    uint32_t ip;
+    uint32_t cs;
+    uint32_t flags;
+    uint32_t sp;
+    uint32_t ss;
   };
+
+  void init();
+
+  int install_handler(int irqNumber, PrivillegeLevel privillegeLevel, uintptr_t irqHandler);
+  void reinstall_handler(int irqNumber, PrivillegeLevel privillegeLevel, uintptr_t irqHandler);
+  void uninstall_handler(int irqNumber);
 }
