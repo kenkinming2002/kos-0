@@ -4,7 +4,7 @@
 
 tmux new-session -s 'debug' -d
 
-tmux split-pane -v socat -,echo=0 unix-connect:qemu-serial-socket,forever
+tmux split-pane -v socat - unix-connect:qemu-serial-socket,forever
 tmux split-pane -h socat -,echo=0,icanon=0 unix-connect:qemu-monitor-socket,forever
 
 tmux select-pane -L

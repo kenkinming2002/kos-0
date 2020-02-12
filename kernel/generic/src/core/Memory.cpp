@@ -49,7 +49,7 @@ namespace core
     m_pageFrameAllocator.deallocate(reinterpret_cast<core::memory::PageFrame<>*>(pages), n);
   }
 
-  Memory gMemory;
+  __attribute__((init_priority(65535))) Memory gMemory;
 }
 
 extern "C" int liballoc_lock()   { return 0; }
