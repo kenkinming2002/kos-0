@@ -6,6 +6,7 @@
 #include <optional>
 
 #include <grub/multiboot2.h>
+#include <boost/intrusive/slist.hpp>
 
 namespace core::memory
 {
@@ -23,7 +24,7 @@ namespace core::memory
    * Pointer to sequential PageFrame[count] at address 
    */
   template<size_t PAGE_SIZE = 4096u>
-  struct PageFrameRange
+  struct PageFrameRange : public boost::intrusive::slist_base_hook<>
   {
   public:
     constexpr static auto SIZE = PAGE_SIZE;
@@ -111,7 +112,6 @@ namespace core::memory
     // TODO: Consider replacing with smaller integer type
     size_t index = 0;
     size_t count = 0;
-
   };
 
   using PhysicalPageFrameRange = PageFrameRange<>;

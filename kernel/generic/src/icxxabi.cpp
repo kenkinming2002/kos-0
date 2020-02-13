@@ -97,6 +97,10 @@ void __cxa_finalize(void *f)
 		};
 	};
 };
+void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
+{
+  asm("hlt");
+}
  
 #ifdef __cplusplus
 };

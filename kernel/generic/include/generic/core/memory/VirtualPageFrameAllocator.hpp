@@ -5,29 +5,17 @@
 
 #include <optional>
 
-#include <containers/List.hpp>
-#include <allocators/CAllocator.hpp>
-
 namespace core::memory
 {
   class VirtualPageFrameAllocator
   {
   public:
+    // NOTE: There is no need for a destructor. All memory is reclaimed at
+    //       computer shutdown.
     VirtualPageFrameAllocator(std::byte* begin, std::byte* end);
-    ~VirtualPageFrameAllocator();
 
-  public:
-    /**
-     * get usable Virtual Memory Chunk
-     *
-     * @param n  Size of Virtual Memory Chunk to allocated in number of page
-     *
-     * @return Virtual Memory Chunk allocated
-     *
-     * @note Virtual Memory Chunk are not claimed until it is mapped and MAY be
-     *       returned again on the next call to getUsableVirtualPageFrameRange()
-     */
-    //std::optional<VirtualPageFrameRange> getUsableVirtualPageFrameRange(size_t n);
+    VirtualPageFrameAllocator(const VirtualPageFrameAllocator&) = delete;
+    VirtualPageFrameAllocator(VirtualPageFrameAllocator&&) = delete;
 
   public:
     std::optional<VirtualPageFrameRange> allocate(size_t count = 1u);
@@ -49,7 +37,7 @@ namespace core::memory
     std::byte* doFractalMapping(uintptr_t physicalAddress) const;
 
   private:
-    containers::ForwardList<VirtualPageFrameRange, allocators::CAllocator<VirtualPageFrameRange>> m_virtualPageFrameRanges;
+    boost::intrusive::slist<VirtualPageFrameRange> m_virtualPageFrameRanges;
   };
 }
 

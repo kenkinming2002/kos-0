@@ -12,24 +12,8 @@ namespace core::memory
 {
   VirtualPageFrameAllocator::VirtualPageFrameAllocator(std::byte* begin, std::byte* end)
   {
-    auto virtualPageFrameRange = VirtualPageFrameRange::from_pointers(begin, end);
-    m_virtualPageFrameRanges.push_front(virtualPageFrameRange);
-  }
-
-  VirtualPageFrameAllocator::~VirtualPageFrameAllocator()
-  {
-    // NOTE: There is a special problem here which lead to us having to write a
-    //       special destructor.
-    //
-    //       During singly-linked list destruction, memory are freed, which may
-    //       deallocates more page frame, which is UB as we are in singly-linked
-    //       list destructor and we CANNOT insert pages into the list anymore.
-    //
-    //       That's why all element of the singly-linked list need to be deallocated
-    //       before we enter the singly-linked destructor.
-    
-    while(!m_virtualPageFrameRanges.empty())
-      m_virtualPageFrameRanges.pop_front();
+    auto virtualPageFrameRange = new VirtualPageFrameRange(VirtualPageFrameRange::from_pointers(begin, end));
+    m_virtualPageFrameRanges.push_front(*virtualPageFrameRange);
   }
 
   std::optional<VirtualPageFrameRange> VirtualPageFrameAllocator::allocate(size_t count)
@@ -96,15 +80,22 @@ namespace core::memory
             inner_it!=outer_it; ++inner_before_it, ++inner_it)
         {
           if(!merge_to(*std::next(inner_it), *inner_it))
-            m_virtualPageFrameRanges.erase_after(inner_before_it);
+          {
+            m_virtualPageFrameRanges.erase_after_and_dispose(inner_before_it, [](auto* pageFrameRange){
+              delete pageFrameRange;
+            });
+          }
           else
             break;
         }
       }
 
       if(freedVirtualPageFrameRange < virtualPageFrameRange)
-        // Insert since merge is impossible
-        return (void)m_virtualPageFrameRanges.insert_after(outer_it, freedVirtualPageFrameRange);
+      {
+        auto heapFreedVirtualPageFrameRange = new VirtualPageFrameRange(freedVirtualPageFrameRange);
+        return (void)m_virtualPageFrameRanges.insert_after(outer_it, *heapFreedVirtualPageFrameRange);
+        return;
+      }
     }
   }
 

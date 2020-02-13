@@ -1,6 +1,6 @@
 #include <generic/core/memory/PageFrameAllocator.hpp>
 
-#include <io/Framebuffer.hpp>
+#include <io/Print.hpp>
 
 #include <utility>
 

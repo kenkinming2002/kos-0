@@ -26,6 +26,8 @@
 
 #include <utility>
 
+#include <liballoc_1_1.h>
+
 const char str[] = "Hello World!";
 
 #define virtual_address(addr) (void*)((char*)addr+0xC0000000)

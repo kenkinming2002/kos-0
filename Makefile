@@ -1,7 +1,9 @@
 include build/Begin.mk
 
 KOBJECTS = src/kmain.o liballoc/liballoc_1_1.o
-CPPFLAGS += -I liballoc/
+CPPFLAGS += -I liballoc/ \
+						-I boost/libs/intrusive/include/ -I boost/libs/config/include/ -I boost/libs/assert/include/ -I boost/libs/core/include/ \
+						-I boost/libs/move/include/ -I boost/libs/static_assert/include/
 include  $(KOBJECTS:.o=.d)
 OBJECTS += $(KOBJECTS)
 

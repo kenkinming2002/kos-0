@@ -13,6 +13,8 @@
 
 #include <cstddef>
 
+#include <liballoc_1_1.h>
+
 extern "C"
 {
   extern std::byte early_heap_start[];
