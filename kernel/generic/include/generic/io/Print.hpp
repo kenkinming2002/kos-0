@@ -1,7 +1,7 @@
 #pragma once
 
 #include <utils/Format.hpp>
-#include <io/Framebuffer.hpp>
+#include <generic/io/Framebuffer.hpp>
 
 #include <io/Serial.hpp>
 
@@ -17,8 +17,6 @@ namespace io
    * @return negative value upon error, number of characters printed otherwise.
    */
   int printf(const char* format, ...);
-
-  extern uint32_t lineNumber;
 
   template<typename... Args>
   int print(const Args&... args)
@@ -40,9 +38,8 @@ namespace io
       };
       (add(args), ...);
 
-      io::frameBuffer.write(io::FrameBuffer::Cursor{0u, lineNumber++}, buf,
-          BUF_SIZE-capacity, io::FrameBuffer::Color::WHITE,
-          io::FrameBuffer::Color::BLACK);
+      io::frameBuffer.write(buf, BUF_SIZE-capacity);
+      io::frameBuffer.write("\n", 1);
       io::com1Port.write(buf, BUF_SIZE-capacity);
       io::com1Port.write("\n", 1);
 

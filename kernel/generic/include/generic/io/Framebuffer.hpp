@@ -32,7 +32,7 @@ namespace io
 
     struct Cursor
     {
-      uint32_t x, y;
+      size_t x, y;
     };
 
     struct Settings
@@ -41,18 +41,25 @@ namespace io
 
   public:
     FrameBuffer();
-    FrameBuffer(uint16_t* cells, uint32_t width, uint32_t height);
+    FrameBuffer(uint16_t* cells, size_t width, size_t height);
 
   public:
-    int write(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
-    int write(FrameBuffer::Cursor cursor, const char* buf, uint32_t len, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
+    int put(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
+    int write(const char* buf, size_t count);
 
   public:
     int setCursor(FrameBuffer::Cursor cursor) const;
 
+  public:
+    size_t width() const { return m_width; }
+    size_t height() const { return m_height; }
+
+  private:
+    Cursor m_cursor;
+
   private:
     uint16_t* m_cells;
-    uint32_t  m_width, m_height;
+    size_t  m_width, m_height;
     FrameBuffer::Settings m_settings;
   };
 
