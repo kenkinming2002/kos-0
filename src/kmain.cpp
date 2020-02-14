@@ -1,28 +1,27 @@
-#include <io/Serial.hpp>
+#include <generic/io/Serial.hpp>
 
-#include <grub/multiboot2.h>
-#include <boot/lower_half.hpp>
+#include <generic/grub/multiboot2.h>
+#include <i686/boot/lower_half.hpp>
 
-#include <core/Interrupt.hpp>
-#include <core/Segmentation.hpp>
-#include <core/Paging.hpp>
+#include <i686/core/Interrupt.hpp>
+#include <i686/core/Paging.hpp>
 
 #include <iterator>
 
-#include <core/memory/PhysicalPageFrameAllocator.hpp>
-#include <core/memory/VirtualPageFrameAllocator.hpp>
-#include <core/memory/PageFrameAllocator.hpp>
+#include <generic/core/memory/PhysicalPageFrameAllocator.hpp>
+#include <generic/core/memory/VirtualPageFrameAllocator.hpp>
+#include <generic/core/memory/PageFrameAllocator.hpp>
 
 #include <generic/core/Memory.hpp>
 
 #include <intel/core/pic/8259.hpp>
 #include <intel/asm/io.hpp>
 
-#include <io/Framebuffer.hpp>
+#include <generic/io/Framebuffer.hpp>
 
-#include <utils/Format.hpp>
+#include <generic/utils/Format.hpp>
 
-#include <io/Print.hpp>
+#include <generic/io/Print.hpp>
 
 #include <utility>
 

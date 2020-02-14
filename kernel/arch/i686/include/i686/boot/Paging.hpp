@@ -11,7 +11,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <boot/boot.hpp>
+#include <i686/boot/boot.hpp>
 
 namespace boot
 {

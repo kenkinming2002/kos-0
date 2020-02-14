@@ -2,11 +2,10 @@
 
 #include <algorithm>
 #include <tuple>
-#include <utils/Utilities.hpp>
+#include <generic/utils/Utilities.hpp>
 
-#include <boot/lower_half.hpp>
-
-#include <io/Print.hpp>
+#include <i686/boot/lower_half.hpp>
+#include <generic/io/Print.hpp>
 
 namespace core::memory
 {

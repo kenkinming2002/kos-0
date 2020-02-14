@@ -1,10 +1,10 @@
 #pragma once
 
-#include <grub/multiboot2.h>
+#include <generic/grub/multiboot2.h>
 
 #include <cstddef>
 
-#include <boot/boot.hpp>
+#include <i686/boot/boot.hpp>
 #include <i686/boot/Segmentation.hpp>
 #include <i686/boot/Paging.hpp>
 

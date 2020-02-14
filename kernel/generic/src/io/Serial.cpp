@@ -1,7 +1,7 @@
 #include <generic/io/Serial.hpp>
 
 //TODO: Remove this non generic include
-#include <asm/io.hpp>
+#include <intel/asm/io.hpp>
 
 #if 0
 #include <generic/utils/cast.h>

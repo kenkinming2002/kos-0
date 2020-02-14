@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include <grub/multiboot2.h>
+#include <generic/grub/multiboot2.h>
 #include <boost/intrusive/slist.hpp>
 
 namespace core::memory

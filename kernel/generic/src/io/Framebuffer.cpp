@@ -3,7 +3,7 @@
 #include <generic/io/Serial.hpp>
 
 #include <intel/asm/io.hpp>
-#include <boot/lower_half.hpp>
+#include <i686/boot/lower_half.hpp>
 
 namespace
 {

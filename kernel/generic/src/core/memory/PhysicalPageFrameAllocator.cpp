@@ -1,7 +1,7 @@
 #include <generic/core/memory/PhysicalPageFrameAllocator.hpp>
 
-#include <boot/lower_half.hpp>
-#include <io/Print.hpp>
+#include <i686/boot/lower_half.hpp>
+#include <generic/io/Print.hpp>
 
 extern "C"
 {

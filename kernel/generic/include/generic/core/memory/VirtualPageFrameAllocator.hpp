@@ -1,7 +1,7 @@
 #pragma once
 
 #include <i686/core/Paging.hpp>
-#include <core/memory/PageFrame.hpp>
+#include <generic/core/memory/PageFrame.hpp>
 
 #include <optional>
 

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <core/Interrupt.hpp>
-
 #include <stdint.h>
 
 namespace core::pic::controller8259

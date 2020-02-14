@@ -1,6 +1,7 @@
 #include <intel/core/pic/8259.hpp>
 
 #include <intel/asm/io.hpp>
+#include <stddef.h>
 
 namespace core::pic::controller8259
 {

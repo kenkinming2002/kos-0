@@ -1,6 +1,6 @@
 #include <i686/boot/lower_half.hpp>
 
-#include <utils/Utilities.hpp>
+#include <generic/utils/Utilities.hpp>
 
 BootInformation bootInformation;
 

@@ -1,4 +1,4 @@
-#include <boot/Paging.hpp>
+#include <i686/boot/Paging.hpp>
 
 namespace boot
 {

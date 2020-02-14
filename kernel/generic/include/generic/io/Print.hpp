@@ -1,9 +1,9 @@
 #pragma once
 
-#include <utils/Format.hpp>
+#include <generic/utils/Format.hpp>
 #include <generic/io/Framebuffer.hpp>
 
-#include <io/Serial.hpp>
+#include <generic/io/Serial.hpp>
 
 #include <stddef.h>
 

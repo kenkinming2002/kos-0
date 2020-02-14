@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/memory/PageFrameAllocator.hpp>
+#include <generic/core/memory/PageFrameAllocator.hpp>
 
 namespace core
 {

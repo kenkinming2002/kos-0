@@ -1,7 +1,6 @@
 #pragma once
 
 #include <generic/core/PrivillegeLevel.hpp>
-#include <i686/core/Segmentation.hpp>
 
 #include <stdint.h>
 #include <stddef.h>

@@ -8,8 +8,6 @@ iso/**/*
 !/iso/boot/grub/
 !/iso/boot/grub/grub.cfg
 
-include/**
-
 program
 kernel.elf
 os.iso
