@@ -2,6 +2,10 @@
 
 #include <intel/asm/io.hpp>
 
+#include <generic/io/Print.hpp>
+#include <intel/core/pic/8259.hpp>
+#include <i686/core/Interrupt.hpp>
+
 namespace io
 {
   namespace
@@ -91,18 +95,8 @@ namespace io
     }
     else
       m_secondChannelFunctioning = false; // For consistency
-    // 8: Enable devices 
-    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_ENABLE_FIRST_DEVICE);
-    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_ENABLE_SECOND_DEVICE);
 
-    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_READ_CONTROLLER_CONFIGURATION);
-    configurationByte = this->readFromDataPort();
-    configurationByte |= 0x03; // Enable interrupts
-
-    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_WRITE_CONTROLLER_CONFIGURATION);
-    this->writeToDataPort(configurationByte); // Enable interupts and translation
-
-    // 9: Reset devices
+    // 8: Reset devices 
     this->writeToDataPort(PS2_DEVICE_COMMAND_RESET);
     if(this->readFromDataPort() == PS2_DEVICE_COMMAND_ACK)
       m_firstChannelFunctioning = (this->readFromDataPort() == PS2_DEVICE_RESET_SUCCESS);
@@ -111,13 +105,30 @@ namespace io
 
     if(m_secondChannelFunctioning)
     {
-      this->writeToCommandPort(PS2_CONTROLLER_COMMAND_WRITE_SECOND_PORT_INPUT);
+      //this->writeToCommandPort(PS2_CONTROLLER_COMMAND_WRITE_SECOND_PORT_INPUT);
       this->writeToDataPort(PS2_DEVICE_COMMAND_RESET);
       if(this->readFromDataPort() == PS2_DEVICE_COMMAND_ACK)
-        m_firstChannelFunctioning = (this->readFromDataPort() == PS2_DEVICE_RESET_SUCCESS);
+        m_secondChannelFunctioning = (this->readFromDataPort() == PS2_DEVICE_RESET_SUCCESS);
       else
-        m_firstChannelFunctioning = false;
+        m_secondChannelFunctioning = false;
     }
+
+   // 9: Enable interupts and translation
+   //    NOTE: This can only be enabled at the last moment. Otherwise, every
+   //          command which have a response byte will fire a interrupt calling
+   //          into our keyboard/mouse interrupt handler, and our response byte
+   //          will be lost.
+    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_READ_CONTROLLER_CONFIGURATION);
+    configurationByte = this->readFromDataPort();
+    configurationByte |= 0x03; // Enable interrupts
+
+    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_WRITE_CONTROLLER_CONFIGURATION);
+    this->writeToDataPort(configurationByte);
+
+    // 10: Enable devices
+    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_ENABLE_FIRST_DEVICE);
+    this->writeToCommandPort(PS2_CONTROLLER_COMMAND_ENABLE_SECOND_DEVICE);
+
   }
 
   void PS2Controller::writeToDataPort(uint8_t data)
@@ -144,5 +155,5 @@ namespace io
       assembly::inb(PS2_CONTROLLER_DATA_PORT);
   }
 
-  //PS2Controller ps2Controller;
+  __attribute__((init_priority(65534))) PS2Controller ps2Controller;
 }

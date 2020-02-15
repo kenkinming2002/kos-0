@@ -49,14 +49,11 @@ namespace core::interrupt
   namespace
   {
     constexpr static size_t IDT_SIZE = 256;
-    IDTEntry idtEntries[IDT_SIZE];
+    __attribute__((init_priority(101))) IDTEntry idtEntries[IDT_SIZE];
   }
 
   void init()
   {
-    for(auto& idtEntry : idtEntries)
-      idtEntry = IDTEntry(InterruptType::INTERRUPT_GATE_32, PrivillegeLevel::RING0, 0x08, 0);
-
     IDT(idtEntries).load();
   }
 

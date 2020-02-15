@@ -126,17 +126,6 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocat
   asm("hlt");
 }
 
-[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void keyboard_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
-{
-  io::print("KEYBOARD INTERRUPT");
-
-  uint8_t scanCode = assembly::inb(0x60);
-  io::print("Scan code:", (uint16_t)scanCode);
-
-  io::print("KEYBOARD INTERRUPT acknowledged");
-  core::pic::controller8259::acknowledge(0x1);
-}
-
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
   io::print("TIMER INTERRUPT");
@@ -152,30 +141,25 @@ extern "C" int kmain()
   //serial_write(SERIAL_COM1_BASE, str, 11);
   
   /** *Global* data**/
-  core::interrupt::init();
-  core::pic::controller8259::init();
-
   core::interrupt::install_handler(0x0D, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&general_pretection_fault_handler));
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
-  core::interrupt::install_handler(0x21, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&keyboard_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
 
-  core::pic::controller8259::clearMask(0); // Enable timer
-  core::pic::controller8259::clearMask(1); // Enable keyboard
+  //core::pic::controller8259::clearMask(0); // Enable timer
 
   /** Logging **/
-  for(int i=0; i<10000; ++i)
-  {
-    void* mem = kmalloc(40);
-    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
-  }
+  //for(int i=0; i<10000; ++i)
+  //{
+  //  void* mem = kmalloc(40);
+  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
+  //}
 
-  for(int i=0; i<10000; ++i)
-  {
-    void* mem = kmalloc(4);
-    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
-    kfree(mem);
-  }
+  //for(int i=0; i<10000; ++i)
+  //{
+  //  void* mem = kmalloc(4);
+  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
+  //  kfree(mem);
+  //}
   
   /** Testing **/
   asm("int $0x22");
