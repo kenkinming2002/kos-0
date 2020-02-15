@@ -133,15 +133,16 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocat
   uint8_t scanCode = assembly::inb(0x60);
   io::print("Scan code:", (uint16_t)scanCode);
 
-  core::pic::controller8259::acknowledge(0x1);
   io::print("KEYBOARD INTERRUPT acknowledged");
+  core::pic::controller8259::acknowledge(0x1);
 }
 
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
   io::print("TIMER INTERRUPT");
-  core::pic::controller8259::acknowledge(0x0);
+
   io::print("TIMER INTERRUPT acknowledged");
+  core::pic::controller8259::acknowledge(0x0);
 }
 
 extern "C" int kmain()
@@ -163,8 +164,6 @@ extern "C" int kmain()
   core::pic::controller8259::clearMask(1); // Enable keyboard
 
   /** Logging **/
-  //startup_log();
-
   for(int i=0; i<10000; ++i)
   {
     void* mem = kmalloc(40);
@@ -182,7 +181,8 @@ extern "C" int kmain()
   asm("int $0x22");
   asm("int $0x22");
 
-  asm("hlt");
+  while(true)
+    asm("hlt");
 
   return 0;
 }
