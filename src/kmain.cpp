@@ -18,6 +18,7 @@
 #include <intel/asm/io.hpp>
 
 #include <generic/io/Framebuffer.hpp>
+#include <generic/io/PS2Keyboard.hpp>
 
 #include <generic/utils/Format.hpp>
 
@@ -160,6 +161,13 @@ extern "C" int kmain()
   //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
   //  kfree(mem);
   //}
+  //
+  
+  for(;;)
+  {
+    if(auto res = io::ps2Keyboard.poll())
+      io::print(static_cast<uint16_t>(*res));
+  }
   
   /** Testing **/
   asm("int $0x22");
