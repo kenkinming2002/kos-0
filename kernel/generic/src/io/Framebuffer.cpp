@@ -54,6 +54,13 @@ namespace io
     return 0;
   }
 
+  void FrameBuffer::scroll()
+  {
+    --m_cursor.y;
+    std::copy(&m_cells[m_width], &m_cells[m_width*m_height], m_cells);
+    std::fill(&m_cells[m_width*(m_height-1)], &m_cells[m_width*m_height], 0);
+  }
+
   int FrameBuffer::write(const char* buf, size_t count)
   {
     for(size_t i=0; i<count; ++i)
@@ -67,7 +74,7 @@ namespace io
       if(m_cursor.x == m_width)
         m_cursor = {0, m_cursor.y+1};
       if(m_cursor.y == m_height)
-        return i+1; // TODO: implement scrolling
+        this->scroll();
 
       put(m_cursor, buf[i], FrameBuffer::Color::WHITE, FrameBuffer::Color::BLACK);
       ++m_cursor.x;

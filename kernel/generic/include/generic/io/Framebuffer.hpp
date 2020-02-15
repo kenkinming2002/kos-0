@@ -45,6 +45,7 @@ namespace io
 
   public:
     int put(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
+    void scroll();
     int write(const char* buf, size_t count);
 
   public:
