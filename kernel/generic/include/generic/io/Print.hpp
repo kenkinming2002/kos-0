@@ -39,9 +39,7 @@ namespace io
       (add(args), ...);
 
       io::frameBuffer.write(buf, BUF_SIZE-capacity);
-      io::frameBuffer.write("\n", 1);
       io::com1Port.write(buf, BUF_SIZE-capacity);
-      io::com1Port.write("\n", 1);
 
       return BUF_SIZE-capacity;
     }

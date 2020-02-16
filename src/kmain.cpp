@@ -129,9 +129,9 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocat
 
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
-  io::print("TIMER INTERRUPT");
+  io::print("TIMER INTERRUPT\n");
 
-  io::print("TIMER INTERRUPT acknowledged");
+  io::print("TIMER INTERRUPT acknowledged\n");
   core::pic::controller8259::acknowledge(0x0);
 }
 
@@ -166,7 +166,20 @@ extern "C" int kmain()
   for(;;)
   {
     if(auto res = io::ps2Keyboard.poll())
-      io::print(static_cast<uint16_t>(*res));
+    {
+      switch(res->keyState)
+      {
+      case io::PS2Keyboard::KeyState::PRESSED:
+        if(auto c = res->toAscii())
+        {
+          io::print(*c);
+          break;
+        }
+      case io::PS2Keyboard::KeyState::RELEASED:
+        //io::print("Key Released ", static_cast<uint16_t>(res->keyCode));
+        break;
+      }
+    }
   }
   
   /** Testing **/

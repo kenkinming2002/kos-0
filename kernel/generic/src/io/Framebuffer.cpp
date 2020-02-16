@@ -65,20 +65,34 @@ namespace io
   {
     for(size_t i=0; i<count; ++i)
     {
-      if(buf[i] == '\n')
+      switch(buf[i])
       {
-        m_cursor = {0, m_cursor.y+1};
-        continue;
+      case '\n':
+        ++m_cursor.y;
+        break;
+      case '\r':
+        m_cursor.x = 0;
+        break;
+      case '\b':
+        if(m_cursor.x!=0)
+        {
+          --m_cursor.x;
+          put(m_cursor, ' ', FrameBuffer::Color::WHITE, FrameBuffer::Color::BLACK);
+        }
+        break;
+      default:
+        if(m_cursor.x == m_width)
+          m_cursor = {0, m_cursor.y+1};
+
+        while(m_cursor.y >= m_height)
+          this->scroll(); // NOTE: Maybe optimize this
+
+        put(m_cursor, buf[i], FrameBuffer::Color::WHITE, FrameBuffer::Color::BLACK);
+        ++m_cursor.x;
       }
-
-      if(m_cursor.x == m_width)
-        m_cursor = {0, m_cursor.y+1};
-      if(m_cursor.y == m_height)
-        this->scroll();
-
-      put(m_cursor, buf[i], FrameBuffer::Color::WHITE, FrameBuffer::Color::BLACK);
-      ++m_cursor.x;
     }
+
+    this->setCursor(m_cursor);
 
     return count;
   }
