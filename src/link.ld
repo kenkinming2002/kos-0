@@ -12,17 +12,17 @@ SECTIONS {
   .text ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
   {
     KEEP(*(.multiboot2_header))
-    *(.text)
+    *(.text.*)
   }
 
   .rodata ALIGN(0x1000) : AT(ADDR(.rodata)-0xC0000000)
   {
-    *(.rodata)
+    *(.rodata.*)
   }
 
   .data ALIGN(0x1000) : AT(ADDR(.data)-0xC0000000)
   {
-    *(.data)
+    *(.data.*)
   }
 
   .ctors : AT(ADDR(.ctors)-0xC0000000)
@@ -60,7 +60,7 @@ SECTIONS {
   .bss ALIGN(0x1000) (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
   {
     *(COMMON)
-    *(.bss)
+    *(.bss.*)
   }
 
   early_heap_start = .;
@@ -80,21 +80,21 @@ SECTIONS {
 
   .boot.text ALIGN(0x1000) :
   {
-    *(.text.boot)
+    *(.text.boot.*)
   }
 
   .boot.rodata ALIGN(0x1000) :
   {
-    *(.text.rodata)
+    *(.rodata.boot.*)
   }
 
   .boot.data ALIGN(0x1000) :
   {
-    *(.text.data)
+    *(.data.boot.*)
   }
 
   .boot.bss ALIGN(0x1000) (NOLOAD) : 
   {
-    *(.text.data)
+    *(.bss.boot.*)
   }
 }

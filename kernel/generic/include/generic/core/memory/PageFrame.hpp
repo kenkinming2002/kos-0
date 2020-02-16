@@ -24,7 +24,7 @@ namespace core::memory
    * Pointer to sequential PageFrame[count] at address 
    */
   template<size_t PAGE_SIZE = 4096u>
-  struct PageFrameRange : public boost::intrusive::slist_base_hook<>
+  struct PageFrameRange : public boost::intrusive::slist_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
   {
   public:
     constexpr static auto SIZE = PAGE_SIZE;
