@@ -68,8 +68,10 @@ namespace io
       switch(buf[i])
       {
       case '\n':
-        ++m_cursor.y;
+      {
+        m_cursor = {0, m_cursor.y+1};
         break;
+      }
       case '\r':
         m_cursor.x = 0;
         break;

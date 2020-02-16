@@ -117,10 +117,10 @@ namespace io
       KEY_SPACE = ' ',
       KEY_TAB = '\t',
       KEY_BACKSPACE = '\b',
+      KEY_ENTER = '\n', // Enter maps to \r\n
 
       // Keys without ascii value
-      KEY_ENTER = 0x80, // Enter maps to \r\n
-      KEY_LALT,
+      KEY_LALT = 0x80,
       KEY_RALT,
       KEY_LSHIFT,
       KEY_RSHIFT,
@@ -185,37 +185,27 @@ namespace io
       Modifier modifier;
 
       // Note: this is not thread-safe and not reentrant
-      std::optional<const char*> toAscii() const
+      std::optional<char> toAscii() const
       {
-        static char buf[2] = {'\0', '\0'};
-
         if(static_cast<uint8_t>(keyCode)<0x80)
-        {
-          buf[0] = static_cast<uint8_t>(keyCode);
-          return buf;
-        }
+          return static_cast<uint8_t>(keyCode);
 
         if(static_cast<uint8_t>(keyCode) >= static_cast<uint8_t>(KeyCode::KEY_KEYPAD_0) &&
            static_cast<uint8_t>(keyCode) <= static_cast<uint8_t>(KeyCode::KEY_KEYPAD_9))
-        {
-          buf[0] = '0' + (static_cast<uint8_t>(keyCode) - static_cast<uint8_t>(KeyCode::KEY_KEYPAD_0));
-          return buf;
-        }
+          return '0' + (static_cast<uint8_t>(keyCode) - static_cast<uint8_t>(KeyCode::KEY_KEYPAD_0));
 
         switch(keyCode)
         {
-        case KeyCode::KEY_ENTER:
-          return "\r\n";
         case KeyCode::KEY_KEYPAD_PLUS:
-          return "+";
+          return '+';
         case KeyCode::KEY_KEYPAD_MINUS:
-          return "-";
+          return '-';
         case KeyCode::KEY_KEYPAD_MULTIPLY:
-          return "*";
+          return '*';
         case KeyCode::KEY_KEYPAD_DIVIDE:
-          return "/";
+          return '/';
         case KeyCode::KEY_KEYPAD_DOT:
-          return ".";
+          return '.';
         default:
           return std::nullopt;
         }

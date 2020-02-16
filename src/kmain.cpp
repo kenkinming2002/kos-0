@@ -172,7 +172,8 @@ extern "C" int kmain()
       case io::PS2Keyboard::KeyState::PRESSED:
         if(auto c = res->toAscii())
         {
-          io::print(*c);
+          char str[] = {*c, '\0'};
+          io::print(str);
           break;
         }
       case io::PS2Keyboard::KeyState::RELEASED:
