@@ -17,8 +17,8 @@ namespace core::memory
 
   std::optional<VirtualPageFrameRange> VirtualPageFrameAllocator::allocate(size_t count)
   {
-    io::print(__PRETTY_FUNCTION__);
-    io::print("Requested Page Frame Count:", count);
+    io::print("DEBUG: Allocating Virtual Page Frames\n");
+    io::print("  Requested Page Frame Count: ", count, "\n");
 
     for(VirtualPageFrameRange& virtualPageFrameRange : m_virtualPageFrameRanges)
     {
@@ -46,13 +46,12 @@ namespace core::memory
         //       Following is a counter for those who try to implement freeing
         //       of zero-sized page and either failed or given up: 1
 
-        io::print("Allocated Virtual Frame - index:", allocatedVirtualPageFrameRange.index, " count:", allocatedVirtualPageFrameRange.count);
-        io::print("-----FUNCTION EXIT-----");
+        io::print("  Allocated Virtual Frame: ", allocatedVirtualPageFrameRange.begin_index() * VirtualPageFrameRange::SIZE, "-", allocatedVirtualPageFrameRange.end_index() * VirtualPageFrameRange::SIZE, "\n");
         return allocatedVirtualPageFrameRange;
       }
     }
     
-    io::print("-----FUNCTION EXIT-----");
+    io::print("  ERROR: No virtual frame available\n");
     return std::nullopt;
   }
 

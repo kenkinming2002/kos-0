@@ -14,8 +14,6 @@ namespace core::memory
 
   PageFrame<>* PageFrameAllocator::allocate(size_t n)
   {
-    io::print(__PRETTY_FUNCTION__);
-
     std::optional<VirtualPageFrameRange> virtualPageFrameRange  = m_virtualPageFrameAllocator.allocate(n);
     if(!virtualPageFrameRange)
       return nullptr;
@@ -31,9 +29,6 @@ namespace core::memory
         auto pageTablePhysicalMemory = m_physicalPageFrameAllocator.allocate(1);
         if(!pageTablePhysicalMemory)
         {
-          io::print("Failed to Allocate Memory for Page Table");
-          io::print("-----FUNCTION EXIT-----");
-
           // Cleanup
           m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
           m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
@@ -43,9 +38,6 @@ namespace core::memory
         if(m_virtualPageFrameAllocator.map(*physicalPageFrameRange, *virtualPageFrameRange, *pageTablePhysicalMemory) != 
             core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS)
         {
-          io::print("Failed to map");
-          io::print("-----FUNCTION EXIT-----");
-
           // Cleanup
           m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
           m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
@@ -57,9 +49,6 @@ namespace core::memory
       }
       case core::memory::VirtualPageFrameAllocator::MapResult::ERR_INVALID_PAGE_TABLE:
       {
-        io::print("ERR_INVALID_PAGE_TABLE");
-        io::print("-----FUNCTION EXIT-----");
-
         // Cleanup
         m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
         m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
@@ -69,8 +58,6 @@ namespace core::memory
       case core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS:
         break;
     }
-    io::print("PageFrames: ", reinterpret_cast<uintptr_t>(virtualPageFrameRange->toPageFrames()));
-    io::print("-----FUNCTION EXIT-----");
     return virtualPageFrameRange->toPageFrames();
   }
 

@@ -149,11 +149,14 @@ extern "C" int kmain()
   //core::pic::controller8259::clearMask(0); // Enable timer
 
   /** Logging **/
-  //for(int i=0; i<10000; ++i)
-  //{
-  //  void* mem = kmalloc(40);
-  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
-  //}
+  for(int i=0; i<6862; ++i)
+  {
+    void* mem = kmalloc(40);
+    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
+  }
+
+  void* mem = kmalloc(40);
+  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
 
   //for(int i=0; i<10000; ++i)
   //{
@@ -162,6 +165,9 @@ extern "C" int kmain()
   //  kfree(mem);
   //}
   //
+  while(true)
+    asm("hlt");
+  
   
   for(;;)
   {

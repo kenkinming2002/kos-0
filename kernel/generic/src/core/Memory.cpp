@@ -15,11 +15,11 @@
 
 #include <liballoc_1_1.h>
 
-extern "C"
-{
-  extern std::byte early_heap_start[];
-  extern std::byte early_heap_end[];
-}
+//extern "C"
+//{
+//  extern std::byte early_heap_start[];
+//  extern std::byte early_heap_end[];
+//}
 
 //namespace core
 //{
@@ -29,6 +29,7 @@ extern "C"
 namespace
 {
   bool pageFrameAllocatorInitialized = false;
+  __attribute__((aligned(4096)))std::byte early_heap[0x10000];
 }
 
 namespace core
@@ -63,7 +64,7 @@ extern "C" void* liballoc_alloc(size_t n)
   if(!late_allocation)
   {
     late_allocation = true;
-    return early_heap_start;
+    return early_heap;
   }
   else
   {

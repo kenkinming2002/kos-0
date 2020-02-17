@@ -19,10 +19,11 @@ namespace core::memory
 {
   PhysicalPageFrameAllocator::PhysicalPageFrameAllocator(struct multiboot_mmap_entry* mmap_entries, size_t length) 
   {
-    io::print(__PRETTY_FUNCTION__);
-
+    io::print("DEBUG: Initializing Physical Memory Manager\n");
     auto kernelPageFrameRange = PhysicalPageFrameRange::from_address(reinterpret_cast<uintptr_t>(kernel_physical_start), 
                                                                kernel_physical_end - kernel_physical_start);
+    io::print("  Kernel physical address range: ", reinterpret_cast<uintptr_t>(kernel_physical_start), "-", reinterpret_cast<uintptr_t>(kernel_physical_end), "\n");
+    io::print("  Usable physical address ranges(including address range):\n");
 
     auto it = m_physicalPageFrameRanges.before_begin();
     for(size_t i=0; i<length; ++i)
@@ -30,6 +31,7 @@ namespace core::memory
       struct multiboot_mmap_entry& mmap_entry = mmap_entries[i];
       if(mmap_entry.type == MULTIBOOT_MEMORY_AVAILABLE)
       {
+        io::print("   - ", mmap_entry.addr, "-", mmap_entry.addr + mmap_entry.len, "\n");
         auto [first, second] = PhysicalPageFrameRange::from_multiboot_entry(mmap_entry).carve(kernelPageFrameRange);
         {
           it = m_physicalPageFrameRanges.insert_after(it, *(new PhysicalPageFrameRange(first)));
@@ -42,8 +44,8 @@ namespace core::memory
 
   std::optional<PhysicalPageFrameRange> PhysicalPageFrameAllocator::allocate(size_t count)
   {
-    io::print(__PRETTY_FUNCTION__);
-    io::print("Requested Page Frame Count:", count);
+    io::print("DEBUG: Allocating Physical Page Frames\n");
+    io::print("  Requested Page Frame Count: ", count, "\n");
 
     for(PhysicalPageFrameRange& physicalPageFrameRange : m_physicalPageFrameRanges)
     {
@@ -71,13 +73,12 @@ namespace core::memory
         //       Following is a counter for those who try to implement freeing
         //       of zero-sized page and either failed or given up: 1
 
-        io::print("Allocated Physical Frame - index:", allocatedPhysicalPageFrameRange.index, " count:", allocatedPhysicalPageFrameRange.count);
-        io::print("-----FUNCTION EXIT-----");
+        io::print("  Allocated Physical Frame: ", allocatedPhysicalPageFrameRange.begin_index() * PhysicalPageFrameRange::SIZE, "-", allocatedPhysicalPageFrameRange.end_index() * PhysicalPageFrameRange::SIZE, "\n");
         return allocatedPhysicalPageFrameRange;
       }
     }
     
-    io::print("-----FUNCTION EXIT-----");
+    io::print("  ERROR: No physical frame available\n");
     return std::nullopt;
   }
 

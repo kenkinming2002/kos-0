@@ -62,13 +62,7 @@ SECTIONS {
     *(COMMON)
     *(.bss.*)
   }
-
-  early_heap_start = .;
-  .early_heap ALIGN(0x1000) (NOLOAD) : AT(ADDR(.early_heap)-0xC0000000) 
-  {
-    . = . + 0x10000;
-  }
-  early_heap_end = .;
+  . = ALIGN(4096);
 
   kernel_virtual_end = .;
   kernel_physical_end = . - 0xC0000000;
