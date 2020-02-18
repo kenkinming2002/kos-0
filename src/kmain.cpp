@@ -34,8 +34,8 @@ const char str[] = "Hello World!";
 
 extern "C" void abort()
 {
-  asm("hlt");
-  __builtin_unreachable();
+  for(;;)
+    asm("hlt");
 }
 
 void handler()
