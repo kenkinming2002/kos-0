@@ -121,12 +121,6 @@ void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocat
   io::print("Interrupt START");
 }
 
-[[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void general_pretection_fault_handler([[maybe_unused]]core::interrupt::frame* frame, core::interrupt::uword_t error_code)
-{
-  io::print("GPF START ", (uint32_t)error_code); 
-  asm("hlt");
-}
-
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
   io::print("TIMER INTERRUPT\n");
@@ -142,21 +136,20 @@ extern "C" int kmain()
   //serial_write(SERIAL_COM1_BASE, str, 11);
   
   /** *Global* data**/
-  core::interrupt::install_handler(0x0D, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&general_pretection_fault_handler));
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
 
   //core::pic::controller8259::clearMask(0); // Enable timer
 
   /** Logging **/
-  for(int i=0; i<6862; ++i)
-  {
-    void* mem = kmalloc(40);
-    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
-  }
+  //for(int i=0; i<6862; ++i)
+  //{
+  //  void* mem = kmalloc(40);
+  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
+  //}
 
-  void* mem = kmalloc(40);
-  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
+  //void* mem = kmalloc(40);
+  //io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
 
   //for(int i=0; i<10000; ++i)
   //{
@@ -165,9 +158,6 @@ extern "C" int kmain()
   //  kfree(mem);
   //}
   //
-  while(true)
-    asm("hlt");
-  
   
   for(;;)
   {
