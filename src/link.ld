@@ -60,7 +60,7 @@ SECTIONS {
   .bss ALIGN(0x1000) (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
   {
     *(COMMON)
-    *(.bss.*)
+    *(.bss)
   }
   . = ALIGN(4096);
 
