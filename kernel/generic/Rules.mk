@@ -6,7 +6,6 @@ generic_OBJECTS += $(generic_cwd)/src/io/PS2Controller.o $(generic_cwd)/src/io/P
 generic_OBJECTS += $(generic_cwd)/src/core/memory/PhysicalPageFrameAllocator.o $(generic_cwd)/src/core/memory/VirtualPageFrameAllocator.o \
 									 $(generic_cwd)/src/core/memory/PageFrameAllocator.o  $(generic_cwd)/src/core/Memory.o
 generic_OBJECTS += $(generic_cwd)/src/stdlib/string.o
-generic_OBJECTS += $(generic_cwd)/src/utils/Format.o
 
 ICXXABI_OBJECT = $(generic_cwd)/src/icxxabi.o
 

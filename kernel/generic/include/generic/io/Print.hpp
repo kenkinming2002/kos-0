@@ -1,10 +1,5 @@
 #pragma once
 
-#include <generic/utils/Format.hpp>
-#include <generic/io/Framebuffer.hpp>
-
-#include <generic/io/Serial.hpp>
-
 #include <stddef.h>
 
 namespace io
@@ -18,30 +13,47 @@ namespace io
    */
   int printf(const char* format, ...);
 
-  template<typename... Args>
-  int print(const Args&... args)
+  /***********************************
+   * Integer Formatting and Printing *
+   ***********************************/
+  enum class Base
   {
-    constexpr static size_t BUF_SIZE = 256;
+    BIN = 2,
+    DEC = 10,
+    OCT = 8,
+    HEX = 16
+  };
 
-    char buf[BUF_SIZE];
-    {
-      char* cur = buf;
-      size_t capacity = BUF_SIZE;
+  template<typename T, Base base = Base::HEX>
+  const char* toString(T value);
+  template<typename T, Base base = Base::HEX>
+  int printSingle(T value);
 
-      auto add = [&](const auto& arg){
-        auto result = utils::format(cur, capacity, arg);
-        if(result!=-1)
-        {
-          cur+=result;
-          capacity-=result;
-        }
-      };
-      (add(args), ...);
+  /*******************
+   * String Printing *
+   *******************/
+  int printSingle(const char* str);
+  int printSingle(const char* str, size_t len);
 
-      io::frameBuffer.write(buf, BUF_SIZE-capacity);
-      io::com1Port.write(buf, BUF_SIZE-capacity);
+  template<size_t N>
+  int printSingle(const char(&str)[N])
+  {
+    return printSingle(str, N);
+  }
 
-      return BUF_SIZE-capacity;
-    }
+  template<typename Arg>
+  inline int print(const Arg& arg)
+  {
+    return printSingle(arg);
+  }
+
+  template<typename Arg, typename... Args>
+  inline int print(const Arg& arg, const Args&... args)
+  {
+    int res = printSingle(arg);
+    if(res==-1)
+      return -1;
+    else
+      return res + print(args...);
   }
 }

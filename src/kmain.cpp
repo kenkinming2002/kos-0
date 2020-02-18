@@ -20,8 +20,6 @@
 #include <generic/io/Framebuffer.hpp>
 #include <generic/io/PS2Keyboard.hpp>
 
-#include <generic/utils/Format.hpp>
-
 #include <generic/io/Print.hpp>
 
 #include <utility>
@@ -49,13 +47,13 @@ void startup_log()
 {
   // Framebuffer
   io::print("FRAMEBUFFER:", 
-    ",  addr:", (uint64_t)bootInformation.framebuffer.common.framebuffer_addr,
+    ",  addr:", (uint32_t)bootInformation.framebuffer.common.framebuffer_addr,
     ",  width:", (uint32_t)bootInformation.framebuffer.common.framebuffer_width,
     ",  height:", (uint32_t)bootInformation.framebuffer.common.framebuffer_height);
 
   io::print("MEMORY MAP---", " version:", (uint16_t)bootInformation.mmap.entry_version, "  entries:");
   for(size_t i=0 ; i<bootInformation.mmap_entries_count; ++i)
-    io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint64_t)bootInformation.mmap_entries[i].addr, ", len:", (uint64_t)bootInformation.mmap_entries[i].len);
+    io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint32_t)bootInformation.mmap_entries[i].addr, ", len:", (uint32_t)bootInformation.mmap_entries[i].len);
 }
 
 void test_physicalPageFrameAllocator(core::memory::PhysicalPageFrameAllocator& physicalPageFrameAllocator)
