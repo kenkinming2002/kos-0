@@ -4,10 +4,10 @@
 
 BootInformation bootInformation;
 
-__attribute__((aligned(4096))) std::byte bootPageDirectory[sizeof(boot::PageDirectory)];
-__attribute__((aligned(4096))) std::byte bootPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
+__attribute__((aligned(4096))) std::byte kernelPageDirectory[sizeof(boot::PageDirectory)];
+__attribute__((aligned(4096))) std::byte kernelPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
 
-__attribute__((aligned(4096))) std::byte bootGDTEntries[sizeof(boot::GDTEntry) * GDT_SIZE];
+__attribute__((aligned(4096))) std::byte kernelGDTEntries[sizeof(boot::GDTEntry) * GDT_SIZE];
 
 // Have to work around a weird quark of gcc that section attributes is silently
 // ignored for template function
@@ -50,7 +50,7 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
   }
 
   // 2: set up segmentation
-  auto& GDTEntries = utils::deref_cast<boot::GDTEntry[GDT_SIZE]>(to_physical(bootGDTEntries));
+  auto& GDTEntries = utils::deref_cast<boot::GDTEntry[GDT_SIZE]>(to_physical(kernelGDTEntries));
   // None segment in the beginning
   GDTEntries[0] = boot::GDTEntry(0, 0,          boot::PrivillegeLevel::RING0, boot::SegmentType::NONE_SEGMENT);
 
@@ -64,8 +64,8 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
   boot::GDT(GDTEntries, GDT_SIZE).load();
 
   // 3: Setup Paging
-  auto& pageDirectory = utils::deref_cast<boot::PageDirectory>(to_physical(bootPageDirectory));
-  auto& pageTables    = utils::deref_cast<boot::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(bootPageTable));
+  auto& pageDirectory = utils::deref_cast<boot::PageDirectory>(to_physical(kernelPageDirectory));
+  auto& pageTables    = utils::deref_cast<boot::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(kernelPageTable));
   for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)
   {
     auto& pageTable = pageTables[pageDirectoryIndex];

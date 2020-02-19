@@ -25,8 +25,8 @@ extern BootInformation bootInformation;
 
 //  TODO: set this depending on kernel size
 constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
-extern std::byte bootPageDirectory[sizeof(boot::PageDirectory)];
-extern std::byte bootPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
+extern std::byte kernelPageDirectory[sizeof(boot::PageDirectory)];
+extern std::byte kernelPageTable[sizeof(boot::PageTable) * BOOT_PAGE_TABLE_COUNT];
 
 constexpr static size_t GDT_SIZE = 5;
 extern std::byte bootGDTEntries[sizeof(boot::GDTEntry) * GDT_SIZE];

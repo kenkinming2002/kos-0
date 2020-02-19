@@ -1,7 +1,7 @@
 #pragma once
 
 #include <i686/core/Paging.hpp>
-#include <generic/core/memory/PageFrame.hpp>
+#include <generic/core/memory/MemoryRegion.hpp>
 
 #include <optional>
 
@@ -38,7 +38,7 @@ namespace core::memory
     MemoryRegion unmap(MemoryRegion virtualMemoryRegion) const;
 
   private:
-    std::byte* doFractalMapping(uintptr_t physicalAddress) const;
+    virtaddr_t doFractalMapping(phyaddr_t physicalAddress) const;
 
   private:
     boost::intrusive::slist<MemoryRegion> m_memoryRegions;

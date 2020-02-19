@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include <generic/core/memory/PageFrame.hpp>
+#include <generic/core/memory/MemoryRegion.hpp>
 
 namespace core::memory
 {

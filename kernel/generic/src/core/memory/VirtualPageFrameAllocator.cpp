@@ -84,7 +84,7 @@ namespace core::memory
     auto pageDirectoryIndex = virtualMemoryRegion.beginIndex() / PAGE_TABLE_ENTRY_COUNT;
     auto pageTableIndex     = virtualMemoryRegion.beginIndex() % PAGE_TABLE_ENTRY_COUNT;
 
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(kernelPageDirectory);
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
 
     // 2: Obtain physical Address to target page table
@@ -147,7 +147,7 @@ namespace core::memory
     auto pageDirectoryIndex = virtualMemoryRegion.beginIndex() / PAGE_TABLE_ENTRY_COUNT;
     auto pageTableIndex     = virtualMemoryRegion.beginIndex() % PAGE_TABLE_ENTRY_COUNT;
 
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(kernelPageDirectory);
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
 
     if(!pageDirectoryEntry.present())
@@ -188,9 +188,9 @@ namespace core::memory
     return MemoryRegion(physicalAddressMapped / PAGE_SIZE, virtualMemoryRegion.count(), MemoryRegion::index_length_tag);
   }
 
-  std::byte* VirtualPageFrameAllocator::doFractalMapping(uintptr_t physicalAddress) const
+  virtaddr_t VirtualPageFrameAllocator::doFractalMapping(phyaddr_t physicalAddress) const
   {
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(kernelPageDirectory);
 
     // Write to last Page Directory
     uintptr_t alignedPhysicalAddress = physicalAddress & 0xFFC00000; // Aligned to 4MiB mark
@@ -216,7 +216,7 @@ namespace core::memory
     );
 
     // Add back the discarded bit due to 4Mib alignment
-    return reinterpret_cast<std::byte*>(fractalMappingAddress + (physicalAddress & 0x003FFFFF));
+    return fractalMappingAddress + (physicalAddress & 0x003FFFFF);
   }
 }
 
