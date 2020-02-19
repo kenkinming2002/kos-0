@@ -4,7 +4,7 @@ CFLAGS += -ffreestanding -fno-exceptions -mgeneral-regs-only
 
 CXX = i686-elf-g++
 CXXFLAGS ?= -g -Og
-CXXFLAGS += -std=c++2a -ffreestanding -fno-exceptions -fno-inline -Wall -Wextra -mgeneral-regs-only
+CXXFLAGS += -std=c++2a -ffreestanding -fno-exceptions -Wall -Wextra -mgeneral-regs-only
 
 CPPFLAGS += -DARCHITECTURE_i686
 
