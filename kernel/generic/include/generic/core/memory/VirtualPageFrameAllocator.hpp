@@ -18,8 +18,8 @@ namespace core::memory
     VirtualPageFrameAllocator(VirtualPageFrameAllocator&&) = delete;
 
   public:
-    std::optional<VirtualPageFrameRange> allocate(size_t count = 1u);
-    void deallocate(VirtualPageFrameRange freedVirtualPageFrameRange);
+    std::optional<MemoryRegion> allocate(size_t count = 1u);
+    void deallocate(MemoryRegion freedMemoryRegion);
 
   public:
     enum class MapResult
@@ -29,15 +29,19 @@ namespace core::memory
       ERR_INVALID_PAGE_TABLE = -2
     };
 
-    MapResult map(PhysicalPageFrameRange physicalPageFrameRange, VirtualPageFrameRange virtualPageFrameRange, 
-        std::optional<VirtualPageFrameRange> pageTablePhysicalMemory = std::nullopt) const;
-    std::optional<PhysicalPageFrameRange> unmap(VirtualPageFrameRange virtualPageFrameRange) const;
+    MapResult map(MemoryRegion physicalMemoryRegion, MemoryRegion virtualMemoryRegion, void* pageTablePhysicalMemory = nullptr) const;
+    /*
+     * Unmap a virtual memory region
+     *
+     * @return physical memory region previously mapped to virtualMemoryRegion
+     */
+    MemoryRegion unmap(MemoryRegion virtualMemoryRegion) const;
 
   private:
     std::byte* doFractalMapping(uintptr_t physicalAddress) const;
 
   private:
-    boost::intrusive::slist<VirtualPageFrameRange> m_virtualPageFrameRanges;
+    boost::intrusive::slist<MemoryRegion> m_memoryRegions;
   };
 }
 

@@ -49,7 +49,7 @@ namespace core
 
   void Memory::deallocate(void* pages, size_t n)
   {
-    m_pageFrameAllocator.deallocate(reinterpret_cast<core::memory::PageFrame<>*>(pages), n);
+    m_pageFrameAllocator.deallocate(pages, n);
   }
 
   __attribute__((init_priority(65535))) Memory gMemory;

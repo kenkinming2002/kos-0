@@ -11,23 +11,20 @@ namespace core::memory
 {
   VirtualPageFrameAllocator::VirtualPageFrameAllocator(std::byte* begin, std::byte* end)
   {
-    auto virtualPageFrameRange = new VirtualPageFrameRange(VirtualPageFrameRange::from_pointers(begin, end));
-    m_virtualPageFrameRanges.push_front(*virtualPageFrameRange);
+    m_memoryRegions.push_front(*(new MemoryRegion(begin, end)));
   }
 
-  std::optional<VirtualPageFrameRange> VirtualPageFrameAllocator::allocate(size_t count)
+  std::optional<MemoryRegion> VirtualPageFrameAllocator::allocate(size_t count)
   {
     io::print("DEBUG: Allocating Virtual Page Frames\n");
     io::print("  Requested Page Frame Count: ", count, "\n");
 
-    for(VirtualPageFrameRange& virtualPageFrameRange : m_virtualPageFrameRanges)
+    for(MemoryRegion& memoryRegion : m_memoryRegions)
     {
-      if(virtualPageFrameRange.count>=count)
+      if(memoryRegion.count()>=count)
       {
         // Remove from the front of a Virtual Page Frame Range
-        auto allocatedVirtualPageFrameRange = VirtualPageFrameRange(virtualPageFrameRange.index, count);
-        virtualPageFrameRange.index += count;
-        virtualPageFrameRange.count -= count;
+        auto allocatedMemoryRegion = memoryRegion.shrink_front(count);
 
         // NOTE: This may create page frame with zero size. However, that does
         //       not matter since page frame is cheap(only 0x40 byte on i686
@@ -46,8 +43,8 @@ namespace core::memory
         //       Following is a counter for those who try to implement freeing
         //       of zero-sized page and either failed or given up: 1
 
-        io::print("  Allocated Virtual Frame: ", allocatedVirtualPageFrameRange.begin_index() * VirtualPageFrameRange::SIZE, "-", allocatedVirtualPageFrameRange.end_index() * VirtualPageFrameRange::SIZE, "\n");
-        return allocatedVirtualPageFrameRange;
+        io::print("  Allocated Virtual Frame: ", allocatedMemoryRegion.begin(), "-", allocatedMemoryRegion.end(), "\n");
+        return allocatedMemoryRegion;
       }
     }
     
@@ -55,70 +52,47 @@ namespace core::memory
     return std::nullopt;
   }
 
-  void VirtualPageFrameAllocator::deallocate(VirtualPageFrameRange freedVirtualPageFrameRange)
+  void VirtualPageFrameAllocator::deallocate(MemoryRegion freedMemoryRegion)
   {
-    auto merge_to = [](VirtualPageFrameRange& to, VirtualPageFrameRange& from) -> bool {
-      if(from.index + from.count == to.index)
-      {
-        to.count += from.count;
-        to.index = from.index;
-        from = VirtualPageFrameRange(0, 0);
-        return true;
-      }
-      else
-        return false;
-    };
-    for(auto outer_it = m_virtualPageFrameRanges.begin(); outer_it!=m_virtualPageFrameRanges.end(); ++outer_it)
+    auto before = std::adjacent_find(m_memoryRegions.begin(), m_memoryRegions.end(), [&](auto& /*lhs*/, auto& rhs){
+        return freedMemoryRegion < rhs;
+    }), after = std::next(before);
+
+    /** At this point the ordering look like so
+     *    => *before -> freedMemoryRegion -> *after =>
+     */
+    if(before->tryMergeAfter(freedMemoryRegion))
     {
-      auto& virtualPageFrameRange = *outer_it;
-
-      if(merge_to(virtualPageFrameRange, freedVirtualPageFrameRange))
+      if(before->tryMergeAfter(*after))
       {
-        for(auto inner_before_it = m_virtualPageFrameRanges.before_begin(), inner_it = m_virtualPageFrameRanges.begin(); 
-            inner_it!=outer_it; ++inner_before_it, ++inner_it)
-        {
-          if(!merge_to(*std::next(inner_it), *inner_it))
-          {
-            m_virtualPageFrameRanges.erase_after_and_dispose(inner_before_it, [](auto* pageFrameRange){
-              delete pageFrameRange;
-            });
-          }
-          else
-            break;
-        }
-      }
-
-      if(freedVirtualPageFrameRange < virtualPageFrameRange)
-      {
-        auto heapFreedVirtualPageFrameRange = new VirtualPageFrameRange(freedVirtualPageFrameRange);
-        return (void)m_virtualPageFrameRanges.insert_after(outer_it, *heapFreedVirtualPageFrameRange);
+        m_memoryRegions.erase_after_and_dispose(before, [](auto* ptr){
+            delete ptr;
+        });
         return;
       }
     }
+    else if(after->tryMergeBefore(freedMemoryRegion))
+      return;
+    else
+      m_memoryRegions.insert_after(before, *(new MemoryRegion(freedMemoryRegion)));
   }
 
-  VirtualPageFrameAllocator::MapResult VirtualPageFrameAllocator::map(PhysicalPageFrameRange physicalPageFrameRange,
-      VirtualPageFrameRange virtualPageFrameRange, std::optional<VirtualPageFrameRange> pageTablePhysicalMemory) const
+  VirtualPageFrameAllocator::MapResult VirtualPageFrameAllocator::map(MemoryRegion physicalMemoryRegion, MemoryRegion virtualMemoryRegion, void* pageTablePhysicalMemory) const
   {
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
-
     // NOTE : index = pageDirectoryIndex * PAGE_TABLE_ENTRY_COUNT +
     //                pageTableIndex
-    auto pageDirectoryIndex = virtualPageFrameRange.index / PAGE_TABLE_ENTRY_COUNT;
-    auto pageTableIndex     = virtualPageFrameRange.index % PAGE_TABLE_ENTRY_COUNT;
+    auto pageDirectoryIndex = virtualMemoryRegion.beginIndex() / PAGE_TABLE_ENTRY_COUNT;
+    auto pageTableIndex     = virtualMemoryRegion.beginIndex() % PAGE_TABLE_ENTRY_COUNT;
 
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
 
-    uintptr_t pageTablePhysicalAddress;
+    // 2: Obtain physical Address to target page table
+    phyaddr_t pageTablePhysicalAddress;
     if(!pageDirectoryEntry.present())
     {
       if(pageTablePhysicalMemory)
-      {
-        if(pageTablePhysicalMemory->count * VirtualPageFrameRange::SIZE != sizeof(PageTable))
-          return MapResult::ERR_INVALID_PAGE_TABLE;
-
-        pageTablePhysicalAddress = reinterpret_cast<uintptr_t>(pageTablePhysicalMemory->toPageFrames());
-      }
+        pageTablePhysicalAddress = reinterpret_cast<phyaddr_t>(pageTablePhysicalMemory);
       else
         return MapResult::ERR_NO_PAGE_TABLE;
     }
@@ -127,27 +101,29 @@ namespace core::memory
 
     auto& pageTable = utils::deref_cast<core::PageTable>(doFractalMapping(pageTablePhysicalAddress));
 
-    // 2: Clear page table to zero if it is new
+    // 3: Clear page table to zero if it is new
     if(!pageDirectoryEntry.present())
     {
       for(PageTableEntry& pageTableEntry: pageTable)
         pageTableEntry = core::PageTableEntry();
     }
 
-    // 2: Write to Page Table through Fractal Mapping
-    auto physicalPageFrames = physicalPageFrameRange.toPageFrames();
-    for(size_t i = 0; i<virtualPageFrameRange.count; ++i)
+    // 3: Write to Page Table through Fractal Mapping
+    for(size_t i = 0; i<virtualMemoryRegion.count(); ++i)
     {
-      auto physicalPageFrame = &physicalPageFrames[i];
-      auto pageTableEntry = core::PageTableEntry(reinterpret_cast<uintptr_t>(physicalPageFrame), core::TLBMode::LOCAL, 
-          core::CacheMode::ENABLED, core::WriteMode::WRITE_BACK, core::Access::SUPERVISOR_ONLY, core::Permission::READ_WRITE);
-      pageTable[pageTableIndex+i] = pageTableEntry;
+      //auto physicalPageFrame = &physicalPageFrames[i];
+      auto physicalAddress = physicalMemoryRegion.begin() + i * PAGE_SIZE;
+
+      auto pageTableEntry = core::PageTableEntry(physicalAddress, core::TLBMode::LOCAL, core::CacheMode::ENABLED, core::WriteMode::WRITE_BACK, core::Access::SUPERVISOR_ONLY, core::Permission::READ_WRITE);
+      if(pageTableIndex+i<1024)
+        pageTable[pageTableIndex+i] = pageTableEntry;
+      else
+        for(;;) asm("hlt"); // Page Table Overrun, Unimplemented
     }
 
-    // 3: Update Page Directory Entry to point to the possibly new Page Table
+    // 4: Update Page Directory Entry to point to the possibly new Page Table
     if(!pageDirectoryEntry.present())
-      pageDirectoryEntry = core::PageDirectoryEntry(pageTablePhysicalAddress, core::CacheMode::ENABLED, core::WriteMode::WRITE_BACK,
-            core::Access::SUPERVISOR_ONLY, core::Permission::READ_WRITE);
+      pageDirectoryEntry = core::PageDirectoryEntry(pageTablePhysicalAddress, core::CacheMode::ENABLED, core::WriteMode::WRITE_BACK, core::Access::SUPERVISOR_ONLY, core::Permission::READ_WRITE);
 
 
     asm volatile ( R"(
@@ -164,32 +140,36 @@ namespace core::memory
     return MapResult::SUCCESS;
   }
 
-  std::optional<PhysicalPageFrameRange> VirtualPageFrameAllocator::unmap(VirtualPageFrameRange virtualPageFrameRange) const
+  MemoryRegion VirtualPageFrameAllocator::unmap(MemoryRegion virtualMemoryRegion) const
   {
-    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
-
     // NOTE : index = pageDirectoryIndex * PAGE_TABLE_ENTRY_COUNT +
     //                pageTableIndex
-    auto pageDirectoryIndex = virtualPageFrameRange.index / PAGE_TABLE_ENTRY_COUNT;
-    auto pageTableIndex     = virtualPageFrameRange.index % PAGE_TABLE_ENTRY_COUNT;
+    auto pageDirectoryIndex = virtualMemoryRegion.beginIndex() / PAGE_TABLE_ENTRY_COUNT;
+    auto pageTableIndex     = virtualMemoryRegion.beginIndex() % PAGE_TABLE_ENTRY_COUNT;
 
+    auto& pageDirectory = utils::deref_cast<core::PageDirectory>(bootPageDirectory);
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
 
     if(!pageDirectoryEntry.present())
-      return std::nullopt;
+        for(;;) asm("hlt"); // WTH, unmapping a region that is never mapped!?
 
-    uintptr_t pageTablePhysicalAddress = pageDirectoryEntry.address();
+    phyaddr_t pageTablePhysicalAddress = pageDirectoryEntry.address();
     auto& pageTable = utils::deref_cast<core::PageTable>(doFractalMapping(pageTablePhysicalAddress));
 
     // Take the address mapped by first page table as the starting address for mapped PhysicalPageFrameRange
     auto physicalAddressMapped = pageTable[pageTableIndex].address(); 
 
     // Unset all Page Table Entry through Fractal Mapping
-    for(size_t i = 0; i<virtualPageFrameRange.count; ++i)
+    for(size_t i = 0; i<virtualMemoryRegion.count(); ++i)
     {
-      auto& pageTableEntry = pageTable[pageTableIndex+i];
-      pageTableEntry.present(false);
-      pageTableEntry.address(0u); // For consistency only
+      if(pageTableIndex+i<1024)
+      {
+        auto& pageTableEntry = pageTable[pageTableIndex+i];
+        pageTableEntry.present(false);
+        pageTableEntry.address(0u); // For consistency only
+      }
+      else
+        for(;;) asm("hlt"); // Page Table Overrun, Unimplemented
     }
 
     asm volatile ( R"(
@@ -205,7 +185,7 @@ namespace core::memory
 
     // NOTE: There is no need to free the page table, we can reuse it next time
 
-    return VirtualPageFrameRange(physicalAddressMapped / VirtualPageFrameRange::SIZE, virtualPageFrameRange.count);
+    return MemoryRegion(physicalAddressMapped / PAGE_SIZE, virtualMemoryRegion.count(), MemoryRegion::index_length_tag);
   }
 
   std::byte* VirtualPageFrameAllocator::doFractalMapping(uintptr_t physicalAddress) const
@@ -218,9 +198,11 @@ namespace core::memory
           core::WriteMode::WRITE_BACK, core::Access::SUPERVISOR_ONLY, core::Permission::READ_WRITE, core::PageSize::LARGE);
 
     // Compute Virtual Address for starting of Fractal Mapping
-    auto fractalMappingPageFrameRange = VirtualPageFrameRange((PAGE_DIRECTORY_ENTRY_COUNT-1)
-            * PAGE_TABLE_ENTRY_COUNT, PAGE_TABLE_ENTRY_COUNT);
-    auto fractalMappingPageFrames = reinterpret_cast<std::byte*>(fractalMappingPageFrameRange.toPageFrames());
+    //auto fractalMappingPageFrameRange = VirtualPageFrameRange((PAGE_DIRECTORY_ENTRY_COUNT-1)
+    //        * PAGE_TABLE_ENTRY_COUNT, PAGE_TABLE_ENTRY_COUNT);
+    //auto fractalMappingPageFrames = reinterpret_cast<std::byte*>(fractalMappingPageFrameRange.toPageFrames());
+
+    virtaddr_t fractalMappingAddress = (PAGE_DIRECTORY_ENTRY_COUNT-1) * PAGE_TABLE_ENTRY_COUNT * PAGE_SIZE;
     
     asm volatile ( R"(
       .intel_syntax noprefix
@@ -234,7 +216,7 @@ namespace core::memory
     );
 
     // Add back the discarded bit due to 4Mib alignment
-    return fractalMappingPageFrames + (physicalAddress & 0x003FFFFF);
+    return reinterpret_cast<std::byte*>(fractalMappingAddress + (physicalAddress & 0x003FFFFF));
   }
 }
 

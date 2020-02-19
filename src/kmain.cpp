@@ -56,63 +56,63 @@ void startup_log()
     io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint32_t)bootInformation.mmap_entries[i].addr, ", len:", (uint32_t)bootInformation.mmap_entries[i].len);
 }
 
-void test_physicalPageFrameAllocator(core::memory::PhysicalPageFrameAllocator& physicalPageFrameAllocator)
-{
-  core::memory::PhysicalPageFrameRange chunks[10];
-  for(size_t i=0; i<10; ++i)
-  {
-    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
-    if(physicalPageFrameRange)
-    {
-      chunks[i] = physicalPageFrameRange.value();
-    }
-    else
-      io::print("Failed");
-  }
-
-  for(size_t i=0; i<10; ++i)
-    physicalPageFrameAllocator.deallocate(chunks[i]);
-
-  for(size_t i=0; i<10; ++i)
-  {
-    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
-    if(physicalPageFrameRange)
-    {
-      if(chunks[i].index != physicalPageFrameRange->index)
-        // Reallocation should yield same physical memory chunk as merging is implemented and all chunk allocated is freed
-        io::print("Discrepancy at ", i); 
-      chunks[i] = *physicalPageFrameRange;
-    }
-    else
-      io::print("Failed");
-  }
-
-  for(size_t i=0; i<10; ++i)
-    physicalPageFrameAllocator.deallocate(chunks[i]);
-}
-
-void test_virtualPageFrameAllocator(core::memory::VirtualPageFrameAllocator& virtualPageFrameAllocator)
-{
-  auto virtualPageFrameRange = virtualPageFrameAllocator.allocate(1);
-  if(virtualPageFrameRange)
-    io::print("Virtual Page Frame - Index:", virtualPageFrameRange->index, ", count:", virtualPageFrameRange->count);
-  else
-      io::print("Virtual Page Frame Allocator - Failed");
-}
-
-void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocator)
-{
-  auto pageFrames = pageFrameAllocator.allocate(1);
-  if(!pageFrames)
-    io::print("Page Frame Allocator - Failed");
-
-  for(size_t i=0; i<std::decay_t<decltype(*pageFrames)>::SIZE; ++i)
-    pageFrames->data[i] = i % 128;
-
-  for(size_t i=0; i<std::decay_t<decltype(*pageFrames)>::SIZE; ++i)
-    if(pageFrames->data[i] != (i % 128))
-      io::print("Page Frame Allocator - Failed");
-}
+//void test_physicalPageFrameAllocator(core::memory::PhysicalPageFrameAllocator& physicalPageFrameAllocator)
+//{
+//  core::memory::PhysicalPageFrameRange chunks[10];
+//  for(size_t i=0; i<10; ++i)
+//  {
+//    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
+//    if(physicalPageFrameRange)
+//    {
+//      chunks[i] = physicalPageFrameRange.value();
+//    }
+//    else
+//      io::print("Failed");
+//  }
+//
+//  for(size_t i=0; i<10; ++i)
+//    physicalPageFrameAllocator.deallocate(chunks[i]);
+//
+//  for(size_t i=0; i<10; ++i)
+//  {
+//    auto physicalPageFrameRange = physicalPageFrameAllocator.allocate(i+1);
+//    if(physicalPageFrameRange)
+//    {
+//      if(chunks[i].index != physicalPageFrameRange->index)
+//        // Reallocation should yield same physical memory chunk as merging is implemented and all chunk allocated is freed
+//        io::print("Discrepancy at ", i); 
+//      chunks[i] = *physicalPageFrameRange;
+//    }
+//    else
+//      io::print("Failed");
+//  }
+//
+//  for(size_t i=0; i<10; ++i)
+//    physicalPageFrameAllocator.deallocate(chunks[i]);
+//}
+//
+//void test_virtualPageFrameAllocator(core::memory::VirtualPageFrameAllocator& virtualPageFrameAllocator)
+//{
+//  auto virtualPageFrameRange = virtualPageFrameAllocator.allocate(1);
+//  if(virtualPageFrameRange)
+//    io::print("Virtual Page Frame - Index:", virtualPageFrameRange->index, ", count:", virtualPageFrameRange->count);
+//  else
+//      io::print("Virtual Page Frame Allocator - Failed");
+//}
+//
+//void test_pageFrameAllocation(core::memory::PageFrameAllocator& pageFrameAllocator)
+//{
+//  auto pageFrames = pageFrameAllocator.allocate(1);
+//  if(!pageFrames)
+//    io::print("Page Frame Allocator - Failed");
+//
+//  for(size_t i=0; i<std::decay_t<decltype(*pageFrames)>::SIZE; ++i)
+//    pageFrames->data[i] = i % 128;
+//
+//  for(size_t i=0; i<std::decay_t<decltype(*pageFrames)>::SIZE; ++i)
+//    if(pageFrames->data[i] != (i % 128))
+//      io::print("Page Frame Allocator - Failed");
+//}
 
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void null_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
@@ -146,16 +146,13 @@ extern "C" int kmain()
   //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
   //}
 
-  //void* mem = kmalloc(40);
-  //io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
-
   //for(int i=0; i<10000; ++i)
   //{
   //  void* mem = kmalloc(4);
-  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem));
+  //  io::print("kmain-malloc with free", reinterpret_cast<uintptr_t>(mem), "\n");
   //  kfree(mem);
   //}
-  //
+  
   
   for(;;)
   {

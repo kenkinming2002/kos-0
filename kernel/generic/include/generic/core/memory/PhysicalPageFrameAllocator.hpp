@@ -18,11 +18,11 @@ namespace core::memory
     PhysicalPageFrameAllocator(PhysicalPageFrameAllocator&&) = delete;
 
   public:
-    std::optional<PhysicalPageFrameRange> allocate(size_t count = 1u);
-    void deallocate(PhysicalPageFrameRange physicalPageFrameRange);
+    std::optional<MemoryRegion> allocate(size_t count = 1u);
+    void deallocate(MemoryRegion physicalMemoryRegion);
 
   private:
-    boost::intrusive::slist<PhysicalPageFrameRange> m_physicalPageFrameRanges;
+    boost::intrusive::slist<MemoryRegion> m_memoryRegions;
   };
 }
 

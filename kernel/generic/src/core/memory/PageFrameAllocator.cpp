@@ -12,17 +12,17 @@ namespace core::memory
     m_virtualPageFrameAllocator(virtualPageFrameAllocator)
   {}
 
-  PageFrame<>* PageFrameAllocator::allocate(size_t n)
+  void* PageFrameAllocator::allocate(size_t n)
   {
-    std::optional<VirtualPageFrameRange> virtualPageFrameRange  = m_virtualPageFrameAllocator.allocate(n);
-    if(!virtualPageFrameRange)
+    auto virtualMemoryRegion  = m_virtualPageFrameAllocator.allocate(n);
+    if(!virtualMemoryRegion)
       return nullptr;
 
-    auto physicalPageFrameRange = m_physicalPageFrameAllocator.allocate(n);
-    if(!physicalPageFrameRange)
+    auto physicalMemoryRegion = m_physicalPageFrameAllocator.allocate(n);
+    if(!physicalMemoryRegion)
       return nullptr;
 
-    switch(m_virtualPageFrameAllocator.map(*physicalPageFrameRange, *virtualPageFrameRange))
+    switch(m_virtualPageFrameAllocator.map(*physicalMemoryRegion, *virtualMemoryRegion))
     {
       case core::memory::VirtualPageFrameAllocator::MapResult::ERR_NO_PAGE_TABLE:
       {
@@ -30,17 +30,17 @@ namespace core::memory
         if(!pageTablePhysicalMemory)
         {
           // Cleanup
-          m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
-          m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
+          m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
+          m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
 
           return nullptr;
         }
-        if(m_virtualPageFrameAllocator.map(*physicalPageFrameRange, *virtualPageFrameRange, *pageTablePhysicalMemory) != 
+        if(m_virtualPageFrameAllocator.map(*physicalMemoryRegion, *virtualMemoryRegion, reinterpret_cast<void*>(pageTablePhysicalMemory->begin())) != 
             core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS)
         {
           // Cleanup
-          m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
-          m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
+          m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
+          m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
           m_physicalPageFrameAllocator.deallocate(*pageTablePhysicalMemory);
 
           return nullptr; 
@@ -50,28 +50,23 @@ namespace core::memory
       case core::memory::VirtualPageFrameAllocator::MapResult::ERR_INVALID_PAGE_TABLE:
       {
         // Cleanup
-        m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
-        m_virtualPageFrameAllocator.deallocate(*virtualPageFrameRange);
+        m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
+        m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
 
         return nullptr;
       }
       case core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS:
         break;
     }
-    return virtualPageFrameRange->toPageFrames();
+    return reinterpret_cast<void*>(virtualMemoryRegion->begin());
   }
 
-  void PageFrameAllocator::deallocate(PageFrame<>* pageFrames, size_t n)
+  void PageFrameAllocator::deallocate(void* pageFrames, size_t n)
   {
-    auto virtualPageFrameRange = VirtualPageFrameRange::fromPageFrames(pageFrames, n);
-    auto physicalPageFrameRange = m_virtualPageFrameAllocator.unmap(virtualPageFrameRange);
+    auto virtualMemoryRegion = MemoryRegion(pageFrames, n * PAGE_SIZE);
+    auto physicalMemoryRegion = m_virtualPageFrameAllocator.unmap(virtualMemoryRegion);
 
-    m_virtualPageFrameAllocator.deallocate(virtualPageFrameRange);
-    if(physicalPageFrameRange)
-      m_physicalPageFrameAllocator.deallocate(*physicalPageFrameRange);
-    else
-    {
-      // THIS is not normal but we can still keep on running
-    }
+    m_virtualPageFrameAllocator.deallocate(virtualMemoryRegion);
+    m_physicalPageFrameAllocator.deallocate(physicalMemoryRegion);
   }
 }

@@ -10,110 +10,120 @@
 
 namespace core::memory
 {
-  template<size_t PAGE_SIZE=4096u>
-  struct PageFrame
+  using phyaddr_t = uintptr_t;
+  using virtaddr_t = uintptr_t;
+
+  constexpr static size_t PAGE_SIZE = 4096;
+
+  struct MemoryRegion : public boost::intrusive::slist_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
   {
   public:
-    constexpr static auto SIZE = PAGE_SIZE;
+    static struct IndexPairTag {} index_pair_tag;
+    static struct IndexLengthTag {} index_length_tag;
+    static struct AddressPairTag {} address_pair_tag;
+    static struct AddressLengthTag {} address_length_tag;
 
   public:
-    char data[PAGE_SIZE];
-  } __attribute__((packed));
-
-  /**
-   * Pointer to sequential PageFrame[count] at address 
-   */
-  template<size_t PAGE_SIZE = 4096u>
-  struct PageFrameRange : public boost::intrusive::slist_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
-  {
-  public:
-    constexpr static auto SIZE = PAGE_SIZE;
+    MemoryRegion() = default;
 
   public:
-    constexpr PageFrameRange() = default;
-    constexpr PageFrameRange(size_t index, size_t count) : index(index), count(count) {}
+    MemoryRegion(size_t beginIndex, size_t endIndex, IndexPairTag) 
+      : m_beginIndex(beginIndex), m_endIndex(endIndex) {}
+    MemoryRegion(size_t beginIndex, size_t length, IndexLengthTag) 
+      : MemoryRegion(beginIndex, beginIndex+length, index_pair_tag) {}
 
-    // TODO: Tidy up construction function
-    static constexpr PageFrameRange from_index(size_t begin, size_t end)
-    {
-      return {begin, end - begin};
-    }
-    static constexpr PageFrameRange from_address(uintptr_t addr, size_t len)
-    {
-      return {(addr + PAGE_SIZE -1) / PAGE_SIZE, len / PAGE_SIZE};
-    }
-    static constexpr PageFrameRange from_pointers(void* begin, void* end)
-    {
-      return from_address(reinterpret_cast<uintptr_t>(begin), reinterpret_cast<uintptr_t>(end) - reinterpret_cast<uintptr_t>(begin));
-    }
-    static constexpr PageFrameRange from_multiboot_entry(struct multiboot_mmap_entry& mmap_entry)
-    {
-      return from_address(mmap_entry.addr, mmap_entry.len);
-    }
+    MemoryRegion(uintptr_t beginAddress, uintptr_t endAddress, AddressPairTag) 
+      : m_beginIndex(beginAddress / PAGE_SIZE), m_endIndex(endAddress / PAGE_SIZE) {}
+    MemoryRegion(uintptr_t beginAddress, size_t length, AddressLengthTag) 
+      : MemoryRegion(beginAddress, beginAddress+length, address_pair_tag) {}
+
+    MemoryRegion(void* begin, void* end) 
+      : MemoryRegion(reinterpret_cast<uintptr_t>(begin), reinterpret_cast<uintptr_t>(end), address_pair_tag){}
+    MemoryRegion(void* begin, size_t len) 
+      : MemoryRegion(reinterpret_cast<uintptr_t>(begin), len, address_pair_tag){}
 
   public:
-    constexpr std::pair<PageFrameRange, std::optional<PageFrameRange>> carve(PageFrameRange& other) const
-    {
-      if(other > *this || other < *this)
-        return std::make_pair(*this, std::nullopt);
-
-      if(other.begin_index() > this->begin_index() &&
-         other.end_index()   < this->end_index())
-        return std::make_pair(PageFrameRange::from_index(this->begin_index(), other.begin_index()),
-                              PageFrameRange::from_index(other.end_index() , this->end_index()));
-
-      if(other.begin_index() > this->begin_index())
-        return std::make_pair(PageFrameRange::from_index(this->begin_index(), other.begin_index()), std::nullopt);
-      if(other.end_index() < this->end_index())
-        return std::make_pair(PageFrameRange::from_index(other.end_index(), this->end_index()), std::nullopt);
-
-      return std::make_pair(*this, std::nullopt); // Should be Unreachable
-    }
+    MemoryRegion(struct multiboot_mmap_entry& mmap_entry)
+      : MemoryRegion(mmap_entry.addr, mmap_entry.len, address_length_tag) {}
 
   public:
-    auto begin_index() const { return index; }
-    auto end_index() const   { return index + count; }
+    size_t beginIndex() const { return m_beginIndex; }
+    size_t endIndex() const { return m_endIndex; }
+    size_t count() const { return m_endIndex - m_beginIndex; }
+    bool empty() const { return m_beginIndex == m_endIndex; }
+
+    uintptr_t begin() const { return m_beginIndex * PAGE_SIZE; }
+    uintptr_t end() const { return m_endIndex * PAGE_SIZE; }
 
   public:
-    constexpr PageFrame<PAGE_SIZE>* toPageFrames() const 
-    { 
-      return reinterpret_cast<PageFrame<PAGE_SIZE>*>(index*PAGE_SIZE);
+    MemoryRegion shrink_front(size_t count) { m_beginIndex += count; return MemoryRegion(m_beginIndex-count, m_beginIndex, index_pair_tag); }
+    bool tryMergeAfter(MemoryRegion memoryRegion)
+    {
+      if(m_endIndex==memoryRegion.m_beginIndex)
+      {
+        m_endIndex = memoryRegion.m_endIndex;
+        return true;
+      }
+      else
+        return false;
     }
 
-    constexpr static PageFrameRange fromPageFrames(PageFrame<PAGE_SIZE>* pageFrames, size_t count)
+    bool tryMergeBefore(MemoryRegion memoryRegion)
     {
-      // Note: pointer to pageFrames must be aligned to PAGE_SIZE as it is
-      //       obtained from toPageFrames().
-      return PageFrameRange(reinterpret_cast<uintptr_t>(pageFrames) / PAGE_SIZE, count);
+      if(m_beginIndex==memoryRegion.m_endIndex)
+      {
+        m_beginIndex = memoryRegion.m_beginIndex;
+        return true;
+      }
+      else
+        return false;
     }
 
   public:
-    friend constexpr bool operator>(const PageFrameRange& lhs, const PageFrameRange& rhs)
+    static std::optional<MemoryRegion> intersection(MemoryRegion lhs, MemoryRegion rhs)
     {
-      return lhs.begin_index() > rhs.end_index();
+      auto intersection = MemoryRegion(std::max(lhs.m_beginIndex, rhs.m_beginIndex), 
+                                       std::min(lhs.m_endIndex,   rhs.m_endIndex), index_pair_tag);
+
+      if(intersection.m_beginIndex>=intersection.m_endIndex)
+        return std::nullopt; // No intersection
+      else
+        return intersection;
     }
 
-    friend constexpr bool operator>=(const PageFrameRange& lhs, const PageFrameRange& rhs)
+    static std::pair<std::optional<MemoryRegion>, std::optional<MemoryRegion>> difference(MemoryRegion lhs, MemoryRegion rhs)
     {
-      return lhs.begin_index() >= rhs.end_index();
+      if(auto intersection = MemoryRegion::intersection(lhs, rhs))
+      {
+        auto first = MemoryRegion(lhs.m_beginIndex, intersection->m_beginIndex, index_pair_tag);
+        auto second = MemoryRegion(intersection->m_endIndex, lhs.m_endIndex, index_pair_tag);
+        if(first.empty() && second.empty())
+          return {std::nullopt, std::nullopt};
+        if(first.empty())
+          return {second, std::nullopt};
+        if(second.empty())
+          return {first, std::nullopt};
+
+        return {first, second};
+      }
+      else
+        return {lhs, std::nullopt};
     }
 
-    friend constexpr bool operator<(const PageFrameRange& lhs, const PageFrameRange& rhs)
+    friend bool operator>(MemoryRegion lhs, MemoryRegion rhs)
     {
-      return lhs.end_index() < rhs.begin_index();
+      return lhs.m_beginIndex > rhs.m_beginIndex;
     }
 
-    friend constexpr bool operator<=(const PageFrameRange& lhs, const PageFrameRange& rhs)
+    friend bool operator<(MemoryRegion lhs, MemoryRegion rhs)
     {
-      return lhs.end_index() <= rhs.begin_index();
+      return lhs.m_beginIndex < rhs.m_beginIndex;
     }
 
-  public:
-    // TODO: Consider replacing with smaller integer type
-    size_t index = 0;
-    size_t count = 0;
+  private:
+    // NOTE: Maybe use smaller integer type
+    size_t m_beginIndex = 0, m_endIndex = 0;
   };
 
-  using PhysicalPageFrameRange = PageFrameRange<>;
-  using VirtualPageFrameRange  = PageFrameRange<>;
+
 }
