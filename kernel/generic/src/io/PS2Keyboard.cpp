@@ -124,7 +124,7 @@ namespace io
       KeyCode::KEY_NONE,            KeyCode::KEY_NONE,        KeyCode::KEY_M,            KeyCode::KEY_J, 
       KeyCode::KEY_U,               KeyCode::KEY_AMPERSAND,   KeyCode::KEY_ASTERISK,     KeyCode::KEY_NONE, 
       KeyCode::KEY_NONE,            KeyCode::KEY_LESSTHAN,    KeyCode::KEY_K,            KeyCode::KEY_I, 
-      KeyCode::KEY_O,               KeyCode::KEY_LPARENTHESIS,KeyCode::KEY_RPARENTHESIS, KeyCode::KEY_NONE, 
+      KeyCode::KEY_O,               KeyCode::KEY_RPARENTHESIS,KeyCode::KEY_LPARENTHESIS, KeyCode::KEY_NONE, 
       KeyCode::KEY_NONE,            KeyCode::KEY_GREATERTHAN, KeyCode::KEY_QUESTION_MARK,KeyCode::KEY_L, 
       KeyCode::KEY_COLON,           KeyCode::KEY_P,           KeyCode::KEY_UNDERSCORE,   KeyCode::KEY_NONE, 
       KeyCode::KEY_NONE,            KeyCode::KEY_NONE,        KeyCode::KEY_DOUBLEQUOTE,  KeyCode::KEY_NONE, 
