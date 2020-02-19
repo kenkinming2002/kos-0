@@ -58,9 +58,9 @@ namespace boot
   private:
     uint32_t m_data;
   };
- 
-  static constexpr size_t PAGE_DIRECTORY_ENTRY_COUNT = 1024;
-  static constexpr size_t PAGE_TABLE_ENTRY_COUNT = 1024;
+
+  constexpr size_t PAGE_DIRECTORY_ENTRY_COUNT = 1024;
+  constexpr size_t PAGE_TABLE_ENTRY_COUNT = 1024;
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];

@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace core::i686
+namespace core
 {
   enum class SegmentType
   {
@@ -45,20 +45,5 @@ namespace core::i686
     uint16_t m_size;
     uint32_t m_offset;
   } __attribute__((packed));
-}
-
-namespace core
-{
-  class Segmentation
-  {
-  public:
-    Segmentation();
-
-  public:
-    constexpr static size_t GDT_SIZE = 3;
-
-  private:
-    i686::GDTEntry m_gdtEntries[GDT_SIZE];
-  };
 }
 

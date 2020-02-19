@@ -12,9 +12,6 @@ extern "C"
 
   extern std::byte kernel_physical_start[];
   extern std::byte kernel_physical_end[];
-
-  //extern std::byte early_heap_start[];
-  //extern std::byte early_heap_end[];
 }
 
 namespace core::memory

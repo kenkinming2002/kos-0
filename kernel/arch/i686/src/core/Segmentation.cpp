@@ -2,7 +2,7 @@
 
 #include <intel/asm/gdt.hpp>
 
-namespace core::i686
+namespace core
 {
   GDTEntry::GDTEntry(uint32_t base, uint32_t limit, PrivillegeLevel privillegeLevel, SegmentType segmentType)
   {
@@ -37,19 +37,5 @@ namespace core::i686
     assembly::gdt_flush();
 
     return 0;
-  }
-}
-
-namespace core
-{
-  Segmentation::Segmentation() 
-    : m_gdtEntries{
-        i686::GDTEntry(0, 0,          PrivillegeLevel::RING0, i686::SegmentType::NONE_SEGMENT),
-        i686::GDTEntry(0, 0xffffffff, PrivillegeLevel::RING0, i686::SegmentType::CODE_SEGMENT_RD),
-        i686::GDTEntry(0, 0xffffffff, PrivillegeLevel::RING0, i686::SegmentType::DATA_SEGMENT)
-      }
-  {
-
-    i686::GDT(m_gdtEntries, GDT_SIZE).load();
   }
 }

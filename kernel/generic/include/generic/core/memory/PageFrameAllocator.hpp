@@ -2,7 +2,6 @@
 
 #include <generic/core/memory/PhysicalPageFrameAllocator.hpp>
 #include <generic/core/memory/VirtualPageFrameAllocator.hpp>
-#include <generic/core/memory/PageFrame.hpp>
 
 namespace core::memory
 {
