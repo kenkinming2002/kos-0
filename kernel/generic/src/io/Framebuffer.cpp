@@ -34,13 +34,13 @@ namespace io
     if(multiboot_tag_framebuffer.common.framebuffer_addr >> 32) 
       return;
 
-    m_cells = reinterpret_cast<uint16_t*>(static_cast<uintptr_t>(multiboot_tag_framebuffer.common.framebuffer_addr) + 0xC0000000);
+    m_cells = reinterpret_cast<Cell*>(static_cast<uintptr_t>(multiboot_tag_framebuffer.common.framebuffer_addr) + 0xC0000000);
     m_width = multiboot_tag_framebuffer.common.framebuffer_width;
     m_height = multiboot_tag_framebuffer.common.framebuffer_height;
   }
 
-  FrameBuffer::FrameBuffer(uint16_t* cells, size_t width, size_t height)
-    : m_cells(cells), m_width(width), m_height(height) {}
+  FrameBuffer::FrameBuffer(void* cells, size_t width, size_t height)
+    : m_cells(static_cast<Cell*>(cells)), m_width(width), m_height(height) {}
 
   int FrameBuffer::put(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const
   {
@@ -48,8 +48,7 @@ namespace io
       return -1;
 
     size_t i = cursor.y * m_width + cursor.x;
-    uint16_t color = static_cast<uint16_t>(bg) << 4 | static_cast<uint16_t>(fg);
-    m_cells[i] = color << 8 | c;
+    m_cells[i] = Cell(c, fg, bg);
 
     return 0;
   }
@@ -58,7 +57,7 @@ namespace io
   {
     --m_cursor.y;
     std::copy(&m_cells[m_width], &m_cells[m_width*m_height], m_cells);
-    std::fill(&m_cells[m_width*(m_height-1)], &m_cells[m_width*m_height], 0);
+    std::fill(&m_cells[m_width*(m_height-1)], &m_cells[m_width*m_height], Cell(' ', Color::WHITE, Color::BLACK));
   }
 
   int FrameBuffer::write(const char* buf, size_t count)
@@ -83,15 +82,14 @@ namespace io
         }
         break;
       default:
-        if(m_cursor.x == m_width)
-          m_cursor = {0, m_cursor.y+1};
-
-        while(m_cursor.y >= m_height)
-          this->scroll(); // NOTE: Maybe optimize this
-
         put(m_cursor, buf[i], FrameBuffer::Color::WHITE, FrameBuffer::Color::BLACK);
         ++m_cursor.x;
       }
+
+      if(m_cursor.x == m_width)
+        m_cursor = {0, m_cursor.y+1};
+      while(m_cursor.y >= m_height)
+        this->scroll(); // NOTE: Maybe optimize this
     }
 
     this->setCursor(m_cursor);
@@ -102,10 +100,12 @@ namespace io
   int FrameBuffer::setCursor(FrameBuffer::Cursor cursor) const
   {
     size_t pos = cursor.y * m_width + cursor.x;
+
     assembly::outb(FB_COMMAND_PORT, FB_HIGH_BYTE_COMMAND);
     assembly::outb(FB_DATA_PORT, (pos >> 8) & 0x00FF);
     assembly::outb(FB_COMMAND_PORT, FB_LOW_BYTE_COMMAND);
     assembly::outb(FB_DATA_PORT, pos & 0x00FF);
+
     return 0;
   }
 

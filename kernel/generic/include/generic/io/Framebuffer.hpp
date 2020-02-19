@@ -41,7 +41,7 @@ namespace io
 
   public:
     FrameBuffer();
-    FrameBuffer(uint16_t* cells, size_t width, size_t height);
+    FrameBuffer(void* cells, size_t width, size_t height);
 
   public:
     int put(FrameBuffer::Cursor cursor, char c, FrameBuffer::Color fg, FrameBuffer::Color bg) const;
@@ -59,7 +59,20 @@ namespace io
     Cursor m_cursor;
 
   private:
-    uint16_t* m_cells;
+    struct [[gnu::packed]] Cell
+    {
+    public:
+      Cell(char c, Color fg, Color bg) 
+        : c(c), color(static_cast<uint8_t>(bg) << 4 | static_cast<uint8_t>(fg)) {}
+
+    public:
+      char c;
+      uint8_t color;
+      // NOTE: This assume little endian
+    };
+
+  private:
+    Cell* m_cells;
     size_t  m_width, m_height;
     FrameBuffer::Settings m_settings;
   };
