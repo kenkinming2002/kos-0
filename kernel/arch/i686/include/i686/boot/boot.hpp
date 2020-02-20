@@ -62,7 +62,7 @@ extern std::byte bootInformationStorage[];
 //  TODO: set this depending on kernel size
 constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
 
-extern std::byte kernelPageDirectory[];
+extern std::byte kernelMemoryMapping[];
 extern std::byte kernelPageTable[];
 
 constexpr static size_t GDT_SIZE = 5;

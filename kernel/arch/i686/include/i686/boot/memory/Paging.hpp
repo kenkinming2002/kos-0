@@ -13,7 +13,7 @@
 
 #include <i686/boot/boot.hpp>
 
-namespace boot
+namespace boot::memory
 {
   enum class CacheMode  { ENABLED, DISABLED };
   enum class WriteMode  { WRITE_THROUGH, WRITE_BACK };
@@ -64,4 +64,11 @@ namespace boot
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];
+
+  // We do not need fancy feature like fractal mapping at boot time
+  class MemoryMapping
+  {
+  public:
+    PageDirectory pageDirectory;
+  };
 }

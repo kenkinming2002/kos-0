@@ -1,14 +1,12 @@
-#include <i686/core/Paging.hpp>
+#include <i686/boot/memory/Paging.hpp>
 
-namespace core
+namespace boot::memory
 {
   PageDirectoryEntry::PageDirectoryEntry() : m_data(0) {}
-  PageDirectoryEntry::PageDirectoryEntry(uint32_t address, CacheMode cacheMode,
-      WriteMode writeMode, Access access, Permission permission, PageSize pageSize)
+  PageDirectoryEntry::PageDirectoryEntry(uint32_t address, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission)
     : m_data(0)
   {
     m_data |= address & 0xFFFFF000;
-    if(pageSize   == PageSize::LARGE)          m_data |= 1u<<7;
     if(cacheMode  == CacheMode::DISABLED)      m_data |= 1u<<4;
     if(writeMode  == WriteMode::WRITE_THROUGH) m_data |= 1u<<3;
     if(access     == Access::ALL)              m_data |= 1u<<2;

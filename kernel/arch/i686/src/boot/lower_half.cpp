@@ -1,7 +1,7 @@
 #include <i686/boot/lower_half.hpp>
 
 #include <i686/boot/Segmentation.hpp>
-#include <i686/boot/Paging.hpp>
+#include <i686/boot/memory/Paging.hpp>
 
 #include <generic/utils/Utilities.hpp>
 
@@ -147,12 +147,12 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
   }
 
   // 2: Setup Paging
-  auto& pageDirectory = utils::deref_cast<boot::PageDirectory>(to_physical(kernelPageDirectory));
-  auto& pageTables    = utils::deref_cast<boot::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(kernelPageTable));
+  auto& pageDirectory = utils::deref_cast<boot::memory::MemoryMapping>(to_physical(kernelMemoryMapping)).pageDirectory;
+  auto& pageTables    = utils::deref_cast<boot::memory::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(kernelPageTable));
   for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)
   {
     auto& pageTable = pageTables[pageDirectoryIndex];
-    for(size_t pageTableIndex=0; pageTableIndex<boot::PAGE_TABLE_ENTRY_COUNT; ++pageTableIndex)
+    for(size_t pageTableIndex=0; pageTableIndex<boot::memory::PAGE_TABLE_ENTRY_COUNT; ++pageTableIndex)
     {
       auto& pageTableEntry = pageTable[pageTableIndex];
       uintptr_t physicalAddress = (pageDirectoryIndex * 1024u + pageTableIndex) * 4096u;
@@ -163,28 +163,28 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
       //                            hardware
       if(physicalAddress < 0x00100000)
       {
-        pageTableEntry = boot::PageTableEntry(physicalAddress, boot::TLBMode::LOCAL, boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_WRITE);
+        pageTableEntry = boot::memory::PageTableEntry(physicalAddress, boot::memory::TLBMode::LOCAL, boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_WRITE);
         continue;
       }
       if(virtualAddress>=reinterpret_cast<uintptr_t>(kernel_read_only_section_begin) && virtualAddress < reinterpret_cast<uintptr_t>(kernel_read_only_section_end))
       {
-        pageTableEntry = boot::PageTableEntry(physicalAddress, boot::TLBMode::LOCAL, boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_ONLY);
+        pageTableEntry = boot::memory::PageTableEntry(physicalAddress, boot::memory::TLBMode::LOCAL, boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_ONLY);
         continue;
       }
       if(virtualAddress>=reinterpret_cast<uintptr_t>(kernel_read_write_section_begin) && virtualAddress < reinterpret_cast<uintptr_t>(kernel_read_write_section_end))
       {
-        pageTableEntry = boot::PageTableEntry(physicalAddress, boot::TLBMode::LOCAL, boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_WRITE);
+        pageTableEntry = boot::memory::PageTableEntry(physicalAddress, boot::memory::TLBMode::LOCAL, boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_WRITE);
         continue;
       }
       // We cannot disable it just now as it contains code in our boot section.
       // We can do so as soon as we enter higher half
-      pageTableEntry = boot::PageTableEntry(physicalAddress, boot::TLBMode::LOCAL, boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_ONLY);
+      pageTableEntry = boot::memory::PageTableEntry(physicalAddress, boot::memory::TLBMode::LOCAL, boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_ONLY);
     }
 
     auto& lowerHalfPageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
-    lowerHalfPageDirectoryEntry  = boot::PageDirectoryEntry(reinterpret_cast<uintptr_t>(&pageTable), boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_WRITE);
+    lowerHalfPageDirectoryEntry  = boot::memory::PageDirectoryEntry(reinterpret_cast<uintptr_t>(&pageTable), boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_WRITE);
     auto& higherHalfPageDirectoryEntry = pageDirectory[pageDirectoryIndex + 768];
-    higherHalfPageDirectoryEntry = boot::PageDirectoryEntry(reinterpret_cast<uintptr_t>(&pageTable), boot::CacheMode::ENABLED, boot::WriteMode::WRITE_BACK, boot::Access::SUPERVISOR_ONLY, boot::Permission::READ_WRITE);
+    higherHalfPageDirectoryEntry = boot::memory::PageDirectoryEntry(reinterpret_cast<uintptr_t>(&pageTable), boot::memory::CacheMode::ENABLED, boot::memory::WriteMode::WRITE_BACK, boot::memory::Access::SUPERVISOR_ONLY, boot::memory::Permission::READ_WRITE);
   }
 
   asm volatile ( R"(

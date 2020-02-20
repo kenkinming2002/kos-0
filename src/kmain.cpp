@@ -4,7 +4,6 @@
 #include <i686/boot/boot.hpp>
 
 #include <i686/core/Interrupt.hpp>
-#include <i686/core/Paging.hpp>
 
 #include <iterator>
 

@@ -1,5 +1,7 @@
 #include <generic/core/memory/PageFrameAllocator.hpp>
 
+#include <i686/core/memory/Paging.hpp>
+
 #include <generic/io/Print.hpp>
 
 #include <utility>
@@ -14,6 +16,8 @@ namespace core::memory
 
   void* PageFrameAllocator::allocate(size_t n)
   {
+    auto& memoryMapping = utils::deref_cast<core::memory::MemoryMapping>(kernelMemoryMapping);
+
     auto virtualMemoryRegion  = m_virtualPageFrameAllocator.allocate(n);
     if(!virtualMemoryRegion)
       return nullptr;
@@ -22,9 +26,9 @@ namespace core::memory
     if(!physicalMemoryRegion)
       return nullptr;
 
-    switch(m_virtualPageFrameAllocator.map(*physicalMemoryRegion, *virtualMemoryRegion))
+    switch(memoryMapping.map(*physicalMemoryRegion, *virtualMemoryRegion))
     {
-      case core::memory::VirtualPageFrameAllocator::MapResult::ERR_NO_PAGE_TABLE:
+      case core::memory::MemoryMapping::MapResult::ERR_NO_PAGE_TABLE:
       {
         auto pageTablePhysicalMemory = m_physicalPageFrameAllocator.allocate(1);
         if(!pageTablePhysicalMemory)
@@ -35,8 +39,8 @@ namespace core::memory
 
           return nullptr;
         }
-        if(m_virtualPageFrameAllocator.map(*physicalMemoryRegion, *virtualMemoryRegion, reinterpret_cast<void*>(pageTablePhysicalMemory->begin())) != 
-            core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS)
+        if(memoryMapping.map(*physicalMemoryRegion, *virtualMemoryRegion, reinterpret_cast<void*>(pageTablePhysicalMemory->begin())) != 
+            core::memory::MemoryMapping::MapResult::SUCCESS)
         {
           // Cleanup
           m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
@@ -47,7 +51,7 @@ namespace core::memory
         }
         break;
       }
-      case core::memory::VirtualPageFrameAllocator::MapResult::ERR_INVALID_PAGE_TABLE:
+      case core::memory::MemoryMapping::MapResult::ERR_INVALID_PAGE_TABLE:
       {
         // Cleanup
         m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
@@ -55,7 +59,7 @@ namespace core::memory
 
         return nullptr;
       }
-      case core::memory::VirtualPageFrameAllocator::MapResult::SUCCESS:
+      case core::memory::MemoryMapping::MapResult::SUCCESS:
         break;
     }
     return reinterpret_cast<void*>(virtualMemoryRegion->begin());
@@ -63,8 +67,10 @@ namespace core::memory
 
   void PageFrameAllocator::deallocate(void* pageFrames, size_t n)
   {
+    auto& memoryMapping = utils::deref_cast<core::memory::MemoryMapping>(kernelMemoryMapping);
+
     auto virtualMemoryRegion = MemoryRegion(pageFrames, n * PAGE_SIZE);
-    auto physicalMemoryRegion = m_virtualPageFrameAllocator.unmap(virtualMemoryRegion);
+    auto physicalMemoryRegion = memoryMapping.unmap(virtualMemoryRegion);
 
     m_virtualPageFrameAllocator.deallocate(virtualMemoryRegion);
     m_physicalPageFrameAllocator.deallocate(physicalMemoryRegion);
