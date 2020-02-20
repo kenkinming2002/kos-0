@@ -1,5 +1,5 @@
 CC = i686-elf-gcc
-CFLAGS ?= -g -Og
+CFLAGS ?= -g -O0
 CFLAGS += -ffreestanding -fno-exceptions -mgeneral-regs-only
 
 CXX = i686-elf-g++

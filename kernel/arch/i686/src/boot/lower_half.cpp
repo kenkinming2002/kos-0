@@ -16,34 +16,132 @@ extern "C"
   extern std::byte kernel_read_write_section_end [];
 }
 
+std::byte bootInformationStorage[4096u];
+
+BOOT_FUNCTION BootInformation::MemoryMapEntry::MemoryMapEntry(struct multiboot_mmap_entry* mmap_tag_entry)
+  : addr(mmap_tag_entry->addr), len(mmap_tag_entry->len) 
+{
+  type = [&](){
+    switch(mmap_tag_entry->type)
+    {
+    case 1:
+      return Type::AVAILABLE;
+    case 3:
+      return Type::ACPI;
+    case 4:
+      return Type::RESERVED;
+    case 5:
+      return Type::DEFECTIVE;
+    default:
+      return Type::RESERVED;
+    }
+  }();
+}
+
+namespace
+{
+  // NOTE: consider adding buffer size check
+  BOOT_FUNCTION void align(void*& buf, std::size_t& capacity, std::size_t alignment)
+  {
+    // Aligned the buf pointer
+    void* aligned =  reinterpret_cast<void*>((reinterpret_cast<uintptr_t>(buf) + alignment - 1) / alignment * alignment);
+    size_t padding = reinterpret_cast<uintptr_t>(aligned)-reinterpret_cast<uintptr_t>(buf);
+
+    if(capacity<padding)
+      for(;;) asm("hlt");
+    capacity -=  padding;
+    buf = aligned;
+  }
+
+  BOOT_FUNCTION void* alloc(void*& buf, std::size_t& capacity, std::size_t size)
+  {
+    if(capacity<size)
+      for(;;) asm("hlt");
+
+    // Increment the buf pointer
+    void* allocResult = buf;
+
+    buf = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(buf) + size);
+    capacity-=size;
+
+    return allocResult;
+  }
+}
+
 extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
 {
   // 1: Parse Boot Information
-  for(struct multiboot_tag* tag = reinterpret_cast<struct multiboot_tag*>(boot_information + 8);
-      tag->type != MULTIBOOT_TAG_TYPE_END;
-      tag = reinterpret_cast<struct multiboot_tag *>(reinterpret_cast<std::byte*>(tag) + ((tag->size+7) & ~7))
-     )
   {
-    switch(tag->type)
-    {
-      case MULTIBOOT_TAG_TYPE_MMAP:             
-      {
-        auto& mmap = *reinterpret_cast<struct multiboot_tag_mmap*>(tag);
-        to_physical(bootInformation.mmap) = mmap;
+    void* bootInformationBuf = static_cast<void*>(to_physical(bootInformationStorage));
+    size_t bootInformationBufCapacity = 4096u;
 
-        size_t i = 0;
-        for(struct multiboot_mmap_entry* entry = mmap.entries; 
-            reinterpret_cast<std::byte*>(entry) < reinterpret_cast<std::byte*>(mmap.entries) + mmap.size;
-            entry = reinterpret_cast<struct multiboot_mmap_entry*>(reinterpret_cast<std::byte*>(entry) + mmap.entry_size))
-          to_physical(bootInformation.mmap_entries[i++]) = *entry;
-        to_physical(bootInformation.mmap_entries_count) = i;
-        break;
-      }
-      case MULTIBOOT_TAG_TYPE_FRAMEBUFFER:      
+    // 1: Allocate Memory for BootInformation
+    align(bootInformationBuf, bootInformationBufCapacity, alignof(BootInformation));
+    auto& bootInformation = *static_cast<BootInformation*>(alloc(bootInformationBuf, bootInformationBufCapacity, sizeof(BootInformation)));
+    bootInformation.memoryMapEntries = nullptr;
+    bootInformation.memoryMapEntriesCount = 0;
+    bootInformation.moduleEntries = nullptr;
+
+    // 2: Loop over Multiboot-Tag
+    for(struct multiboot_tag* tag = reinterpret_cast<struct multiboot_tag*>(boot_information + 8);
+        tag->type != MULTIBOOT_TAG_TYPE_END;
+        tag = reinterpret_cast<struct multiboot_tag *>(reinterpret_cast<std::byte*>(tag) + ((tag->size+7) & ~7))
+       )
+    {
+      switch(tag->type)
       {
-        auto& framebuffer = *reinterpret_cast<struct multiboot_tag_framebuffer*>(tag);
-        to_physical(bootInformation.framebuffer) = framebuffer;
-        break;
+        case MULTIBOOT_TAG_TYPE_MMAP:             
+        {
+          auto& mmap = *reinterpret_cast<struct multiboot_tag_mmap*>(tag);
+
+          // Allocate Memory to store MemoryMapEntry but without specifying the
+          // size since we do not know yet
+          align(bootInformationBuf, bootInformationBufCapacity, alignof(BootInformation::MemoryMapEntry));
+          auto& memoryMapEntries = *static_cast<BootInformation::MemoryMapEntry(*)[]>(bootInformationBuf);
+
+          bootInformation.memoryMapEntriesCount = 0;
+          for(struct multiboot_mmap_entry* entry = mmap.entries; 
+              reinterpret_cast<std::byte*>(entry) < reinterpret_cast<std::byte*>(mmap.entries) + mmap.size;
+              entry = reinterpret_cast<struct multiboot_mmap_entry*>(reinterpret_cast<std::byte*>(entry) + mmap.entry_size))
+            memoryMapEntries[bootInformation.memoryMapEntriesCount++] = entry;
+
+          // Now we know the size, commit it
+          alloc(bootInformationBuf, bootInformationBufCapacity, bootInformation.memoryMapEntriesCount * sizeof(BootInformation::MemoryMapEntry));
+
+          // Convert back to virtual address
+          bootInformation.memoryMapEntries = reinterpret_cast<BootInformation::MemoryMapEntry*>(reinterpret_cast<uintptr_t>(&memoryMapEntries) + 0xC0000000);
+
+          break;
+        }
+        case MULTIBOOT_TAG_TYPE_FRAMEBUFFER:      
+        {
+          auto& framebuffer = *reinterpret_cast<struct multiboot_tag_framebuffer*>(tag);
+          bootInformation.frameBuffer = framebuffer;
+          break;
+        }
+        case MULTIBOOT_TAG_TYPE_MODULE:
+        {
+          auto* module_tag = reinterpret_cast<struct multiboot_tag_module*>(tag);
+
+          // Allocate memory for Module
+          size_t moduleSize = module_tag->mod_end - module_tag->mod_start;
+          std::byte* module = static_cast<std::byte*>(alloc(bootInformationBuf, bootInformationBufCapacity, moduleSize));
+
+          // Copy to Module
+          for(size_t i=0; i<moduleSize; ++i)
+            module[i] = reinterpret_cast<std::byte*>(module_tag->mod_start)[i];
+
+          // Allocate memory for ModuleEntry
+          align(bootInformationBuf, bootInformationBufCapacity, alignof(BootInformation::ModuleEntry));
+          auto& moduleEntry = *static_cast<BootInformation::ModuleEntry*>(alloc(bootInformationBuf, bootInformationBufCapacity, sizeof(BootInformation::ModuleEntry)));
+          moduleEntry.addr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(module) + 0xC0000000); // Convert to virtual address
+          moduleEntry.len = moduleSize;
+          
+          // Append
+          moduleEntry.next = bootInformation.moduleEntries;
+          bootInformation.moduleEntries = reinterpret_cast<BootInformation::ModuleEntry*>(reinterpret_cast<uintptr_t>(&moduleEntry) + 0xC0000000);
+          break;
+        }
       }
     }
   }

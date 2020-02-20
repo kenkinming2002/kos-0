@@ -5,6 +5,7 @@
 
 #include <optional>
 
+#include <i686/boot/boot.hpp>
 #include <generic/core/memory/MemoryRegion.hpp>
 
 namespace core::memory
@@ -12,7 +13,7 @@ namespace core::memory
   class PhysicalPageFrameAllocator
   {
   public:
-    PhysicalPageFrameAllocator(struct multiboot_mmap_entry* mmap_entries, size_t length);
+    PhysicalPageFrameAllocator(BootInformation::MemoryMapEntry* memoryMapEntries, size_t length);
 
     PhysicalPageFrameAllocator(const PhysicalPageFrameAllocator&) = delete;
     PhysicalPageFrameAllocator(PhysicalPageFrameAllocator&&) = delete;

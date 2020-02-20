@@ -1,7 +1,7 @@
 #include <generic/io/Serial.hpp>
 
 #include <generic/grub/multiboot2.h>
-#include <i686/boot/lower_half.hpp>
+#include <i686/boot/boot.hpp>
 
 #include <i686/core/Interrupt.hpp>
 #include <i686/core/Paging.hpp>
@@ -43,18 +43,18 @@ void handler()
 /**
  * Log structures available after entering kmain()
  */
-void startup_log()
-{
-  // Framebuffer
-  io::print("FRAMEBUFFER:", 
-    ",  addr:", (uint32_t)bootInformation.framebuffer.common.framebuffer_addr,
-    ",  width:", (uint32_t)bootInformation.framebuffer.common.framebuffer_width,
-    ",  height:", (uint32_t)bootInformation.framebuffer.common.framebuffer_height);
-
-  io::print("MEMORY MAP---", " version:", (uint16_t)bootInformation.mmap.entry_version, "  entries:");
-  for(size_t i=0 ; i<bootInformation.mmap_entries_count; ++i)
-    io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint32_t)bootInformation.mmap_entries[i].addr, ", len:", (uint32_t)bootInformation.mmap_entries[i].len);
-}
+//void startup_log()
+//{
+//  // Framebuffer
+//  io::print("FRAMEBUFFER:", 
+//    ",  addr:", (uint32_t)bootInformation.framebuffer.common.framebuffer_addr,
+//    ",  width:", (uint32_t)bootInformation.framebuffer.common.framebuffer_width,
+//    ",  height:", (uint32_t)bootInformation.framebuffer.common.framebuffer_height);
+//
+//  io::print("MEMORY MAP---", " version:", (uint16_t)bootInformation.mmap.entry_version, "  entries:");
+//  for(size_t i=0 ; i<bootInformation.mmap_entries_count; ++i)
+//    io::print( "  type:", (uint32_t)bootInformation.mmap_entries[i].type, ", addr:", (uint32_t)bootInformation.mmap_entries[i].addr, ", len:", (uint32_t)bootInformation.mmap_entries[i].len);
+//}
 
 //void test_physicalPageFrameAllocator(core::memory::PhysicalPageFrameAllocator& physicalPageFrameAllocator)
 //{
@@ -136,6 +136,16 @@ extern "C" int kmain()
   /** *Global* data**/
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
+
+  io::print("DEBUG: Modules\n");
+  auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
+  for(auto* moduleEntry = bootInformation.moduleEntries; moduleEntry != nullptr; moduleEntry = moduleEntry->next)
+  {
+    io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len);
+    typedef void(*call_module_t)(void);
+    call_module_t start_program = (call_module_t)moduleEntry->addr;
+    start_program();
+  }
 
   //core::pic::controller8259::clearMask(0); // Enable timer
 

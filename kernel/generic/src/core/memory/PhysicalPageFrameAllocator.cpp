@@ -1,6 +1,5 @@
 #include <generic/core/memory/PhysicalPageFrameAllocator.hpp>
 
-#include <i686/boot/lower_half.hpp>
 #include <generic/io/Print.hpp>
 
 #include <algorithm>
@@ -16,7 +15,7 @@ extern "C"
 
 namespace core::memory
 {
-  PhysicalPageFrameAllocator::PhysicalPageFrameAllocator(struct multiboot_mmap_entry* mmap_entries, size_t length) 
+  PhysicalPageFrameAllocator::PhysicalPageFrameAllocator(BootInformation::MemoryMapEntry* memoryMapEntries, size_t length) 
   {
     io::print("DEBUG: Initializing Physical Memory Manager\n");
 
@@ -27,11 +26,11 @@ namespace core::memory
     auto it = m_memoryRegions.before_begin();
     for(size_t i=0; i<length; ++i)
     {
-      struct multiboot_mmap_entry& mmap_entry = mmap_entries[i];
-      if(mmap_entry.type == MULTIBOOT_MEMORY_AVAILABLE)
+      BootInformation::MemoryMapEntry& memoryMapEntry = memoryMapEntries[i];
+      if(memoryMapEntry.type == BootInformation::MemoryMapEntry::Type::AVAILABLE)
       {
-        io::print("   - ", mmap_entry.addr, "-", mmap_entry.addr + mmap_entry.len, "\n");
-        auto [first, second] = MemoryRegion::difference(MemoryRegion(mmap_entry), kernelMemoryRegion);
+        io::print("   - ", memoryMapEntry.addr, "-", memoryMapEntry.addr + memoryMapEntry.len, "\n");
+        auto [first, second] = MemoryRegion::difference(MemoryRegion(memoryMapEntry), kernelMemoryRegion);
         {
           if(first)
             it = m_memoryRegions.insert_after(it, *(new MemoryRegion(*first)));

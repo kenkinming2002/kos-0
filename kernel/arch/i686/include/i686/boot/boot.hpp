@@ -19,29 +19,45 @@
 // address to physical address)
 #define BOOT_ADDRESS
 
-// Have to work around a weird quark of gcc that section attributes is silently
-// ignored for template function
-template<typename T>
-FORCE_INLINE BOOT_FUNCTION inline T& to_physical(T& t)
-{
-  return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(&t) - 0xC0000000);
-}
-
 
 struct BootInformation
 {
+// Memory
 public:
-  constexpr static size_t MAX_MMAP_ENTRIES_COUNT = 16;
+  struct MemoryMapEntry
+  {
+  public:
+    BOOT_FUNCTION MemoryMapEntry(struct multiboot_mmap_entry* mmap_tag_entry);
 
+  public:
+    uintptr_t addr;
+    size_t len;
+    enum class Type { AVAILABLE, BOOT_INFORMATION, ACPI, RESERVED, DEFECTIVE } type;
+  };
+  MemoryMapEntry* memoryMapEntries;
+  size_t memoryMapEntriesCount;
+
+// TODO: Modules
 public:
-  struct multiboot_tag_framebuffer framebuffer;
-  struct multiboot_tag_mmap        mmap;
-  struct multiboot_mmap_entry      mmap_entries[MAX_MMAP_ENTRIES_COUNT];
-  size_t                           mmap_entries_count;
+  struct ModuleEntry
+  {
+  public:
+    void* addr;
+    size_t len;
+
+    ModuleEntry* next;
+  };
+  ModuleEntry* moduleEntries;
+
+// Framebuffer
+public:
+  struct multiboot_tag_framebuffer frameBuffer;
 };
 
 // Output
-extern BootInformation bootInformation;
+extern std::byte bootInformationStorage[];
+
+
 
 //  TODO: set this depending on kernel size
 constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
@@ -51,3 +67,17 @@ extern std::byte kernelPageTable[];
 
 constexpr static size_t GDT_SIZE = 5;
 extern std::byte kernelGDTEntries[];
+
+
+
+
+
+// Have to work around a weird quark of gcc that section attributes is silently
+// ignored for template function
+template<typename T>
+FORCE_INLINE BOOT_FUNCTION inline T& to_physical(T& t)
+{
+  return *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(&t) - 0xC0000000);
+}
+
+

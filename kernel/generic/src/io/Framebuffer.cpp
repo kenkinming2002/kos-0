@@ -3,7 +3,7 @@
 #include <generic/io/Serial.hpp>
 
 #include <intel/asm/io.hpp>
-#include <i686/boot/lower_half.hpp>
+#include <i686/boot/boot.hpp>
 
 namespace
 {
@@ -26,7 +26,7 @@ namespace io
 
   FrameBuffer::FrameBuffer() : m_cells(nullptr), m_width(0), m_height(0)
   {
-    auto& multiboot_tag_framebuffer = bootInformation.framebuffer;
+    auto& multiboot_tag_framebuffer = utils::deref_cast<BootInformation>(bootInformationStorage).frameBuffer;
 
     if(multiboot_tag_framebuffer.common.framebuffer_type!=2) 
       return;

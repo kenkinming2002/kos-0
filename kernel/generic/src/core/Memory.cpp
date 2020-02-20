@@ -35,7 +35,7 @@ namespace
 namespace core
 {
   Memory::Memory() 
-    : m_physicalPageFrameAllocator(bootInformation.mmap_entries, bootInformation.mmap_entries_count),
+    : m_physicalPageFrameAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
       m_virtualPageFrameAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000)),
       m_pageFrameAllocator(m_physicalPageFrameAllocator, m_virtualPageFrameAllocator)
   {

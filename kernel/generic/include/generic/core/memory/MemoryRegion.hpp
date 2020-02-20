@@ -5,7 +5,7 @@
 
 #include <optional>
 
-#include <generic/grub/multiboot2.h>
+#include <i686/boot/boot.hpp>
 #include <boost/intrusive/slist.hpp>
 
 namespace core::memory
@@ -43,8 +43,8 @@ namespace core::memory
       : MemoryRegion(reinterpret_cast<uintptr_t>(begin), len, address_pair_tag){}
 
   public:
-    MemoryRegion(struct multiboot_mmap_entry& mmap_entry)
-      : MemoryRegion(mmap_entry.addr, mmap_entry.len, address_length_tag) {}
+    MemoryRegion(BootInformation::MemoryMapEntry& memoryMapEntry)
+      : MemoryRegion(memoryMapEntry.addr, memoryMapEntry.len, address_length_tag) {}
 
   public:
     size_t beginIndex() const { return m_beginIndex; }
