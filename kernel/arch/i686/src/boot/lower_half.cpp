@@ -21,21 +21,24 @@ std::byte bootInformationStorage[4096u];
 BOOT_FUNCTION BootInformation::MemoryMapEntry::MemoryMapEntry(struct multiboot_mmap_entry* mmap_tag_entry)
   : addr(mmap_tag_entry->addr), len(mmap_tag_entry->len) 
 {
-  type = [&](){
-    switch(mmap_tag_entry->type)
-    {
-    case 1:
-      return Type::AVAILABLE;
-    case 3:
-      return Type::ACPI;
-    case 4:
-      return Type::RESERVED;
-    case 5:
-      return Type::DEFECTIVE;
-    default:
-      return Type::RESERVED;
-    }
-  }();
+  switch(mmap_tag_entry->type)
+  {
+  case 1:
+    type = Type::AVAILABLE;
+    break;
+  case 3:
+    type =  Type::ACPI;
+    break;
+  case 4:
+    type = Type::RESERVED;
+    break;
+  case 5:
+    type = Type::DEFECTIVE;
+    break;
+  default:
+    type = Type::RESERVED;
+    break;
+  }
 }
 
 namespace
