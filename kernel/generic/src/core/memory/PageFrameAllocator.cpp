@@ -9,20 +9,20 @@
 namespace core::memory
 {
   PageFrameAllocator::PageFrameAllocator(
-      PhysicalPageFrameAllocator& physicalPageFrameAllocator, VirtualPageFrameAllocator& virtualPageFrameAllocator)
-  : m_physicalPageFrameAllocator(physicalPageFrameAllocator), 
-    m_virtualPageFrameAllocator(virtualPageFrameAllocator)
+      PhysicalMemoryRegionAllocator<LinkedListMemoryRegionAllocator>& physicalMemoryRegionAllocator, VirtualMemoryRegionAllocator<LinkedListMemoryRegionAllocator>& virtualMemoryRegionAllocator)
+  : m_physicalMemoryRegionAllocator(physicalMemoryRegionAllocator), 
+    m_virtualMemoryRegionAllocator(virtualMemoryRegionAllocator)
   {}
 
   void* PageFrameAllocator::allocate(size_t n)
   {
     auto& memoryMapping = utils::deref_cast<core::memory::MemoryMapping>(kernelMemoryMapping);
 
-    auto virtualMemoryRegion  = m_virtualPageFrameAllocator.allocate(n);
+    auto virtualMemoryRegion  = m_virtualMemoryRegionAllocator.allocate(n);
     if(!virtualMemoryRegion)
       return nullptr;
 
-    auto physicalMemoryRegion = m_physicalPageFrameAllocator.allocate(n);
+    auto physicalMemoryRegion = m_physicalMemoryRegionAllocator.allocate(n);
     if(!physicalMemoryRegion)
       return nullptr;
 
@@ -30,12 +30,12 @@ namespace core::memory
     {
       case core::memory::MemoryMapping::MapResult::ERR_NO_PAGE_TABLE:
       {
-        auto pageTablePhysicalMemory = m_physicalPageFrameAllocator.allocate(1);
+        auto pageTablePhysicalMemory = m_physicalMemoryRegionAllocator.allocate(1);
         if(!pageTablePhysicalMemory)
         {
           // Cleanup
-          m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
-          m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
+          m_physicalMemoryRegionAllocator.deallocate(*physicalMemoryRegion);
+          m_virtualMemoryRegionAllocator.deallocate(*virtualMemoryRegion);
 
           return nullptr;
         }
@@ -43,9 +43,9 @@ namespace core::memory
             core::memory::MemoryMapping::MapResult::SUCCESS)
         {
           // Cleanup
-          m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
-          m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
-          m_physicalPageFrameAllocator.deallocate(*pageTablePhysicalMemory);
+          m_physicalMemoryRegionAllocator.deallocate(*physicalMemoryRegion);
+          m_virtualMemoryRegionAllocator.deallocate(*virtualMemoryRegion);
+          m_physicalMemoryRegionAllocator.deallocate(*pageTablePhysicalMemory);
 
           return nullptr; 
         }
@@ -54,8 +54,8 @@ namespace core::memory
       case core::memory::MemoryMapping::MapResult::ERR_INVALID_PAGE_TABLE:
       {
         // Cleanup
-        m_physicalPageFrameAllocator.deallocate(*physicalMemoryRegion);
-        m_virtualPageFrameAllocator.deallocate(*virtualMemoryRegion);
+        m_physicalMemoryRegionAllocator.deallocate(*physicalMemoryRegion);
+        m_virtualMemoryRegionAllocator.deallocate(*virtualMemoryRegion);
 
         return nullptr;
       }
@@ -72,7 +72,7 @@ namespace core::memory
     auto virtualMemoryRegion = MemoryRegion(pageFrames, n * PAGE_SIZE);
     auto physicalMemoryRegion = memoryMapping.unmap(virtualMemoryRegion);
 
-    m_virtualPageFrameAllocator.deallocate(virtualMemoryRegion);
-    m_physicalPageFrameAllocator.deallocate(physicalMemoryRegion);
+    m_virtualMemoryRegionAllocator.deallocate(virtualMemoryRegion);
+    m_physicalMemoryRegionAllocator.deallocate(physicalMemoryRegion);
   }
 }

@@ -10,19 +10,18 @@
 
 namespace core::memory
 {
-  class PhysicalPageFrameAllocator
+  class LinkedListMemoryRegionAllocator
   {
   public:
-    PhysicalPageFrameAllocator(BootInformation::MemoryMapEntry* memoryMapEntries, size_t length);
-
-    PhysicalPageFrameAllocator(const PhysicalPageFrameAllocator&) = delete;
-    PhysicalPageFrameAllocator(PhysicalPageFrameAllocator&&) = delete;
+    LinkedListMemoryRegionAllocator() = default;
+    LinkedListMemoryRegionAllocator(const LinkedListMemoryRegionAllocator&) = delete;
+    LinkedListMemoryRegionAllocator(LinkedListMemoryRegionAllocator&&) = delete;
 
   public:
     std::optional<MemoryRegion> allocate(size_t count = 1u);
     void deallocate(MemoryRegion physicalMemoryRegion);
 
-  private:
+  protected:
     boost::intrusive::slist<MemoryRegion> m_memoryRegions;
   };
 }

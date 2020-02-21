@@ -23,7 +23,7 @@
 
 //namespace core
 //{
-//  //core::memory::PageFrameAllocator* pageFrameAllocator;
+//  //core::memory::MemoryRegionAllocator* pageFrameAllocator;
 //}
 
 namespace
@@ -35,9 +35,9 @@ namespace
 namespace core
 {
   Memory::Memory() 
-    : m_physicalPageFrameAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
-      m_virtualPageFrameAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000)),
-      m_pageFrameAllocator(m_physicalPageFrameAllocator, m_virtualPageFrameAllocator)
+    : m_physicalMemoryRegionAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
+      m_virtualMemoryRegionAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000)),
+      m_pageFrameAllocator(m_physicalMemoryRegionAllocator, m_virtualMemoryRegionAllocator)
   {
     pageFrameAllocatorInitialized = true;
   }

@@ -14,10 +14,10 @@ namespace core
     void deallocate(void* pages, size_t n);
 
   public:
-    core::memory::PhysicalPageFrameAllocator m_physicalPageFrameAllocator;
-    core::memory::VirtualPageFrameAllocator m_virtualPageFrameAllocator;
+    memory::PhysicalMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_physicalMemoryRegionAllocator;
+    memory::VirtualMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_virtualMemoryRegionAllocator;
 
-    core::memory::PageFrameAllocator m_pageFrameAllocator;
+    memory::PageFrameAllocator m_pageFrameAllocator;
   };
 
   extern Memory gMemory;

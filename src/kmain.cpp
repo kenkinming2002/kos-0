@@ -7,10 +7,6 @@
 
 #include <iterator>
 
-#include <generic/core/memory/PhysicalPageFrameAllocator.hpp>
-#include <generic/core/memory/VirtualPageFrameAllocator.hpp>
-#include <generic/core/memory/PageFrameAllocator.hpp>
-
 #include <generic/core/Memory.hpp>
 
 #include <intel/core/pic/8259.hpp>
@@ -143,24 +139,24 @@ extern "C" int kmain()
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len);
     typedef void(*call_module_t)(void);
     call_module_t start_program = (call_module_t)moduleEntry->addr;
-    start_program();
+    //start_program();
   }
 
   //core::pic::controller8259::clearMask(0); // Enable timer
 
   /** Logging **/
-  //for(int i=0; i<6862; ++i)
-  //{
-  //  void* mem = kmalloc(40);
-  //  io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
-  //}
+  for(int i=0; i<6862; ++i)
+  {
+    void* mem = kmalloc(40);
+    io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
+  }
 
-  //for(int i=0; i<10000; ++i)
-  //{
-  //  void* mem = kmalloc(4);
-  //  io::print("kmain-malloc with free", reinterpret_cast<uintptr_t>(mem), "\n");
-  //  kfree(mem);
-  //}
+  for(int i=0; i<10000; ++i)
+  {
+    void* mem = kmalloc(4);
+    io::print("kmain-malloc with free", reinterpret_cast<uintptr_t>(mem), "\n");
+    kfree(mem);
+  }
   
   
   for(;;)
