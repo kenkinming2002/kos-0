@@ -147,15 +147,15 @@ extern "C" int kmain()
   /** Logging **/
   for(int i=0; i<6862; ++i)
   {
-    void* mem = kmalloc(40);
+    void* mem = core::memory::malloc(40);
     io::print("kmain-malloc ", reinterpret_cast<uintptr_t>(mem), "\n");
   }
 
   for(int i=0; i<10000; ++i)
   {
-    void* mem = kmalloc(4);
+    void* mem = core::memory::malloc(4);
     io::print("kmain-malloc with free", reinterpret_cast<uintptr_t>(mem), "\n");
-    kfree(mem);
+    core::memory::free(mem);
   }
   
   

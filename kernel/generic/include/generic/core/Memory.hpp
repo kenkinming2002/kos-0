@@ -2,23 +2,11 @@
 
 #include <generic/core/memory/PageFrameAllocator.hpp>
 
-namespace core
+namespace core::memory
 {
-  class Memory
-  {
-  public:
-    Memory();
+  void* malloc(size_t size);
+  void free(void* ptr);
 
-  public:
-    void* allocate(size_t n);
-    void deallocate(void* pages, size_t n);
-
-  public:
-    memory::PhysicalMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_physicalMemoryRegionAllocator;
-    memory::VirtualMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_virtualMemoryRegionAllocator;
-
-    memory::PageFrameAllocator m_pageFrameAllocator;
-  };
-
-  extern Memory gMemory;
+  void* mallocPages(size_t count);
+  void freePages(void* pages, size_t count);
 }

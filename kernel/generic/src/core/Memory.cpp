@@ -15,27 +15,38 @@
 
 #include <liballoc_1_1.h>
 
-//extern "C"
-//{
-//  extern std::byte early_heap_start[];
-//  extern std::byte early_heap_end[];
-//}
-
-//namespace core
-//{
-//  //core::memory::MemoryRegionAllocator* pageFrameAllocator;
-//}
-
+/**
+ * Globals
+ */
 namespace
 {
   bool pageFrameAllocatorInitialized = false;
-  __attribute__((aligned(4096)))std::byte early_heap[0x10000];
 }
 
+/**
+ * Convenient Class to govern static initialization
+ */
 namespace core
 {
+  class Memory
+  {
+  public:
+    Memory();
+
+  public:
+    void* allocate(size_t n);
+    void deallocate(void* pages, size_t n);
+
+  public:
+    memory::PhysicalMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_physicalMemoryRegionAllocator;
+    memory::VirtualMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_virtualMemoryRegionAllocator;
+
+    memory::PageFrameAllocator m_pageFrameAllocator;
+  };
+
   Memory::Memory() 
-    : m_physicalMemoryRegionAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
+    : m_physicalMemoryRegionAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, 
+                                      utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
       m_virtualMemoryRegionAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000)),
       m_pageFrameAllocator(m_physicalMemoryRegionAllocator, m_virtualMemoryRegionAllocator)
   {
@@ -54,6 +65,37 @@ namespace core
 
   __attribute__((init_priority(65535))) Memory gMemory;
 }
+
+/**
+ * Interface
+ */
+namespace core::memory
+{
+  void* malloc(size_t size)
+  {
+    return kmalloc(size);
+  }
+
+  void free(void* ptr)
+  {
+    kfree(ptr);
+  }
+
+  void* mallocPages(size_t count)
+  {
+    return core::gMemory.allocate(count);
+  }
+
+  void freePages(void* pages, size_t count)
+  {
+    core::gMemory.deallocate(pages, count);
+  }
+}
+
+/**
+ * Hooks for liballoc
+ */
+__attribute__((aligned(4096)))std::byte early_heap[0x10000];
 
 extern "C" int liballoc_lock()   { return 0; }
 extern "C" int liballoc_unlock() { return 0; }
