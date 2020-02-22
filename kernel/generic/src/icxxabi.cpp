@@ -1,4 +1,7 @@
 #include <generic/icxxabi.hpp>
+
+#include <generic/io/Print.hpp>
+#include <stdint.h>
  
 #ifdef __cplusplus
 extern "C" {
@@ -99,7 +102,13 @@ void __cxa_finalize(void *f)
 };
 void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
 {
-  asm("hlt");
+  io::print("Assertion Failure:\n");
+  io::print("  line: ", (int32_t)line, "\n");
+  io::print("  function: ", func, "\n");
+  io::print("  failedexpr: ", failedexpr, "\n");
+
+  for(;;)
+    asm("hlt");
 }
  
 #ifdef __cplusplus

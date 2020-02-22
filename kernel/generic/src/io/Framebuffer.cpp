@@ -5,12 +5,6 @@
 #include <intel/asm/io.hpp>
 #include <i686/boot/boot.hpp>
 
-namespace
-{
-  bool fb_created = false;
-}
-
-
 namespace io
 {
   namespace

@@ -19,7 +19,6 @@
 
 #include <utility>
 
-#include <liballoc_1_1.h>
 
 const char str[] = "Hello World!";
 
@@ -136,7 +135,7 @@ extern "C" int kmain()
   auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
   for(auto* moduleEntry = bootInformation.moduleEntries; moduleEntry != nullptr; moduleEntry = moduleEntry->next)
   {
-    io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len);
+    io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
     typedef void(*call_module_t)(void);
     call_module_t start_program = (call_module_t)moduleEntry->addr;
     //start_program();
@@ -157,7 +156,6 @@ extern "C" int kmain()
     io::print("kmain-malloc with free", reinterpret_cast<uintptr_t>(mem), "\n");
     core::memory::free(mem);
   }
-  
   
   for(;;)
   {
