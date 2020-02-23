@@ -150,7 +150,7 @@ extern "C" BOOT_FUNCTION void lower_half_main(std::byte* boot_information)
   }
 
   // 2: Setup Paging
-  auto& pageDirectory = utils::deref_cast<boot::memory::MemoryMapping>(to_physical(kernelMemoryMapping)).pageDirectory;
+  auto& pageDirectory = utils::deref_cast<boot::memory::PageDirectory>(to_physical(kernelPageDirectory));
   auto& pageTables    = utils::deref_cast<boot::memory::PageTable[BOOT_PAGE_TABLE_COUNT]>(to_physical(kernelPageTable));
   for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)
   {

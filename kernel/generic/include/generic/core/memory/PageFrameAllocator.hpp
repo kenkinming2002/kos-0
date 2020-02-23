@@ -12,7 +12,7 @@ namespace core::memory
     PageFrameAllocator(PhysicalMemoryRegionAllocator<LinkedListMemoryRegionAllocator>& physicalMemoryRegionAllocator, VirtualMemoryRegionAllocator<LinkedListMemoryRegionAllocator>& virtualMemoryRegionAllocator);
 
   public:
-    void* allocate(size_t n);
+    std::pair<void*, phyaddr_t> allocate(size_t n);
     void deallocate(void* pageFrames, size_t n);
 
   private:

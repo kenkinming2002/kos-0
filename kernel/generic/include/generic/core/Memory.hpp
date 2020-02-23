@@ -4,9 +4,14 @@
 
 namespace core::memory
 {
+  void init();
+
   void* malloc(size_t size);
   void free(void* ptr);
 
-  void* mallocPages(size_t count);
-  void freePages(void* pages, size_t count);
+  std::pair<void*, phyaddr_t> mallocMappedPages(size_t count);
+  void freeMappedPages(void* pages, size_t count);
+
+  std::optional<MemoryRegion> mallocPhysicalPages(size_t count);
+  void freePhysicalPages(MemoryRegion physicalMemoryRegion);
 }

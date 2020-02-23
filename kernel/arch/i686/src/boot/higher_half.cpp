@@ -31,7 +31,7 @@ extern "C" void higher_half_main()
 
 
   // 2: remove unused Page Table
-  auto& pageDirectory = utils::deref_cast<core::memory::MemoryMapping>(kernelMemoryMapping).pageDirectory;
+  auto& pageDirectory = utils::deref_cast<core::memory::PageDirectory>(kernelPageDirectory);
   auto& pageTables    = utils::deref_cast<core::memory::PageTable[BOOT_PAGE_TABLE_COUNT]>(kernelPageTable);
 
   for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)

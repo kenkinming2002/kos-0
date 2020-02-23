@@ -64,11 +64,4 @@ namespace boot::memory
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];
-
-  // We do not need fancy feature like fractal mapping at boot time
-  class MemoryMapping
-  {
-  public:
-    PageDirectory pageDirectory;
-  };
 }

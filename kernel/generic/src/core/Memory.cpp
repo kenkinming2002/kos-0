@@ -8,93 +8,106 @@
  */
 #include <generic/core/Memory.hpp>
 
-#include <i686/boot/lower_half.hpp>
+#include <i686/core/memory/MemoryMapping.hpp>
+
+#include <i686/boot/boot.hpp>
 #include <generic/io/Print.hpp>
+
+#include <i686/core/Interrupt.hpp>
 
 #include <cstddef>
 
 #include <liballoc_1_1.h>
 
-/**
- * Globals
- */
-namespace
-{
-  bool pageFrameAllocatorInitialized = false;
-}
-
-/**
- * Convenient Class to govern static initialization
- */
-namespace core
-{
-  class Memory
-  {
-  public:
-    Memory();
-
-  public:
-    void* allocate(size_t n);
-    void deallocate(void* pages, size_t n);
-
-  public:
-    memory::PhysicalMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_physicalMemoryRegionAllocator;
-    memory::VirtualMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> m_virtualMemoryRegionAllocator;
-
-    memory::PageFrameAllocator m_pageFrameAllocator;
-  };
-
-  Memory::Memory() 
-    : m_physicalMemoryRegionAllocator(utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, 
-                                      utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount),
-      m_virtualMemoryRegionAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000)),
-      m_pageFrameAllocator(m_physicalMemoryRegionAllocator, m_virtualMemoryRegionAllocator)
-  {
-    pageFrameAllocatorInitialized = true;
-  }
-
-  void* Memory::allocate(size_t n)
-  {
-    return m_pageFrameAllocator.allocate(n);
-  }
-
-  void Memory::deallocate(void* pages, size_t n)
-  {
-    m_pageFrameAllocator.deallocate(pages, n);
-  }
-
-  __attribute__((init_priority(65535))) Memory gMemory;
-}
-
-/**
- * Interface
- */
 namespace core::memory
 {
-  void* malloc(size_t size)
+  /******************************************
+   * Initialization and Page Fault Handling *
+   ******************************************/
+  namespace
   {
-    return kmalloc(size);
+    [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void page_fault_handler(core::interrupt::frame*, core::interrupt::uword_t error)
+    {
+      uintptr_t faultingAddress;
+      asm volatile ( R"(
+        .intel_syntax noprefix
+        mov %[faultingAddress], cr2
+        .att_syntax prefix
+        )"
+        : [faultingAddress]"=r"(faultingAddress)
+        : 
+        :
+      );
+
+      io::print("Page Fault:\n");
+      io::print("  - error code: ", (uint32_t)error, "\n");
+      io::print("  - at: ", faultingAddress, "\n");
+
+      if(faultingAddress>=0xC0000000) // Higher Half Page Fault
+      {
+        for(;;) asm("hlt");
+      }
+
+      for(;;) asm("hlt");
+    } }
+
+  void init()
+  {
+    core::interrupt::install_handler(0xE, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&page_fault_handler));
   }
+
+  /***********
+   * Globals *
+   ***********/
+#define MEMROY_INIT_PRIORITY __attribute__((init_priority(65535)))
+  namespace
+  {
+    bool pageFrameAllocatorInitialized = false;
+    MEMROY_INIT_PRIORITY memory::PhysicalMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> physicalMemoryRegionAllocator
+    (
+        utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntries, 
+        utils::deref_cast<BootInformation>(bootInformationStorage).memoryMapEntriesCount
+    );
+    MEMROY_INIT_PRIORITY memory::VirtualMemoryRegionAllocator<memory::LinkedListMemoryRegionAllocator> virtualMemoryRegionAllocator(reinterpret_cast<std::byte*>(0xD0000000), reinterpret_cast<std::byte*>(0xE000000));
+    MEMROY_INIT_PRIORITY memory::PageFrameAllocator pageFrameAllocator(physicalMemoryRegionAllocator, virtualMemoryRegionAllocator);
+  }
+#undef MEMROY_INIT_PRIORITY
+
+  /*************
+   * Interface *
+   *************/
+  void* malloc(size_t size)
+  { return kmalloc(size); }
 
   void free(void* ptr)
   {
     kfree(ptr);
   }
 
-  void* mallocPages(size_t count)
+  std::pair<void*, phyaddr_t> mallocMappedPages(size_t count)
   {
-    return core::gMemory.allocate(count);
+    return pageFrameAllocator.allocate(count);
   }
 
-  void freePages(void* pages, size_t count)
+  void freeMappedPages(void* pages, size_t count)
   {
-    core::gMemory.deallocate(pages, count);
+    pageFrameAllocator.deallocate(pages, count);
+  }
+
+  std::optional<MemoryRegion> mallocPhysicalPages(size_t count)
+  {
+    return physicalMemoryRegionAllocator.allocate(count);
+  }
+  
+  void freePhysicalPages(MemoryRegion physicalMemoryRegion)
+  {
+    physicalMemoryRegionAllocator.deallocate(physicalMemoryRegion);
   }
 }
 
-/**
- * Hooks for liballoc
- */
+/**********************
+ * Hooks for liballoc *
+ **********************/
 __attribute__((aligned(4096)))std::byte early_heap[0x10000];
 
 extern "C" int liballoc_lock()   { return 0; }
@@ -110,18 +123,18 @@ extern "C" void* liballoc_alloc(size_t n)
   }
   else
   {
-    if(!pageFrameAllocatorInitialized)
+    if(!core::memory::pageFrameAllocatorInitialized)
     {
       io::print("WHAT THE DUCK");
       asm("hlt");
     }
-    return core::gMemory.allocate(n);
+    return core::memory::pageFrameAllocator.allocate(n).first;
   }
 }
 
 extern "C" int liballoc_free(void* pages, size_t n)
 {
-  core::gMemory.deallocate(pages, n);
+  core::memory::pageFrameAllocator.deallocate(pages, n);
   return 0;
 }
 

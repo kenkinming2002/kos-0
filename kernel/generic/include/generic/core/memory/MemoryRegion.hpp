@@ -40,7 +40,7 @@ namespace core::memory
     MemoryRegion(void* begin, void* end) 
       : MemoryRegion(reinterpret_cast<uintptr_t>(begin), reinterpret_cast<uintptr_t>(end), address_pair_tag){}
     MemoryRegion(void* begin, size_t len) 
-      : MemoryRegion(reinterpret_cast<uintptr_t>(begin), len, address_pair_tag){}
+      : MemoryRegion(reinterpret_cast<uintptr_t>(begin), len, address_length_tag){}
 
   public:
     MemoryRegion(BootInformation::MemoryMapEntry& memoryMapEntry)

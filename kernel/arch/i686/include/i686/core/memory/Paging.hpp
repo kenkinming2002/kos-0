@@ -57,29 +57,4 @@ namespace core::memory
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];
-  
-  class MemoryMapping
-  {
-  public:
-    enum class MapResult
-    {
-      SUCCESS,
-      ERR_NO_PAGE_TABLE = -1,
-      ERR_INVALID_PAGE_TABLE = -2
-    };
-
-    MapResult map(MemoryRegion physicalMemoryRegion, MemoryRegion virtualMemoryRegion, void* pageTablePhysicalMemory = nullptr);
-    /*
-     * Unmap a virtual memory region
-     *
-     * @return physical memory region previously mapped to virtualMemoryRegion
-     */
-    MemoryRegion unmap(MemoryRegion virtualMemoryRegion);
-
-  private:
-    virtaddr_t doFractalMapping(phyaddr_t physicalAddress);
-
-  public:
-    PageDirectory pageDirectory;
-  };
 }
