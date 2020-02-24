@@ -7,16 +7,17 @@ namespace core::memory
 {
   MemoryMapping::MemoryMapping()
   {
-      auto [pages, physicalAddress] = core::memory::mallocMappedPages(1);
-      if(!pages)
-        for(;;) asm("hlt"); // OOM
+    // TODO: allocate a zeroed page directly
+    auto [pages, physicalAddress] = core::memory::allocateHeapPages(1);
+    if(!pages)
+      for(;;) asm("hlt"); // OOM
 
-      m_pageDirectory = static_cast<PageDirectory*>(pages);
-      static_assert(sizeof(PageDirectory) == core::memory::PAGE_SIZE);
-      m_pageDirectoryPhysicalAddress = physicalAddress;
+    m_pageDirectory = static_cast<PageDirectory*>(pages);
+    static_assert(sizeof(PageDirectory) == core::memory::PAGE_SIZE);
+    m_pageDirectoryPhysicalAddress = physicalAddress;
 
-      for(auto& pageDirectoryEntry: *m_pageDirectory)
-        pageDirectoryEntry = PageDirectoryEntry();
+    for(auto& pageDirectoryEntry: *m_pageDirectory)
+      pageDirectoryEntry = PageDirectoryEntry();
   }
 
   MemoryMapping::MemoryMapping(PageDirectory& pageDirectory, phyaddr_t pageDirectoryPhysicalAddress)
@@ -42,7 +43,7 @@ namespace core::memory
     phyaddr_t pageTablePhysicalAddress;
     if(!pageDirectoryEntry.present())
     {
-      if(auto physicalMemoryRegion = core::memory::mallocPhysicalPages(1))
+      if(auto physicalMemoryRegion = core::memory::allocatePhysicalMemoryRegion(1))
         pageTablePhysicalAddress = reinterpret_cast<uintptr_t>(physicalMemoryRegion->begin());
       else
         for(;;) asm("hlt"); // OOM

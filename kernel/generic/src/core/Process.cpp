@@ -21,7 +21,7 @@ namespace core
   {
     size_t pageCount = (length + memory::PAGE_SIZE - 1) / memory::PAGE_SIZE;
 
-    auto physicalMemoryRegion = core::memory::mallocPhysicalPages(pageCount);
+    auto physicalMemoryRegion = core::memory::allocatePhysicalMemoryRegion(pageCount);
     if(!physicalMemoryRegion)
       return;
 

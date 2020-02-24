@@ -84,24 +84,24 @@ namespace core::memory
     kfree(ptr);
   }
 
-  std::pair<void*, phyaddr_t> mallocMappedPages(size_t count)
-  {
-    return pageFrameAllocator.allocate(count);
-  }
-
-  void freeMappedPages(void* pages, size_t count)
-  {
-    pageFrameAllocator.deallocate(pages, count);
-  }
-
-  std::optional<MemoryRegion> mallocPhysicalPages(size_t count)
+  std::optional<MemoryRegion> allocatePhysicalMemoryRegion(size_t count)
   {
     return physicalMemoryRegionAllocator.allocate(count);
   }
   
-  void freePhysicalPages(MemoryRegion physicalMemoryRegion)
+  void deallocatePhysicalMemoryRegion(MemoryRegion physicalMemoryRegion)
   {
     physicalMemoryRegionAllocator.deallocate(physicalMemoryRegion);
+  }
+
+  std::pair<void*, phyaddr_t> allocateHeapPages(size_t count)
+  {
+    return pageFrameAllocator.allocate(count);
+  }
+
+  void deallocateHeapPages(void* pages, size_t count)
+  {
+    pageFrameAllocator.deallocate(pages, count);
   }
 }
 

@@ -9,9 +9,9 @@ namespace core::memory
   void* malloc(size_t size);
   void free(void* ptr);
 
-  std::pair<void*, phyaddr_t> mallocMappedPages(size_t count);
-  void freeMappedPages(void* pages, size_t count);
+  std::optional<MemoryRegion> allocatePhysicalMemoryRegion(size_t count);
+  void deallocatePhysicalMemoryRegion(MemoryRegion physicalMemoryRegion);
 
-  std::optional<MemoryRegion> mallocPhysicalPages(size_t count);
-  void freePhysicalPages(MemoryRegion physicalMemoryRegion);
+  std::pair<void*, phyaddr_t> allocateHeapPages(size_t count);
+  std::pair<void*, phyaddr_t> deallocateHeapPages(size_t count);
 }
