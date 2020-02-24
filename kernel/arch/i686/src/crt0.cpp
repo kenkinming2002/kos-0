@@ -12,6 +12,7 @@ extern "C" void kmain();
 
 extern "C" void _start()
 {
+  core::segmentation::init();
   core::interrupt::init();
   core::pic::controller8259::init();
   core::exceptions::init();

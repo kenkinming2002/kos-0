@@ -6,6 +6,3 @@
 __attribute__((aligned(4096))) std::byte kernelPageDirectory[sizeof(boot::memory::PageDirectory)];
 __attribute__((aligned(4096))) std::byte kernelPageTable[sizeof(boot::memory::PageTable) * BOOT_PAGE_TABLE_COUNT];
 
-core::GDTEntry kernelGDTEntries[GDT_SIZE];
-core::TaskStateSegment kernelTaskStateSegment;
-

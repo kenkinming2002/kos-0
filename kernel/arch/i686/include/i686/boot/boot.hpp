@@ -67,13 +67,6 @@ constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
 extern std::byte kernelPageDirectory[];
 extern std::byte kernelPageTable[];
 
-constexpr static size_t GDT_SIZE = 6;
-extern core::GDTEntry kernelGDTEntries[GDT_SIZE];
-
-extern core::TaskStateSegment kernelTaskStateSegment;
-
-
-
 // Have to work around a weird quark of gcc that section attributes is silently
 // ignored for template function
 template<typename T>

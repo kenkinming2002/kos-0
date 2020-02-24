@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-namespace core
+namespace core::segmentation
 {
   enum class SegmentType
   {
@@ -83,5 +83,7 @@ namespace core
     uint16_t trap;
     uint16_t iomap_base;
   } __attribute__((packed));
+
+  void init();
 }
 
