@@ -2,7 +2,6 @@
 
 namespace boot::memory
 {
-  PageDirectoryEntry::PageDirectoryEntry() : m_data(0) {}
   PageDirectoryEntry::PageDirectoryEntry(uint32_t address, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission)
     : m_data(0)
   {
@@ -34,7 +33,6 @@ namespace boot::memory
     m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address);
   }
 
-  PageTableEntry::PageTableEntry() : m_data(0) {}
   PageTableEntry::PageTableEntry(uint32_t address, TLBMode tlbMode, CacheMode cacheMode, WriteMode writeMode, Access access, 
       Permission permission)
   {

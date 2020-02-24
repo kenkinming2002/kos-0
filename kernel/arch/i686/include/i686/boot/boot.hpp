@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <cstddef>
 
+#include <i686/core/Segmentation.hpp>
+
 /**
  * @file include/i686/boot/boot.hpp
  *
@@ -65,9 +67,10 @@ constexpr size_t BOOT_PAGE_TABLE_COUNT = 1;
 extern std::byte kernelPageDirectory[];
 extern std::byte kernelPageTable[];
 
-constexpr static size_t GDT_SIZE = 5;
-extern std::byte kernelGDTEntries[];
+constexpr static size_t GDT_SIZE = 6;
+extern core::GDTEntry kernelGDTEntries[GDT_SIZE];
 
+extern core::TaskStateSegment kernelTaskStateSegment;
 
 
 

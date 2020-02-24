@@ -4,15 +4,14 @@
 
 namespace core
 {
-  GDTEntry::GDTEntry(uint32_t base, uint32_t limit, PrivillegeLevel privillegeLevel, SegmentType segmentType)
+  GDTEntry::GDTEntry(uint32_t base, uint32_t limit, PrivillegeLevel privillegeLevel, SegmentType segmentType, Granularity granularity)
   {
     m_baseLow    = (base & 0xFFFF);
     m_baseMiddle = (base >> 16) & 0xFF;
     m_baseHigh   = (base >> 24) & 0xFF;
 
-    if(limit>65536)
+    if(granularity == Granularity::PAGE)
     {
-      // Silently discard all lower bit
       limit >>= 12;
       m_granularity = 0xC0;
     }
@@ -28,7 +27,7 @@ namespace core
   GDT::GDT(const GDTEntry* gdtEntries, size_t size)
   {
     m_size = sizeof (GDTEntry) * size - 1;
-    m_offset = reinterpret_cast<uint32_t>(gdtEntries);
+    m_offset = reinterpret_cast<uintptr_t>(gdtEntries);
   }
 
   int GDT::load() const

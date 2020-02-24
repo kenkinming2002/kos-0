@@ -1,4 +1,6 @@
 global loader
+global kernel_stack
+
 extern _start
 
 extern lower_half_main

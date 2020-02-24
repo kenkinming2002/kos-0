@@ -1,6 +1,5 @@
 #include <i686/boot/lower_half.hpp>
 
-#include <i686/boot/Segmentation.hpp>
 #include <i686/boot/memory/Paging.hpp>
 
 #include <generic/utils/Utilities.hpp>

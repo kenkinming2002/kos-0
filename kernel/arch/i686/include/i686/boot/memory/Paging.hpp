@@ -24,7 +24,7 @@ namespace boot::memory
   class PageDirectoryEntry
   {
   public:
-    BOOT_FUNCTION PageDirectoryEntry();
+    BOOT_FUNCTION PageDirectoryEntry() = default;
     BOOT_FUNCTION PageDirectoryEntry(uint32_t address, CacheMode cacheMode,
         WriteMode writeMode, Access access, Permission permission);
 
@@ -43,7 +43,7 @@ namespace boot::memory
   class PageTableEntry
   {
   public:
-    BOOT_FUNCTION PageTableEntry(); 
+    BOOT_FUNCTION PageTableEntry() = default;
     BOOT_FUNCTION PageTableEntry(uint32_t address, TLBMode tlbMode, CacheMode
         cacheMode, WriteMode writeMode, Access access, Permission permission);
 

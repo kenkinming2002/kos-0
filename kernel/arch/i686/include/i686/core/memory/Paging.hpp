@@ -17,7 +17,7 @@ namespace core::memory
   class PageDirectoryEntry
   {
   public:
-    PageDirectoryEntry();
+    PageDirectoryEntry() : m_data(0) {}
     PageDirectoryEntry(uint32_t address, CacheMode cacheMode, WriteMode
         writeMode, Access access, Permission permission, PageSize pageSize =
         PageSize::NORMAL);
@@ -37,7 +37,7 @@ namespace core::memory
   class PageTableEntry
   {
   public:
-    PageTableEntry();
+    PageTableEntry() : m_data(0) {}
     PageTableEntry(uint32_t address, TLBMode tlbMode, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission);
 
   public:
