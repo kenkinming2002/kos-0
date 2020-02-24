@@ -4,11 +4,6 @@
 
 #include <cstddef>
 
-extern "C"
-{
-  extern std::byte kernel_stack[];
-}
-
 namespace core::segmentation
 {
   GDTEntry::GDTEntry(uint32_t base, uint32_t limit, PrivillegeLevel privillegeLevel, SegmentType segmentType, Granularity granularity)
@@ -49,8 +44,9 @@ namespace core::segmentation
   {
     static constexpr size_t GDT_SIZE = 6;
     GDTEntry GDTEntries[GDT_SIZE];
-    TaskStateSegment kernelTaskStateSegment;
   }
+
+  TaskStateSegment taskStateSegment;
 
   void init()
   {
@@ -66,13 +62,11 @@ namespace core::segmentation
     GDTEntries[4] = GDTEntry(0, 0xffffffff, PrivillegeLevel::RING3, SegmentType::DATA_SEGMENT, Granularity::PAGE);
 
     // Task State Segment
-    GDTEntries[5] = GDTEntry(reinterpret_cast<uintptr_t>(&kernelTaskStateSegment), sizeof(TaskStateSegment), PrivillegeLevel::RING0, SegmentType::TASK_STATE_SEGMENT, Granularity::BYTE);
+    GDTEntries[5] = GDTEntry(reinterpret_cast<uintptr_t>(&taskStateSegment), sizeof(TaskStateSegment), PrivillegeLevel::RING0, SegmentType::TASK_STATE_SEGMENT, Granularity::BYTE);
 
     GDT(GDTEntries, GDT_SIZE).load();
 
     // 2: Set up Task State Segment
-    kernelTaskStateSegment.ss0 = 0x10;
-    kernelTaskStateSegment.esp0 = reinterpret_cast<uintptr_t>(kernel_stack);
     asm volatile ( R"(
       .intel_syntax noprefix
         mov ax, 0x28

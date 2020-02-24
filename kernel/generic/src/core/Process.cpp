@@ -1,19 +1,29 @@
 #include <generic/core/Process.hpp>
 
 #include <i686/boot/boot.hpp>
+#include <i686/core/Segmentation.hpp>
 #include <generic/core/Memory.hpp>
 
 #include <generic/utils/Utilities.hpp>
 
 #include <string.h>
 
+extern "C"
+{
+  extern std::byte kernel_stack[];
+}
+
 namespace core
 {
-  Process::Process() : m_memoryMapping(memory::higherHalfMemoryMapping) {}
+  Process::Process() 
+    : m_memoryMapping(memory::higherHalfMemoryMapping),
+      m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) {}
 
   void Process::setAsActive() const
   {
     m_memoryMapping.setAsActive();
+    segmentation::taskStateSegment.esp0 = m_kernelStack;
+    segmentation::taskStateSegment.ss0 = m_kernelStackSegmentSelector;
   }
 
   void Process::addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,

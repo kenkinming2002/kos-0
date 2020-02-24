@@ -85,5 +85,7 @@ namespace core::segmentation
   } __attribute__((packed));
 
   void init();
+
+  extern TaskStateSegment taskStateSegment;
 }
 

@@ -18,5 +18,7 @@ namespace core
 
   private:
     memory::MemoryMapping m_memoryMapping; // Each process have its own memory mapping
+    uintptr_t m_kernelStack;
+    uint16_t  m_kernelStackSegmentSelector;
   };
 }
