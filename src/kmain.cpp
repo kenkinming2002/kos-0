@@ -4,10 +4,12 @@
 #include <generic/core/Process.hpp>
 
 #include <i686/core/Interrupt.hpp>
+#include <i686/core/Syscall.hpp>
 #include <intel/core/pic/8259.hpp>
 
 #include <generic/io/PS2Keyboard.hpp>
 #include <generic/io/Print.hpp>
+#include <generic/io/Framebuffer.hpp>
 
 #include <utility>
 
@@ -32,6 +34,23 @@ extern "C" void abort()
   core::pic::controller8259::acknowledge(0x0);
 }
 
+core::SyscallResult syscall_write(const core::Command::Operand* operands)
+{
+  if(reinterpret_cast<uintptr_t>(&operands[2])>0xC0000000)
+    return {-1, 0};
+
+  if(operands[0].type != core::Command::Operand::Type::IMMEDIATE)
+    return {-1, 0};
+  if(operands[1].type != core::Command::Operand::Type::IMMEDIATE)
+    return {-1, 0};
+
+  const char* str = reinterpret_cast<const char*>(operands[0].immediate.value);
+  size_t count = operands[1].immediate.value;
+  io::frameBuffer.write(str, count);
+
+  return {0, 2};
+}
+
 extern "C" int kmain()
 {
   /** Old-Styled Initialization **/
@@ -41,6 +60,8 @@ extern "C" int kmain()
   /** *Global* data**/
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
+
+  core::register_syscall_handler(core::Command::OpCode::WRITE, &syscall_write);
 
   io::print("DEBUG: Modules\n");
   auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
