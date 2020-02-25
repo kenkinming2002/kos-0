@@ -12,6 +12,9 @@ program
 kernel.elf
 os.iso
 
+html/**/*
+latex/**/*
+
 serial.log
 
 compile_commands.json
