@@ -7,6 +7,8 @@ i686_OBJECTS += $(i686_cwd)/src/boot/lower_half.o $(i686_cwd)/src/boot/higher_ha
 i686_OBJECTS += $(i686_cwd)/src/core/Interrupt.o $(i686_cwd)/src/core/Segmentation.o
 i686_OBJECTS += $(i686_cwd)/src/core/memory/Paging.o $(i686_cwd)/src/core/memory/MemoryMapping.o
 
+i686_OBJECTS += $(i686_cwd)/src/core/Syscall.o 
+
 i686_OBJECTS += $(i686_cwd)/src/boot/memory/Paging.o 
 
 CRTI_OBJECT = $(i686_cwd)/src/crti.o

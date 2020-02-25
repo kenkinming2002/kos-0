@@ -2,6 +2,7 @@
 
 #include <i686/boot/boot.hpp>
 #include <i686/core/Segmentation.hpp>
+#include <i686/core/Syscall.hpp>
 #include <generic/core/Memory.hpp>
 
 #include <generic/utils/Utilities.hpp>
@@ -21,8 +22,11 @@ namespace core
   void Process::setAsActive() const
   {
     m_memoryMapping.setAsActive();
+
     segmentation::taskStateSegment.esp0 = m_kernelStack;
     segmentation::taskStateSegment.ss0 = m_kernelStackSegmentSelector;
+
+    core::set_syscall_esp(m_kernelStack);
   }
 
   void Process::addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,
