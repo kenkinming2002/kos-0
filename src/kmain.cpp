@@ -49,7 +49,10 @@ extern "C" int kmain()
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
 
     core::Process process;
+
     process.setAsActive();
+    for(;;) asm("hlt");
+
     process.addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
 

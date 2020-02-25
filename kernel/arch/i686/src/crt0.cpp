@@ -19,6 +19,7 @@ extern "C" void _start()
   core::memory::init();
 
   _init();
+
   kmain();
   __cxa_finalize(nullptr);
   _fini();

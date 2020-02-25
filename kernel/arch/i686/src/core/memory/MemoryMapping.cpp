@@ -3,31 +3,84 @@
 #include <algorithm>
 #include <generic/core/Memory.hpp>
 
+#include <i686/core/Interrupt.hpp>
+#include <generic/io/Print.hpp>
+
 namespace core::memory
 {
+  /******************************************
+   * Initialization and Page Fault Handling *
+   ******************************************/
+  namespace
+  {
+    [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void page_fault_handler(core::interrupt::frame*, 
+        core::interrupt::uword_t error)
+    {
+      uintptr_t faultingAddress;
+      asm volatile ( R"(
+        .intel_syntax noprefix
+        mov %[faultingAddress], cr2
+        .att_syntax prefix
+        )"
+        : [faultingAddress]"=r"(faultingAddress)
+        : 
+        :
+      );
+
+      io::print("Page Fault:\n");
+      io::print("  - error code: ", (uint32_t)error, "\n");
+      io::print("  - at: ", faultingAddress, "\n");
+
+      if(faultingAddress>=0xC0000000) // Higher Half Page Fault
+      {
+        for(;;) asm("hlt");
+      }
+
+      for(;;) asm("hlt");
+    } 
+  }
+
+
+  void initMemoryMapping()
+  {
+    core::interrupt::install_handler(0xE, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&page_fault_handler));
+    MemoryMapping::init();
+  }
+
+  PageDirectoryEntry MemoryMapping::kernelPageDirectoryEntires[256];
+
   MemoryMapping::MemoryMapping()
   {
-    // TODO: allocate a zeroed page directly
-    auto [pages, physicalAddress] = core::memory::allocateHeapPages(1);
-    if(!pages)
-      for(;;) asm("hlt"); // OOM
+    {
+      static_assert(sizeof(PageDirectory) == core::memory::PAGE_SIZE);
 
-    m_pageDirectory = static_cast<PageDirectory*>(pages);
-    static_assert(sizeof(PageDirectory) == core::memory::PAGE_SIZE);
-    m_pageDirectoryPhysicalAddress = physicalAddress;
+      // TODO: allocate a zeroed page directly
+      auto [pages, physicalAddress] = core::memory::allocateHeapPages(1);
+      if(!pages)
+        for(;;) asm("hlt"); // OOM
 
-    for(auto& pageDirectoryEntry: *m_pageDirectory)
-      pageDirectoryEntry = PageDirectoryEntry();
+      m_pageDirectory = static_cast<PageDirectory*>(pages);
+      m_pageDirectoryPhysicalAddress = physicalAddress;
+    }
+
+    auto& pageDirectory = *m_pageDirectory;
+
+    // Zero the lower half
+    for(size_t i=0; i<768; ++i)
+      pageDirectory[i].clear();
+
+    // Copy the higher half from kernel page directory
+    for(size_t i=0; i<256; ++i)
+      pageDirectory[i+768] = kernelPageDirectoryEntires[i];
   }
 
   MemoryMapping::MemoryMapping(PageDirectory& pageDirectory, phyaddr_t pageDirectoryPhysicalAddress)
     : m_pageDirectory(&pageDirectory), m_pageDirectoryPhysicalAddress(pageDirectoryPhysicalAddress) {}
 
-  MemoryMapping::MemoryMapping(const HigherHalfMemoryMapping& higherHalfMemoryMapping) : MemoryMapping()
+  void MemoryMapping::init()
   {
-    std::copy(std::begin(higherHalfMemoryMapping.pageDirectoryEntires), 
-              std::end(higherHalfMemoryMapping.pageDirectoryEntires), 
-              &(*m_pageDirectory)[768]);
+    auto& kernelPageDirectory = utils::deref_cast<PageDirectory>(::kernelPageDirectory);
+    std::copy(&kernelPageDirectory[768], &kernelPageDirectory[1024], kernelPageDirectoryEntires);
   }
 
   void MemoryMapping::map(MemoryRegion physicalMemoryRegion, MemoryRegion virtualMemoryRegion, Access access, Permission permission)
@@ -57,7 +110,7 @@ namespace core::memory
     if(!pageDirectoryEntry.present())
     {
       for(PageTableEntry& pageTableEntry: pageTable)
-        pageTableEntry = PageTableEntry();
+        pageTableEntry.clear();
     }
 
     // 3: Write to Page Table through Fractal Mapping
@@ -66,21 +119,24 @@ namespace core::memory
       //auto physicalPageFrame = &physicalPageFrames[i];
       auto physicalAddress = physicalMemoryRegion.begin() + i * PAGE_SIZE;
 
-      auto pageTableEntry = PageTableEntry(physicalAddress, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+      auto pageTableEntry = 
+        PageTableEntry(physicalAddress, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+
       if(pageTableIndex+i<1024)
         pageTable[pageTableIndex+i] = pageTableEntry;
       else
         for(;;) asm("hlt"); // Page Table Overrun, Unimplemented
     }
 
-    // 4: Update Page Directory Entry to point to the possibly new Page Table
-    if(!pageDirectoryEntry.present())
+    // 4: Update Page Directory Entry to point to the possibly new Page Table if(!pageDirectoryEntry.present())
     {
-      pageDirectoryEntry = PageDirectoryEntry(pageTablePhysicalAddress, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
+      pageDirectoryEntry = 
+        PageDirectoryEntry(pageTablePhysicalAddress, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       // Update higherHalfMemoryMapping if we are writing to higher half
       if(pageDirectoryIndex>=768)
       {
-        higherHalfMemoryMapping.pageDirectoryEntires[pageDirectoryIndex-768] = PageDirectoryEntry(pageTablePhysicalAddress, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
+        kernelPageDirectoryEntires[pageDirectoryIndex-768] = 
+          PageDirectoryEntry(pageTablePhysicalAddress, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       }
     }
 
@@ -125,8 +181,7 @@ namespace core::memory
       if(pageTableIndex+i<1024)
       {
         auto& pageTableEntry = pageTable[pageTableIndex+i];
-        pageTableEntry.present(false);
-        pageTableEntry.address(0u); // For consistency only
+        pageTableEntry.clear();
       }
       else
         for(;;) asm("hlt"); // Page Table Overrun, Unimplemented
@@ -185,11 +240,5 @@ namespace core::memory
     currentMemoryMapping = *this;
   }
 
-  HigherHalfMemoryMapping::HigherHalfMemoryMapping(const MemoryMapping& memoryMapping)
-  {
-    std::copy(&memoryMapping.pageDirectory()[768], &memoryMapping.pageDirectory()[1024], pageDirectoryEntires);
-  }
-
   MemoryMapping currentMemoryMapping = MemoryMapping(utils::deref_cast<PageDirectory>(kernelPageDirectory), reinterpret_cast<uintptr_t>(kernelPageDirectory) - 0xC0000000);
-  HigherHalfMemoryMapping higherHalfMemoryMapping(currentMemoryMapping);
 }

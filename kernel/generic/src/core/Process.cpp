@@ -16,8 +16,7 @@ extern "C"
 namespace core
 {
   Process::Process() 
-    : m_memoryMapping(memory::higherHalfMemoryMapping),
-      m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) {}
+    : m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) {}
 
   void Process::setAsActive() const
   {

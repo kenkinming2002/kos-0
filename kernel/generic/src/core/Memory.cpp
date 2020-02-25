@@ -13,47 +13,15 @@
 #include <i686/boot/boot.hpp>
 #include <generic/io/Print.hpp>
 
-#include <i686/core/Interrupt.hpp>
-
 #include <cstddef>
 
 #include <liballoc_1_1.h>
 
 namespace core::memory
 {
-  /******************************************
-   * Initialization and Page Fault Handling *
-   ******************************************/
-  namespace
-  {
-    [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void page_fault_handler(core::interrupt::frame*, core::interrupt::uword_t error)
-    {
-      uintptr_t faultingAddress;
-      asm volatile ( R"(
-        .intel_syntax noprefix
-        mov %[faultingAddress], cr2
-        .att_syntax prefix
-        )"
-        : [faultingAddress]"=r"(faultingAddress)
-        : 
-        :
-      );
-
-      io::print("Page Fault:\n");
-      io::print("  - error code: ", (uint32_t)error, "\n");
-      io::print("  - at: ", faultingAddress, "\n");
-
-      if(faultingAddress>=0xC0000000) // Higher Half Page Fault
-      {
-        for(;;) asm("hlt");
-      }
-
-      for(;;) asm("hlt");
-    } }
-
   void init()
   {
-    core::interrupt::install_handler(0xE, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&page_fault_handler));
+    core::memory::initMemoryMapping();
   }
 
   /***********

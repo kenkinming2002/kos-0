@@ -15,6 +15,11 @@ namespace core::memory
     m_data |= 1u; // Present
   }
   
+  void PageDirectoryEntry::clear()
+  {
+    m_data = 0;
+  }
+
   bool PageDirectoryEntry::present() const
   {
     return m_data & 1u;
@@ -45,6 +50,11 @@ namespace core::memory
     if(access     == Access::ALL)              m_data |= 1u<<2;
     if(permission == Permission::READ_WRITE)   m_data |= 1u<<1;
     m_data |= 1u; // Present
+  }
+
+  void PageTableEntry::clear()
+  {
+    m_data = 0;
   }
 
   bool PageTableEntry::present() const

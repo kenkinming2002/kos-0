@@ -4,15 +4,16 @@
   
 namespace core::memory
 {
-  class MemoryMapping;
-  class HigherHalfMemoryMapping;
+  void initMemoryMapping();
 
   class MemoryMapping
   {
   public:
     MemoryMapping();
     MemoryMapping(PageDirectory& pageDirectory, phyaddr_t pageDirectoryPhysicalAddress);
-    MemoryMapping(const HigherHalfMemoryMapping& higherHalfMemoryMapping);
+
+  public:
+    static void init();
 
   public:
     void map(MemoryRegion physicalMemoryRegion, MemoryRegion virtualMemoryRegion, Access access, Permission permission);
@@ -31,26 +32,17 @@ namespace core::memory
      */
     void setAsActive() const;
 
-  public:
-    const PageDirectory& pageDirectory() const { return *m_pageDirectory; }
-
   private:
     virtaddr_t doFractalMapping(phyaddr_t physicalAddress);
 
   private:
     PageDirectory* m_pageDirectory;
     phyaddr_t m_pageDirectoryPhysicalAddress;
-  };
 
-  class HigherHalfMemoryMapping
-  {
-  public:
-    HigherHalfMemoryMapping(const MemoryMapping& memoryMapping);
-
-  public:
-    PageDirectoryEntry pageDirectoryEntires[256];
+  private:
+    // Page Directory Entries for higher half, shared among all MemoryMapping
+    static PageDirectoryEntry kernelPageDirectoryEntires[256];
   };
 
   extern MemoryMapping currentMemoryMapping;
-  extern HigherHalfMemoryMapping higherHalfMemoryMapping;
 }
