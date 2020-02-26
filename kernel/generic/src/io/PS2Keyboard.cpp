@@ -15,10 +15,14 @@ namespace io
   {
     [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void keyboard_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
     {
+      CORE_INTERRUPT_ENTRY;
+
       uint8_t scanCode = assembly::inb(0x60);
       ps2Keyboard.push(scanCode);
 
       core::pic::controller8259::acknowledge(0x1);
+
+      CORE_INTERRUPT_EXIT;
     }
   }
 

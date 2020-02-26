@@ -23,32 +23,32 @@ extern "C" void abort()
 
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void null_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
+  CORE_INTERRUPT_ENTRY;
+
   io::print("Interrupt START");
+
+  CORE_INTERRUPT_EXIT;
 }
 
 [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void timer_interrupt_handler([[maybe_unused]]core::interrupt::frame* frame)
 {
+  CORE_INTERRUPT_ENTRY;
+
   io::print("TIMER INTERRUPT\n");
 
   io::print("TIMER INTERRUPT acknowledged\n");
   core::pic::controller8259::acknowledge(0x0);
+
+  CORE_INTERRUPT_EXIT;
 }
 
-core::SyscallResult syscall_write(const core::Command::Operand* operands)
+int syscall_write(const core::Registers registers)
 {
-  if(reinterpret_cast<uintptr_t>(&operands[2])>0xC0000000)
-    return {-1, 0};
-
-  if(operands[0].type != core::Command::Operand::Type::IMMEDIATE)
-    return {-1, 0};
-  if(operands[1].type != core::Command::Operand::Type::IMMEDIATE)
-    return {-1, 0};
-
-  const char* str = reinterpret_cast<const char*>(operands[0].immediate.value);
-  size_t count = operands[1].immediate.value;
+  const char* str = reinterpret_cast<const char*>(registers.ebx);
+  size_t count = registers.esi;
   io::frameBuffer.write(str, count);
 
-  return {0, 2};
+  return count;
 }
 
 extern "C" int kmain()
@@ -61,7 +61,7 @@ extern "C" int kmain()
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
 
-  core::register_syscall_handler(core::Command::OpCode::WRITE, &syscall_write);
+  core::register_syscall_handler(3, &syscall_write);
 
   io::print("DEBUG: Modules\n");
   auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
@@ -74,21 +74,7 @@ extern "C" int kmain()
     process.setAsActive();
     process.addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
-
-    asm volatile ( R"(
-      .intel_syntax noprefix
-        push 0x23
-        push 0x00000000
-        pushf
-        push 0x1B
-        push 0x00000000
-        iret
-      .att_syntax prefix
-      )"
-      :
-      : 
-      :
-    );
+    process.run();
   }
 
 

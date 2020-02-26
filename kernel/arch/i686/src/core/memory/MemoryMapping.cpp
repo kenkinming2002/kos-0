@@ -16,6 +16,8 @@ namespace core::memory
     [[gnu::interrupt]] [[gnu::no_caller_saved_registers]] void page_fault_handler(core::interrupt::frame*, 
         core::interrupt::uword_t error)
     {
+      CORE_INTERRUPT_ENTRY;
+
       uintptr_t faultingAddress;
       asm volatile ( R"(
         .intel_syntax noprefix
@@ -37,6 +39,8 @@ namespace core::memory
       }
 
       for(;;) asm("hlt");
+
+      CORE_INTERRUPT_EXIT;
     } 
   }
 

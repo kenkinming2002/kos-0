@@ -5,45 +5,22 @@
 
 namespace core
 {
-  struct Command
+  struct Registers
   {
-  public:
-    enum class OpCode : uint8_t
-    {
-      END   = 0,
-      OPEN  = 1,
-      CLOSE = 2,
-      READ  = 3,
-      WRITE = 4
-    };
-
-    struct Operand
-    {
-      enum class Type : uint8_t
-      {
-        IMMEDIATE = 0,
-        INDIRECT  = 1
-      } type;
-
-      struct Immediate { size_t value; };
-      struct Indirect { size_t index; };
-      union { Immediate immediate; Indirect indirect; };
-    };
-
-  public:
-    OpCode opCode;
-    Operand operand[];
+    uint32_t edi; //< Argument 4
+    uint32_t esi; //< Argument 3
+    uint32_t ebp; //< Argument 2
+    uint32_t esp; //< Kernel ESP
+    uint32_t ebx; //< Argument 1
+    uint32_t edx; //< User Program ESP
+    uint32_t ecx; //< User Program EIP
+    uint32_t eax; //< Syscall Number
   };
 
-  struct SyscallResult
-  {
-    int retval;
-    size_t operandCount;
-  };
-  using SyscallHandler = SyscallResult(*)(const Command::Operand*); // Rare case for east const
+  using SyscallHandler = int(*)(const Registers); // Rare case for east const
 
   void init_syscall();
 
-  void register_syscall_handler(Command::OpCode opCode, SyscallHandler syscallHandler);
+  void register_syscall_handler(uint8_t syscallNumber, SyscallHandler syscallHandler);
   void set_syscall_esp(uintptr_t esp);
 }

@@ -44,4 +44,38 @@ namespace core
     // Memory is mapped here 
     memcpy(reinterpret_cast<void*>(virtualAddress), reinterpret_cast<const void*>(content), length);
   }
+
+  void Process::run() const
+  {
+    // Pretend to return from a interrupt
+    // NOTE: This can also be implemented with sysexit instead of iret
+    asm volatile ( R"(
+      .intel_syntax noprefix
+        cli
+
+        mov ax, 0x23
+        mov ds, ax
+        mov es, ax
+        mov fs, ax
+        mov gs, ax
+
+        push 0x23
+        push 0x00000000
+
+        pushf
+        pop eax
+        or eax, 0x200
+        push eax
+
+        push 0x1B
+        push 0x00000000
+        iret
+      .att_syntax prefix
+      )"
+      :
+      : 
+      : "eax"
+    );
+    __builtin_unreachable();
+  }
 }

@@ -16,6 +16,9 @@ namespace core
     void addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,
         const uint8_t* content, size_t length);
 
+  public:
+    [[noreturn]] void run() const;
+
   private:
     memory::MemoryMapping m_memoryMapping; // Each process have its own memory mapping
     uintptr_t m_kernelStack;

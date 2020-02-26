@@ -7,42 +7,43 @@ namespace core
 
   namespace
   {
-    extern "C" [[gnu::no_caller_saved_registers]] int _syscall_handler(const Command* command)
+    extern "C" int _syscall_handler(const Registers registers)
     {
       // NOTE: We have to check if command is valid
-      for(;;)
-      {
-        if(reinterpret_cast<uintptr_t>(&command->operand)>0xC0000000)
-          return -1; // Access Violation
-
-        if(command->opCode == Command::OpCode::END)
-          return 0; // All Commands Successfully Executed
-
-        if(auto syscallHandler = syscallTable[static_cast<uint8_t>(command->opCode)])
-        {
-          const Command::Operand* operand = command->operand;
-          auto syscallResult = syscallHandler(operand);
-          if(syscallResult.retval != 0)
-            return syscallResult.retval;
-          command = reinterpret_cast<const Command*>(operand + syscallResult.operandCount); // End of operand is start of next command
-        }
-        else
-          return -1;
-      }
-
-      return 0;
+      if(auto syscallHandler = syscallTable[registers.eax & 0xFF])
+        return syscallHandler(registers);
+      else
+        return -1;
     }
 
     [[gnu::naked]] void syscall_handler()
     {
       // NOTE: Maybe there is no need to restore the kernel stack?
+      //
+      // Turn out sysenter disable interrupt so we have to enable it at the end.
+      // This is poorly documented and not mentioned in Intel Programmer's
+      // Manual System Programming Guide(i.e Volume 3). For infomation, consult
+      // the Instruction Set Reference(i.e. Volume 1) from Intel Programmer's
+      // Manual.
       asm volatile ( R"(
         .intel_syntax noprefix
+          pushad
+          mov ax, 0x10
+          mov ds, ax
+          mov es, ax
+          mov fs, ax
+          mov gs, ax
 
-          push eax
           call _syscall_handler
-          add esp, 4
 
+          mov ax, 0x23
+          mov ds, ax
+          mov es, ax
+          mov fs, ax
+          mov gs, ax
+          popad
+
+          sti
           sysexit
         .att_syntax prefix
         )"
@@ -76,9 +77,9 @@ namespace core
     );
   }
 
-  void register_syscall_handler(Command::OpCode opCode, SyscallHandler syscallHandler)
+  void register_syscall_handler(uint8_t syscallNumber, SyscallHandler syscallHandler)
   {
-    auto& syscallHandlerEntry = syscallTable[static_cast<uint8_t>(opCode)];
+    auto& syscallHandlerEntry = syscallTable[syscallNumber];
     if(!syscallHandlerEntry)
       syscallHandlerEntry = syscallHandler;
   }

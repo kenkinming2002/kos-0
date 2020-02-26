@@ -11,10 +11,7 @@ namespace core::interrupt
   {
     TASK_GATE_32      = 0x05,
     INTERRUPT_GATE_16 = 0x6,
-    TRAP_GATE_16      = 0x7,
-
-    INTERRUPT_GATE_32 = 0xE,
-    TRAP_GATE_32      = 0xF
+    TRAP_GATE_16      = 0x7, INTERRUPT_GATE_32 = 0xE, TRAP_GATE_32      = 0xF
   };
 
   using Handler = uintptr_t;
@@ -49,6 +46,38 @@ namespace core::interrupt
     uint16_t m_size;
     uint32_t m_offset;
   }__attribute__((packed));
+
+// Save current data segment register and load kernel data segment register 
+#define CORE_INTERRUPT_ENTRY      \
+  uint16_t ds;                    \
+  asm volatile (                  \
+    ".intel_syntax noprefix \t\n" \
+    "  mov %[ds], ds        \t\n" \
+    "  mov ax, 0x10         \t\n" \
+    "  mov ds, ax           \t\n" \
+    "  mov es, ax           \t\n" \
+    "  mov fs, ax           \t\n" \
+    "  mov gs, ax           \t\n" \
+    ".att_syntax prefix     \t\n" \
+    : [ds]"=rm"(ds)               \
+    :                             \
+    : "ax"                        \
+  )                               \
+
+// Restore data segment register
+#define CORE_INTERRUPT_EXIT       \
+  asm volatile (                  \
+    ".intel_syntax noprefix \t\n" \
+    "  mov ax, %[ds]        \t\n" \
+    "  mov ds, ax           \t\n" \
+    "  mov es, ax           \t\n" \
+    "  mov fs, ax           \t\n" \
+    "  mov gs, ax           \t\n" \
+    ".att_syntax prefix     \t\n" \
+    :                             \
+    : [ds]"rm"(ds)                \
+    : "ax"                        \
+  )                               \
 
 #ifdef __x86_64__
   typedef unsigned long long int uword_t;
