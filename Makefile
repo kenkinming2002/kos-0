@@ -23,13 +23,17 @@ all: os.iso
 CPPFLAGS += -I include/
 
 ## ISO
-os.iso: kernel.elf program
-	cp program iso/modules/
+os.iso: kernel.elf program1 program2
+	cp program1 iso/modules/
+	cp program2 iso/modules/
 	cp kernel.elf iso/boot/kernel.elf
 	grub-mkrescue -o os.iso iso -d /usr/lib/grub/i386-pc
 
 ## Program
-program: src/program.s
+program1: src/program1.s
+	$(AS) -f bin $< -o $@
+
+program2: src/program2.s
 	$(AS) -f bin $< -o $@
 
 # QEMU

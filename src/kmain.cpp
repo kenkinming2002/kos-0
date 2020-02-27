@@ -70,22 +70,17 @@ extern "C" int kmain()
   {
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
 
-    auto* process1 = new core::Process(0x00000000);;
-    process1->setAsActive();
-    process1->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
+    auto* process = new core::Process(0x00000000);;
+    process->setAsActive();
+    process->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
-
-    auto* process2 = new core::Process(0x00000000);;
-    process2->setAsActive();
-    process2->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
-        reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
-
-    core::multiprocessing::processesList.push_front(*process1);
-    core::multiprocessing::processesList.push_front(*process2);
-
-    process2->setAsActive();
-    process2->run();
+    core::multiprocessing::processesList.push_front(*process);
   }
+
+  if(!core::multiprocessing::processesList.empty())
+    core::multiprocessing::processesList.front().run();
+  else
+    for(;;) asm("hlt");
 
 
   //core::pic::controller8259::clearMask(0); // Enable timer

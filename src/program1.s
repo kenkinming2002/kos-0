@@ -1,5 +1,7 @@
 bits 32
 
+begin:
+
 ; Write Hello World
 mov ecx, esp
 mov edx, ret0
@@ -21,9 +23,8 @@ mov eax, 0x4
 sysenter
 ret1:
 
-mov eax, 0xdeadbeef
-jmp $
+jmp ret0
 
 string:
-  db `Hello world\n`
+  db `PROG1 world\n`
 
