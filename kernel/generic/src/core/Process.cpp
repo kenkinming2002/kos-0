@@ -7,6 +7,8 @@
 
 #include <generic/utils/Utilities.hpp>
 
+#include <i686/asm/Process.hpp>
+
 #include <string.h>
 
 extern "C"
@@ -16,8 +18,11 @@ extern "C"
 
 namespace core
 {
-  Process::Process() 
-    : m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) {}
+  Process::Process(uintptr_t startAddress) 
+    : m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) 
+  {
+    m_state.eip = startAddress;
+  }
 
   void Process::setAsActive() const
   {
@@ -47,35 +52,7 @@ namespace core
 
   void Process::run() const
   {
-    // Pretend to return from a interrupt
-    // NOTE: This can also be implemented with sysexit instead of iret
-    asm volatile ( R"(
-      .intel_syntax noprefix
-        cli
-
-        mov ax, 0x23
-        mov ds, ax
-        mov es, ax
-        mov fs, ax
-        mov gs, ax
-
-        push 0x23
-        push 0x00000000
-
-        pushf
-        pop eax
-        or eax, 0x200
-        push eax
-
-        push 0x1B
-        push 0x00000000
-        iret
-      .att_syntax prefix
-      )"
-      :
-      : 
-      : "eax"
-    );
+    enter_user_mode(m_state);
     __builtin_unreachable();
   }
 }

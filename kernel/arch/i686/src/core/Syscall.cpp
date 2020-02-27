@@ -1,5 +1,6 @@
 #include <i686/core/Syscall.hpp>
 
+#include <string.h>
 
 namespace core
 {
@@ -7,11 +8,34 @@ namespace core
 
   namespace
   {
+    struct Registers
+    {
+      uint32_t edi; //< Argument 4
+      uint32_t esi; //< Argument 3
+      uint32_t ebp; //< Argument 2
+      uint32_t esp; //< Kernel ESP
+      uint32_t ebx; //< Argument 1
+      uint32_t edx; //< User Program EIP
+      uint32_t ecx; //< User Program ESP
+      uint32_t eax; //< Syscall Number
+
+      State toState() const
+      {
+        State state; 
+        memcpy(&state, this, sizeof(Registers));
+
+        state.esp = this->ecx;
+        state.eip = this->edx;
+
+        return state;
+      }
+    } __attribute__((packed));
+
     extern "C" int _syscall_handler(const Registers registers)
     {
       // NOTE: We have to check if command is valid
       if(auto syscallHandler = syscallTable[registers.eax & 0xFF])
-        return syscallHandler(registers);
+        return syscallHandler(registers.toState());
       else
         return -1;
     }

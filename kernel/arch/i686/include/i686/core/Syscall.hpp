@@ -5,19 +5,21 @@
 
 namespace core
 {
-  struct Registers
+  struct State
   {
-    uint32_t edi; //< Argument 4
-    uint32_t esi; //< Argument 3
-    uint32_t ebp; //< Argument 2
-    uint32_t esp; //< Kernel ESP
-    uint32_t ebx; //< Argument 1
-    uint32_t edx; //< User Program ESP
-    uint32_t ecx; //< User Program EIP
-    uint32_t eax; //< Syscall Number
-  };
+    union { uint32_t edi; uint32_t a4; }; //< Argument 4
+    union { uint32_t esi; uint32_t a3; }; //< Argument 3
+    union { uint32_t ebp; uint32_t a2; }; //< Argument 3
+    uint32_t esp; 
+    union { uint32_t ebx; uint32_t a1; }; //< Argument 1
+    uint32_t edx; 
+    uint32_t ecx;
+    union { uint32_t eax; uint32_t syscall_number; }; //< Argument 1
 
-  using SyscallHandler = int(*)(const Registers); // Rare case for east const
+    uint32_t eip;
+  } __attribute__((packed));
+
+  using SyscallHandler = int(*)(const State); // Rare case for east const
 
   void init_syscall();
 

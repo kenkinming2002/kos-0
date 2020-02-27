@@ -8,6 +8,10 @@ i686_OBJECTS += $(i686_cwd)/src/core/Interrupt.o $(i686_cwd)/src/core/Segmentati
 i686_OBJECTS += $(i686_cwd)/src/core/memory/Paging.o $(i686_cwd)/src/core/memory/MemoryMapping.o
 
 i686_OBJECTS += $(i686_cwd)/src/core/Syscall.o 
+i686_OBJECTS += $(i686_cwd)/src/core/MultiProcessing.o
+i686_OBJECTS += $(i686_cwd)/src/core/multiprocessing/Yield.o
+
+i686_OBJECTS += $(i686_cwd)/src/asm/Process.o
 
 i686_OBJECTS += $(i686_cwd)/src/boot/memory/Paging.o 
 

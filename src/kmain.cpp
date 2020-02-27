@@ -5,6 +5,7 @@
 
 #include <i686/core/Interrupt.hpp>
 #include <i686/core/Syscall.hpp>
+#include <i686/core/MultiProcessing.hpp>
 #include <intel/core/pic/8259.hpp>
 
 #include <generic/io/PS2Keyboard.hpp>
@@ -42,10 +43,10 @@ extern "C" void abort()
   CORE_INTERRUPT_EXIT;
 }
 
-int syscall_write(const core::Registers registers)
+int syscall_write(const core::State state)
 {
-  const char* str = reinterpret_cast<const char*>(registers.ebx);
-  size_t count = registers.esi;
+  const char* str = reinterpret_cast<const char*>(state.ebx);
+  size_t count = state.esi;
   io::frameBuffer.write(str, count);
 
   return count;
@@ -69,12 +70,21 @@ extern "C" int kmain()
   {
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
 
-    core::Process process;
-
-    process.setAsActive();
-    process.addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
+    auto* process1 = new core::Process(0x00000000);;
+    process1->setAsActive();
+    process1->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
-    process.run();
+
+    auto* process2 = new core::Process(0x00000000);;
+    process2->setAsActive();
+    process2->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
+        reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
+
+    core::multiprocessing::processesList.push_front(*process1);
+    core::multiprocessing::processesList.push_front(*process2);
+
+    process2->setAsActive();
+    process2->run();
   }
 
 
