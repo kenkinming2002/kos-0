@@ -8,30 +8,38 @@
 
 namespace core
 {
-  class Process : public boost::intrusive::slist_base_hook<>
+  struct ProcessContext
+  {
+    uintptr_t esp;
+    memory::MemoryMapping memoryMapping;
+  };
+
+  class Process
   {
   public:
-    Process(uintptr_t startAddress);
-
-  public:
-    void setAsActive() const;
+    Process(uintptr_t kernelStack, uintptr_t startAddress);
 
   public:
     void addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,
         const uint8_t* content, size_t length);
 
   public:
-    [[noreturn]] void run() const;
+    [[noreturn]] void enterUserMode() const;
 
   public:
-    void state(const State& state) { m_state = state; }
+    /*
+     * Set stack as stack used for interrupt and syscall
+     */
+    void setStackAsActive() const;
 
-  private:
-    memory::MemoryMapping m_memoryMapping; // Each process have its own memory mapping
-    uintptr_t m_kernelStack;
-    uint16_t  m_kernelStackSegmentSelector;
+  public:
+    ProcessContext context;
 
-  private:
-    State m_state;
+    uintptr_t startAddress;
+    uintptr_t kernelStack;
+    uint16_t  kernelStackSegmentSelector;
+
+  public:
+    boost::intrusive::slist_member_hook<> slist_hook;
   };
 }

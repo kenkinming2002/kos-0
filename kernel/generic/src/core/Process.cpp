@@ -11,27 +11,43 @@
 
 #include <string.h>
 
-extern "C"
-{
-  extern std::byte kernel_stack[];
-}
+#include <i686/core/MultiProcessing.hpp>
+
+#include <generic/io/Print.hpp>
 
 namespace core
 {
-  Process::Process(uintptr_t startAddress) 
-    : m_kernelStack(reinterpret_cast<uintptr_t>(kernel_stack)), m_kernelStackSegmentSelector(0x10) 
+  namespace
   {
-    m_state.eip = startAddress;
+    void startProcess()
+    {
+      auto& currentProcess = multiprocessing::processesList.front();
+      currentProcess.setStackAsActive();
+      currentProcess.enterUserMode();
+    }
   }
 
-  void Process::setAsActive() const
+  Process::Process(uintptr_t kernelStack, uintptr_t startAddress) 
+    : context{kernelStack, {}},
+      startAddress(startAddress),
+      kernelStack(kernelStack), 
+      kernelStackSegmentSelector(0x10)
   {
-    m_memoryMapping.setAsActive();
+    io::print("DEBUG: Process Creation\n");
+    io::print("  - kernel stack address ", kernelStack, "\n");
+    io::print("  - user process start address ", startAddress, "\n");
 
-    segmentation::taskStateSegment.esp0 = m_kernelStack;
-    segmentation::taskStateSegment.ss0 = m_kernelStackSegmentSelector;
+    // Put the return address on the stack
+    kernelStack+=sizeof(uintptr_t);
+    *reinterpret_cast<uintptr_t*>(kernelStack) = reinterpret_cast<uintptr_t>(&startProcess);
+  }
 
-    core::set_syscall_esp(m_kernelStack);
+  void Process::setStackAsActive() const
+  {
+    segmentation::taskStateSegment.esp0 = kernelStack;
+    segmentation::taskStateSegment.ss0 = kernelStackSegmentSelector;
+
+    core::set_syscall_esp(kernelStack);
   }
 
   void Process::addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,
@@ -44,15 +60,30 @@ namespace core
       return;
 
     auto virtualMemoryRegion = memory::MemoryRegion(virtualAddress, pageCount * memory::PAGE_SIZE, memory::MemoryRegion::address_length_tag);
-    m_memoryMapping.map(*physicalMemoryRegion, virtualMemoryRegion, access, permission);
+    context.memoryMapping.map(*physicalMemoryRegion, virtualMemoryRegion, access, permission);
 
     // Memory is mapped here 
     memcpy(reinterpret_cast<void*>(virtualAddress), reinterpret_cast<const void*>(content), length);
   }
 
-  void Process::run() const
+  void Process::enterUserMode() const
   {
-    enter_user_mode(m_state);
+    asm volatile (R"(
+      .intel_syntax noprefix
+        push 0x23
+        push 0x0
+
+        pushf
+        pop eax
+        or eax, 0x200
+        push eax
+
+        push 0x1B
+        push %[startAddress]
+
+        iret
+      .att_syntax prefix
+    )" : : [startAddress]"r"(startAddress) : "eax");
     __builtin_unreachable();
   }
 }

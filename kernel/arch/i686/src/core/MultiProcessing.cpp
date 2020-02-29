@@ -2,5 +2,5 @@
 
 namespace core::multiprocessing
 {
-  boost::intrusive::slist<core::Process> processesList;
+  boost::intrusive::slist<core::Process, member_hook> processesList;
 }

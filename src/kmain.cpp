@@ -52,6 +52,12 @@ int syscall_write(const core::State state)
   return count;
 }
 
+extern "C"
+{
+  extern std::byte kernel_stack[];
+}
+
+
 extern "C" int kmain()
 {
   /** Old-Styled Initialization **/
@@ -64,24 +70,30 @@ extern "C" int kmain()
 
   core::register_syscall_handler(3, &syscall_write);
 
+
+
+  void* stacks[2] = {
+    core::memory::allocateHeapPages(1).first,
+    core::memory::allocateHeapPages(1).first
+  };
+  int i=0;
+
   io::print("DEBUG: Modules\n");
   auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
   for(auto* moduleEntry = bootInformation.moduleEntries; moduleEntry != nullptr; moduleEntry = moduleEntry->next)
   {
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
 
-    auto* process = new core::Process(0x00000000);;
-    process->setAsActive();
-    process->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_ONLY, 
+    auto* process = new core::Process(reinterpret_cast<uintptr_t>(stacks[i++]) + core::memory::PAGE_SIZE, 0x00000000);;
+    process->context.memoryMapping.setAsActive();
+    process->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_WRITE, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
     core::multiprocessing::processesList.push_front(*process);
   }
 
-  if(!core::multiprocessing::processesList.empty())
-    core::multiprocessing::processesList.front().run();
-  else
-    for(;;) asm("hlt");
-
+  core::multiprocessing::processesList.front().context.memoryMapping.setAsActive();
+  core::multiprocessing::processesList.front().setStackAsActive();
+  core::multiprocessing::processesList.front().enterUserMode();
 
   //core::pic::controller8259::clearMask(0); // Enable timer
 

@@ -3,27 +3,27 @@
 #include <i686/core/MultiProcessing.hpp>
 
 #include <i686/core/Syscall.hpp>
+#include <generic/io/Print.hpp>
+
+#include <i686/core/multiprocessing/SwitchProcess.hpp>
 
 namespace core::multiprocessing
 {
   namespace
   {
-    int syscall_yield(const State state)
+    extern "C" void schedule()
     {
-      // Save current process state
-      auto& currentProcess = processesList.front();
-      currentProcess.state(state);
-
-      // set next process as current
       processesList.shift_forward(1);
+    }
 
+    int syscall_yield(const State /*state*/)
+    {
+      auto& previousProcess = processesList.front();
+      schedule();
       auto& nextProcess = processesList.front();
+      nextProcess.setStackAsActive();
 
-      // NOTE: This cause unnecessary flushing of the TLB if no actual task
-      //       switch is done(i.e. switching to the same task)
-      nextProcess.setAsActive(); 
-      nextProcess.run();
-
+      switch_process(&previousProcess, &nextProcess);
       return 0;
     }
   }

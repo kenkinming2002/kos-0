@@ -1,36 +1,68 @@
 bits 32
 
-mov edi, 0x5
+mov esp, stack + STACK_SIZE
+mov ebp, stack + STACK_SIZE
 
-begin:
-dec edi
 
 ; Write Hello World
-mov ecx, esp
-mov edx, ret0
+push DWORD length
+push string
+call write
+add esp, 8
 
-mov eax, 0x3
 
-mov ebx, string
-mov esi, 12
+call yield
 
-sysenter
-ret0:
+; Write Hello World
+push DWORD length
+push string
+call write
+add esp, 8
 
-; Yield
-mov ecx, esp
-mov edx, ret1
+.L0: 
+jmp .L0
 
-mov eax, 0x4
 
-sysenter
-ret1:
+write:
+  push ebp
+  mov ebp, esp
 
-test edi, edi
-jnz begin
+  mov ecx, esp
+  mov edx, .ret
 
-jmp ret0
+  mov eax, 0x3
+
+  mov ebx, [ebp+8]
+  mov esi, [ebp+12]
+
+  sysenter
+.ret: 
+
+  mov esp, ebp
+  pop ebp
+  ret
+
+yield:
+  push ebp
+  mov ebp, esp
+
+  mov ecx, esp
+  mov edx, .ret
+  
+  mov eax, 0x4
+  
+  sysenter
+.ret:
+
+  mov esp, ebp
+  pop ebp
+  ret
+
+
+STACK_SIZE equ 256
+stack:
+  times STACK_SIZE db 0
 
 string:
   db `PROG2 world\n`
-
+  length equ $-string

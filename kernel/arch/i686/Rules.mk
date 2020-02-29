@@ -10,6 +10,7 @@ i686_OBJECTS += $(i686_cwd)/src/core/memory/Paging.o $(i686_cwd)/src/core/memory
 i686_OBJECTS += $(i686_cwd)/src/core/Syscall.o 
 i686_OBJECTS += $(i686_cwd)/src/core/MultiProcessing.o
 i686_OBJECTS += $(i686_cwd)/src/core/multiprocessing/Yield.o
+i686_OBJECTS += $(i686_cwd)/src/core/multiprocessing/SwitchProcess.o
 
 i686_OBJECTS += $(i686_cwd)/src/asm/Process.o
 
