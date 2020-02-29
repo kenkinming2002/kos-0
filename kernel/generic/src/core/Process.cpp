@@ -38,8 +38,9 @@ namespace core
     io::print("  - user process start address ", startAddress, "\n");
 
     // Put the return address on the stack
-    kernelStack+=sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(kernelStack) = reinterpret_cast<uintptr_t>(&startProcess);
+    context.esp-= sizeof(uintptr_t);
+    *reinterpret_cast<uintptr_t*>(context.esp) = reinterpret_cast<uintptr_t>(&startProcess);
+    context.esp-= 4*sizeof(uintptr_t);
   }
 
   void Process::setStackAsActive() const

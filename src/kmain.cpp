@@ -72,19 +72,13 @@ extern "C" int kmain()
 
 
 
-  void* stacks[2] = {
-    core::memory::allocateHeapPages(1).first,
-    core::memory::allocateHeapPages(1).first
-  };
-  int i=0;
-
   io::print("DEBUG: Modules\n");
   auto& bootInformation = utils::deref_cast<BootInformation>(bootInformationStorage);
   for(auto* moduleEntry = bootInformation.moduleEntries; moduleEntry != nullptr; moduleEntry = moduleEntry->next)
   {
     io::print("addr: ", (uintptr_t)moduleEntry->addr, ", len: ", moduleEntry->len, "\n");
 
-    auto* process = new core::Process(reinterpret_cast<uintptr_t>(stacks[i++]) + core::memory::PAGE_SIZE, 0x00000000);;
+    auto* process = new core::Process(reinterpret_cast<uintptr_t>(core::memory::allocateHeapPages(1).first) + core::memory::PAGE_SIZE, 0x00000000);;
     process->context.memoryMapping.setAsActive();
     process->addSection(0x00000000, core::memory::Access::ALL, core::memory::Permission::READ_WRITE, 
         reinterpret_cast<const uint8_t*>(moduleEntry->addr), moduleEntry->len);
