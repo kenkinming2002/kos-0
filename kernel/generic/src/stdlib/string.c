@@ -108,6 +108,16 @@ size_t strlen(const char *str)
     return s - str - 1;
 }
 
+// Added by Ken Kwok
+size_t strnlen(const char *str, size_t maxlen)
+{
+    const char *s = str;
+    while (maxlen && *s++)
+      --maxlen;
+
+    return s - str - 1;
+}
+
 // ------------------------------------------------------------------------------------------------
 char *strcpy(char *dst, const char *src)
 {
@@ -153,6 +163,27 @@ int strcmp(const char *s1, const char *s2)
 
         ++s1;
         ++s2;
+    }
+
+    return *s1 - *s2;
+}
+
+// Added by Ken Kwok
+int strncmp(const char *s1, const char *s2, size_t num)
+{
+    while (*s1 == *s2)
+    {
+        if (*s1 == '\0')
+        {
+            return 0;
+        }
+
+        --num;
+        ++s1;
+        ++s2;
+
+        if(num==0)
+          return 0;
     }
 
     return *s1 - *s2;

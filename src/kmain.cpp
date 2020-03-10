@@ -45,8 +45,8 @@ extern "C" void abort()
 
 int syscall_write(const core::State state)
 {
-  const char* str = reinterpret_cast<const char*>(state.ebx);
-  size_t count = state.esi;
+  const char* str = reinterpret_cast<const char*>(state.a1);
+  size_t count = state.a2;
   io::frameBuffer.write(str, count);
 
   return count;
@@ -68,7 +68,7 @@ extern "C" int kmain()
   core::interrupt::install_handler(0x20, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&timer_interrupt_handler));
   core::interrupt::install_handler(0x22, core::PrivillegeLevel::RING0, reinterpret_cast<uintptr_t>(&null_interrupt_handler));
 
-  core::register_syscall_handler(3, &syscall_write);
+  core::register_syscall_handler(0x8, &syscall_write);
 
 
 

@@ -3,8 +3,10 @@
 #include <i686/core/memory/MemoryMapping.hpp>
 #include <i686/core/Syscall.hpp>
 
-
 #include <boost/intrusive/slist.hpp>
+
+#include <generic/core/ipc/Message.hpp>
+#include <generic/core/multiprocessing/ThreadID.hpp>
 
 namespace core
 {
@@ -18,6 +20,7 @@ namespace core
   {
   public:
     Process(uintptr_t kernelStack, uintptr_t startAddress);
+    ~Process();
 
   public:
     void addSection(memory::virtaddr_t virtualAddress, memory::Access access, memory::Permission permission,
@@ -35,9 +38,16 @@ namespace core
   public:
     ProcessContext context;
 
+  public:
     uintptr_t startAddress;
     uintptr_t kernelStack;
     uint16_t  kernelStackSegmentSelector;
+
+  public:
+    boost::intrusive::slist<ipc::Message, boost::intrusive::cache_last<true>> ipcMessages;
+
+  public:
+    multiprocessing::ThreadID tid; ///< Thread ID
 
   public:
     boost::intrusive::slist_member_hook<> slist_hook;

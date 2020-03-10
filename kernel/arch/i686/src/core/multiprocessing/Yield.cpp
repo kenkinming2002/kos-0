@@ -30,6 +30,6 @@ namespace core::multiprocessing
 
   void init()
   {
-    core::register_syscall_handler(0x4, &syscall_yield);
+    core::register_syscall_handler(SYSCALL_YIELD, &syscall_yield);
   }
 }

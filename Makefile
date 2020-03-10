@@ -30,11 +30,13 @@ os.iso: kernel.elf program1 program2
 	grub-mkrescue -o os.iso iso -d /usr/lib/grub/i386-pc
 
 ## Program
-program1: src/program1.s
-	$(AS) -f bin $< -o $@
+program1: src/crt0.o src/syscall.o src/program1.o src/link.ld
+	$(LD) -T src/link.ld src/syscall.o src/program1.o -o program1
 
-program2: src/program2.s
-	$(AS) -f bin $< -o $@
+program2: src/crt0.o src/syscall.o src/program2.o src/link.ld
+	$(LD) -T src/link.ld src/syscall.o src/program2.o -o program2
+
+include src/program1.d src/program2.d
 
 # QEMU
 QEMUFLAGS = -serial file:serial.log

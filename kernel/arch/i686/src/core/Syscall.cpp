@@ -51,21 +51,37 @@ namespace core
       // Manual.
       asm volatile ( R"(
         .intel_syntax noprefix
-          pushad
-          mov ax, 0x10
-          mov ds, ax
-          mov es, ax
-          mov fs, ax
-          mov gs, ax
+          push eax
+          push ecx
+          push edx
+          push ebx
+          push esp
+          push ebp
+          push esi
+          push edi
+
+          mov bx, 0x10
+          mov ds, bx
+          mov es, bx
+          mov fs, bx
+          mov gs, bx
 
           call _syscall_handler
 
-          mov ax, 0x23
-          mov ds, ax
-          mov es, ax
-          mov fs, ax
-          mov gs, ax
-          popad
+          mov bx, 0x23
+          mov ds, bx
+          mov es, bx
+          mov fs, bx
+          mov gs, bx
+
+          pop edi
+          pop esi
+          pop ebp
+          pop esp
+          pop ebx
+          pop edx
+          pop ecx
+          add esp, 4
 
           sti
           sysexit

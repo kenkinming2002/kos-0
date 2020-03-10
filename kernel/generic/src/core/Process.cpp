@@ -15,8 +15,11 @@
 
 #include <generic/io/Print.hpp>
 
+
 namespace core
 {
+
+
   namespace
   {
     void startProcess()
@@ -31,16 +34,23 @@ namespace core
     : context{kernelStack, {}},
       startAddress(startAddress),
       kernelStack(kernelStack), 
-      kernelStackSegmentSelector(0x10)
+      kernelStackSegmentSelector(0x10),
+      tid(multiprocessing::allocThreadID())
   {
     io::print("DEBUG: Process Creation\n");
     io::print("  - kernel stack address ", kernelStack, "\n");
     io::print("  - user process start address ", startAddress, "\n");
+    io::print("  - thread id ", tid, "\n");
 
     // Put the return address on the stack
     context.esp-= sizeof(uintptr_t);
     *reinterpret_cast<uintptr_t*>(context.esp) = reinterpret_cast<uintptr_t>(&startProcess);
     context.esp-= 4*sizeof(uintptr_t);
+  }
+
+  Process::~Process()
+  {
+    multiprocessing::freeThreadID(tid);
   }
 
   void Process::setStackAsActive() const

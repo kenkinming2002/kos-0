@@ -7,6 +7,8 @@
 #include <generic/core/Memory.hpp>
 #include <i686/core/multiprocessing/Yield.hpp>
 
+#include <generic/core/IPC.hpp>
+
 extern "C" void _init();
 extern "C" void _fini();
 
@@ -21,6 +23,7 @@ extern "C" void _start()
   core::init_syscall();
   core::memory::init();
   core::multiprocessing::init();
+  core::ipc::init();
 
   _init();
 

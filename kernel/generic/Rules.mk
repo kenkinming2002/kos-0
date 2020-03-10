@@ -11,6 +11,11 @@ generic_OBJECTS += $(generic_cwd)/src/core/memory/PageFrameAllocator.o
 generic_OBJECTS += $(generic_cwd)/src/core/Memory.o
 
 generic_OBJECTS += $(generic_cwd)/src/core/Process.o
+generic_OBJECTS += $(generic_cwd)/src/core/multiprocessing/ThreadID.o
+
+generic_OBJECTS += $(generic_cwd)/src/core/IPC.o
+generic_OBJECTS += $(generic_cwd)/src/core/ipc/Service.o
+generic_OBJECTS += $(generic_cwd)/src/core/ipc/Message.o
 
 generic_OBJECTS += $(generic_cwd)/src/stdlib/string.o
 
