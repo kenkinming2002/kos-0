@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <cstddef>
 
 namespace core::memory
 {
