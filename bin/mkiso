@@ -1,0 +1,40 @@
+#!/bin/sh
+
+usage()
+{
+  echo "Error"
+  exit -1
+}
+
+PRIVATE_DIR=
+GRUB_CONFIG=
+OUTPUT=
+
+while getopts "p:c:o:" FLAG; do
+  case $FLAG in
+    p)
+      PRIVATE_DIR=$OPTARG
+      ;;
+    c)
+      GRUB_CONFIG=$OPTARG
+      ;;
+    o)
+      OUTPUT=$OPTARG
+      ;;
+    \?)
+      usage
+      ;;
+  esac
+done
+
+if [ -z PRIVATE_DIR -o -z GRUB_CONFIG -o -z OUTPUT ]; then
+  usage
+fi
+
+shift $(expr $OPTIND - 1)
+
+mkdir -p $PRIVATE_DIR/iso/boot/grub/                               || exit 1
+cp $GRUB_CONFIG $PRIVATE_DIR/iso/boot/grub/                        || exit 1
+cp "$@" $PRIVATE_DIR/iso/boot/                                     || exit 1
+grub-mkrescue -o $OUTPUT $PRIVATE_DIR/iso -d /usr/lib/grub/i386-pc || exit 1
+

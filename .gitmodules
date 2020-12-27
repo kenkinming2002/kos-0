@@ -1,7 +1,4 @@
 [submodule "liballoc"]
-	path = liballoc
+	path = subprojects/liballoc
 	url = https://github.com/blanham/liballoc.git
   ignore = dirty
-[submodule "boost"]
-	path = boost
-	url = https://github.com/boostorg/boost.git

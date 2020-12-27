@@ -1,0 +1,2 @@
+#!/bin/sh
+grep -R INIT_ kernel/core/src/ | cut -d: -f2 | sed 's/  INIT_//' | sed 's/FUNCTION_//' | sort
