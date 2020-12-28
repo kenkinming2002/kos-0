@@ -1,63 +1,46 @@
 extern isr
 
+isr_common:
+  pushad
+
+  mov ax, ds
+  push eax
+
+  mov ax, 0x10
+  mov ds, ax
+  mov es, ax
+  mov fs, ax
+  mov gs, ax
+
+  push DWORD [esp+0x24]
+  push DWORD [esp+0x28]
+  call isr
+  add esp, 0x8
+
+  pop eax
+  mov ds, ax
+  mov es, ax
+  mov fs, ax
+  mov gs, ax
+
+  popad
+
+  add esp, 0x8
+  iret
+
 %macro ISR_NOERRORCODE 1
   [GLOBAL isr%1]
   isr%1:
-    pushad
-
-    mov ax, ds
-    push eax
-
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
     push DWORD 0  ; Dummy error code
     push DWORD %1 ; Interrupt number
-    call isr
-    add esp, 0x8
-
-    pop eax
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
-    popad
-
-    iret
+    jmp isr_common
 %endmacro
 
 %macro ISR_ERRORCODE 1
   [GLOBAL isr%1]
   isr%1:
-    pushad
-
-    mov ax, ds
-    push eax
-
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
-    push DWORD [esp+0x48]; Error code
     push DWORD %1 ; Interrupt number
-    call isr
-    add esp, 0x8
-
-    pop eax
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
-    popad
-
-    iret
+    jmp isr_common
 %endmacro
 
 ISR_NOERRORCODE 0

@@ -11,6 +11,7 @@
 #include <core/generic/io/Print.hpp>
 
 #include <stddef.h>
+#include <assert.h>
 
 namespace core::interrupts
 {
