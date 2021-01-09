@@ -154,8 +154,8 @@ namespace
 
   BOOT_FUNCTION void setup_paging()
   {
-    auto& pageDirectory = *physical_address(reinterpret_cast<common::memory::PageDirectory*>(initialPageDirectory));
-    auto& pageTables    = *physical_address(reinterpret_cast<common::memory::PageTable(*)[BOOT_PAGE_TABLE_COUNT]>(kernelPageTables));
+    auto& pageDirectory = *physical_address(&initialPageDirectory);
+    auto& pageTables    = *physical_address(&kernelPageTables);
 
     for(size_t pageDirectoryIndex=0; pageDirectoryIndex<BOOT_PAGE_TABLE_COUNT; ++pageDirectoryIndex)
     {

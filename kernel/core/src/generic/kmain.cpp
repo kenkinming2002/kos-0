@@ -1,3 +1,6 @@
+#include "common/i686/memory/Paging.hpp"
+#include "core/generic/tasks/Elf.hpp"
+#include "core/i686/memory/MemoryMapping.hpp"
 #include <core/generic/tasks/Scheduler.hpp>
 #include <core/generic/memory/Memory.hpp>
 #include <core/generic/io/Print.hpp>
@@ -14,14 +17,19 @@ void testMemory()
 {
   core::io::print("Testing memory allocation and deallocation...");
 
-  for(size_t j=0; j<500;++j)
+  for(size_t j=0; j<128;++j)
   {
+    //core::io::printf("Iteration %lu\n", j);
     char* memorys[200] = {};
+
     for(size_t i=0; i<200; ++i)
     {
       memorys[i] = static_cast<char*>(core::memory::malloc(0x1000));
+
+      /* Note: Don't be stupid like me and try to use break to break out of
+       * nested loop and be puzzled as to why the loop does not end */
       if(memorys[i] == nullptr)
-        break;
+        goto end;  
 
       const char* str = "deadbeef";
       for(size_t k=0; k<0x100; ++k)
@@ -31,13 +39,14 @@ void testMemory()
       }
     }
 
-    //for(size_t i=0; i<200; ++i)
-    //{
-    //  if(memorys[i] == nullptr)
-    //    break;
-    //  core::memory::free(static_cast<void*>(memorys[i]));
-    //}
+    for(size_t i=0; i<200; ++i)
+    {
+      if(memorys[i] == nullptr)
+        break;
+      core::memory::free(static_cast<void*>(memorys[i]));
+    }
   }
+end:
 
   core::io::print("Done\n");
 }
@@ -64,16 +73,24 @@ void kmain()
     {
       // TODO: Parse elf
       const auto& module = core::modules[i];
-      auto& task = core::tasks::scheduler.addTask(unwrap(core::tasks::Task::allocate()));
-      task.asUserspaceTask(0x0);
 
       auto physicalPages = core::memory::Pages::fromAggressive(module.phyaddr, module.length);
-      auto virtualPages  = core::memory::Pages::fromAggressive(0             , module.length);
+      auto virtualPages  = core::memory::allocVirtualPages(physicalPages.count);
+      if(!virtualPages)
+        continue;
 
-      // TODO: Load Actual from Executable Format
-      task.memoryMapping().map(physicalPages, virtualPages, common::memory::Access::ALL, common::memory::Permission::READ_WRITE);
+      core::memory::MemoryMapping::current->map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
+      auto task = core::tasks::loadElf(reinterpret_cast<char*>(virtualPages->address()), virtualPages->length());
+      if(!task)
+        core::panic("Failed to load elf\n");
+
+      core::tasks::scheduler.addTask(std::move(*task));
+
+      core::memory::MemoryMapping::current->unmap(*virtualPages);
+      core::memory::freeVirtualPages(*virtualPages);
     }
+    core::io::print("Done\n");
 
-    core::tasks::scheduler.startFirstUserspaceTask(0x0);
+    core::tasks::scheduler.startFirstUserspaceTask();
   }
 }

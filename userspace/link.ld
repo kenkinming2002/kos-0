@@ -1,6 +1,7 @@
-OUTPUT_FORMAT(binary)
+ENTRY(_start)
 
 SECTIONS {
+  . = ALIGN(0x1000);
   .text :
   {
     *(.text.*)
@@ -11,12 +12,13 @@ SECTIONS {
     *(.rodata)
   }
 
+  . = ALIGN(0x1000);
   .data :
   {
     *(.data)
   }
 
-  .bss :
+  .bss (NOLOAD) :
   {
     *(.bss)
   }

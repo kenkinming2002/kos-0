@@ -1,7 +1,10 @@
+global _start
+
 section .text
 
 ; Loop 1
-mov eax, 0x100
+_start:
+  mov eax, 0x100
 .L0:
   mov [stack], eax
 
@@ -19,6 +22,7 @@ mov eax, 0x100
 .L2:
   jmp .L2
 
+section .bss
 stack:
-  dd 0
+  resb 1
 

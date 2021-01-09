@@ -8,12 +8,18 @@
 namespace core::memory
 {
   /* 
-   * The last of 1024 Page Directory Entries is used for temporary mapping and
-   * reserved. This may seem wasteful, but virtual address space is cheap and
-   * 4MiB out of 4MiB is not going to matter much. This is *NOT* going to be
-   * synchronized between different MemoryMapping like
+   * Each class MemoryMapping manages the virtual to physical address translation of a single process.
    *
-   * Memory Mapping is non-owning. We do not do any form of reference counting.
+   * On i686 platform, the virtual address range are splited into multiple parts
+   * [0GiB, 3GiB) - User Mappings(User code, data, etc.)
+   * [3GiB, 4GiB) - Kernel Mappings(Kernel code, data, heap, etc.)
+   *
+   * The user mappings by default is private to each task but can also be
+   * shared among different tasks.
+   *
+   * The kernel mappings is the same for every process, currently, there is no
+   * mitigation for meltdown or spectre so the entirety of kernel and kernel
+   * heap is always mapped in.
    */
   class MemoryMapping
   {
@@ -22,16 +28,10 @@ namespace core::memory
     static MemoryMapping* current;
 
   public:
-    friend void initMemoryMapping();
-
-  private:
-    static common::memory::PageDirectoryEntry kernelPageDirectoryEntries[256];
-
-  public:
     static std::optional<MemoryMapping> allocate();
 
   public:
-    MemoryMapping(uintptr_t pageDirectoryPhysicalAddress, uintptr_t pageDirectoryVirtualAddress);
+    constexpr MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
     ~MemoryMapping();
 
   public:
@@ -42,21 +42,22 @@ namespace core::memory
     static uintptr_t doFractalMapping(uintptr_t phyaddr, size_t length);
 
   public:
+    void synchronize();
     void makeCurrent();
 
   public:
-    void map(Pages physicalPages, Pages virtualPages, common::memory::Access access, common::memory::Permission permission);
-    Pages unmap(Pages virtualPages);
+    // This is the API we currently have
+    void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, std::optional<Pages> physicalPages = std::nullopt);
+    void unmap(Pages virtualPages);
 
   public:
     uintptr_t virtualToPhysical(uintptr_t virtaddr);
 
   private:
-    auto& pageDirectory() { return *reinterpret_cast<common::memory::PageDirectory*>(m_pageDirectoryVirtualAddress); }
-    const auto& pageDirectory() const { return *reinterpret_cast<common::memory::PageDirectory*>(m_pageDirectoryVirtualAddress); }
+    common::memory::PageDirectoryEntry& pageDirectoryEntry(size_t virtualIndex, bool allocate);
+    common::memory::PageTableEntry& pageTableEntry(size_t virtualIndex, bool allocate);
 
   private:
-    uintptr_t m_pageDirectoryPhysicalAddress;
-    uintptr_t m_pageDirectoryVirtualAddress;
+    common::memory::PageDirectory* m_pageDirectory;
   };
 }

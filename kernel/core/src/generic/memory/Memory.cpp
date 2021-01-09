@@ -106,20 +106,18 @@ namespace core::memory
 
     std::optional<Pages> allocMappedPages(size_t count)
     {
-      auto physicalPages = m_physicalPagesAllocator.allocate(count);
-      auto virtualPages  = m_virtualPagesAllocator.allocate(count);
-      if(!physicalPages || !virtualPages)
+      auto virtualPages = allocVirtualPages(count);
+      if(!virtualPages)
         return std::nullopt;
 
-      MemoryMapping::current->map(*physicalPages, *virtualPages, common::memory::Access::ALL, common::memory::Permission::READ_WRITE);
+      MemoryMapping::current->map(*virtualPages, common::memory::Access::ALL, common::memory::Permission::READ_WRITE);
       return virtualPages;
     }
 
     void freeMappedPages(Pages pages)
     {
-      auto physicalPages = MemoryMapping::current->unmap(pages);
-      m_physicalPagesAllocator.deallocate(physicalPages);
-      m_virtualPagesAllocator.deallocate(pages);
+      MemoryMapping::current->unmap(pages);
+      freeVirtualPages(pages);
     }
 
   private:

@@ -1,5 +1,9 @@
 project('LittleBook', 'cpp', default_options : ['cpp_std=c++2a'])
+
 add_project_arguments('-masm=intel', language : 'cpp')
+
+add_project_arguments(['-fdata-sections', '-ffunction-sections'], language : ['c', 'cpp'])
+add_project_link_arguments(['-Wl,--gc-sections', '-Wl,--print-gc-sections'], language : ['c', 'cpp'])
 
 nasm = find_program('nasm', required : true)
 asm_gen = generator(nasm,
@@ -20,5 +24,5 @@ kernel_iso = custom_target('iso',
 
 # TODO: Use crossfiles properties
 qemu = find_program('qemu-system-i386') 
-run_target('run',       command : [qemu, '-d', 'cpu_reset', '-m', '32', '-cdrom', kernel_iso])
-run_target('run_debug', command : [qemu, '-d', 'cpu_reset', '-m', '32', '-cdrom', kernel_iso, '-serial' , 'unix:qemu-serial,server,nowait', '-monitor', 'unix:qemu-monitor,server,nowait', '-gdb', 'tcp::1024', '-S'])
+run_target('run',       command : [qemu, '-d', 'cpu_reset', '-m', '60', '-cdrom', kernel_iso])
+run_target('run_debug', command : [qemu, '-d', 'cpu_reset', '-m', '60', '-cdrom', kernel_iso, '-serial' , 'unix:qemu-serial,server,nowait', '-monitor', 'unix:qemu-monitor,server,nowait', '-gdb', 'tcp::1024', '-S'])

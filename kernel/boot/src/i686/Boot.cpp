@@ -2,6 +2,6 @@
 
 #include <common/i686/memory/Paging.hpp>
 
-alignas(4096) char initialPageDirectory[sizeof(common::memory::PageDirectory)];
-alignas(4096) char kernelPageTables[sizeof(common::memory::PageTable) * BOOT_PAGE_TABLE_COUNT];
+alignas(4096) constinit common::memory::PageDirectory initialPageDirectory;
+alignas(4096) constinit common::memory::PageTable     kernelPageTables[BOOT_PAGE_TABLE_COUNT];
 

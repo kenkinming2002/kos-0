@@ -28,6 +28,7 @@ core_src = files(
   'src/i686/syscalls/Syscalls.cpp',
 
   'src/generic/tasks/Scheduler.cpp',
+  'src/generic/tasks/Elf.cpp',
   'src/i686/tasks/Task.cpp',
 
   'src/x86/assembly/io.cpp',

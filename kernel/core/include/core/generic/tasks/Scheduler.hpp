@@ -11,7 +11,7 @@ namespace core::tasks
     Scheduler();
 
   public:
-    [[noreturn]] void startFirstUserspaceTask(uintptr_t entry);
+    [[noreturn]] void startFirstUserspaceTask();
 
   public:
     Task& addTask(Task task);

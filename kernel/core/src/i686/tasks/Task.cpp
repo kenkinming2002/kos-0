@@ -7,6 +7,8 @@
 #include <core/i686/syscalls/Syscalls.hpp>
 #include <core/i686/tasks/Entry.hpp>
 
+#include <cassert>
+
 extern "C"
 {
   extern char kernel_stack_top[];
@@ -22,15 +24,6 @@ extern "C"
 namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
-
-  Task::Stack Task::Stack::initial()
-  {
-    return Stack{
-      .ptr  = reinterpret_cast<uintptr_t>(kernel_stack_bottom),
-      .size = reinterpret_cast<uintptr_t>(kernel_stack_top) - reinterpret_cast<uintptr_t>(kernel_stack_bottom),
-      .esp  = reinterpret_cast<uintptr_t>(kernel_stack_top),
-    };
-  }
 
   constinit Task* Task::current = nullptr; // FIXME: Implement for multiprocessor
 
@@ -90,18 +83,14 @@ namespace core::tasks
     *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = entry;
 
     m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(this);
-
-    m_kernelStack.esp -= sizeof(uintptr_t);
     *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = POISON; // This can really be any value, we are just simulating eip pushed when executing a call instruction
 
     m_kernelStack.esp -= sizeof(uintptr_t);
     *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(&startUserspaceTask);
   }
 
-  [[noreturn]] void Task::startUserspaceTask(Task* task, uintptr_t entry)
+  [[noreturn]] void Task::startUserspaceTask(uintptr_t entry)
   {
-    task->makeCurrent();
     core_tasks_entry(entry);
   }
 }

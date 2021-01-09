@@ -46,7 +46,7 @@ namespace core::tasks
     interrupts::clearMask(0);
   }
 
-  [[noreturn]] void Scheduler::startFirstUserspaceTask(uintptr_t entry)
+  [[noreturn]] void Scheduler::startFirstUserspaceTask()
   {
     /* 
      * There is no previous task, so we use a dummy esp

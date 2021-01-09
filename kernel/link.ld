@@ -8,25 +8,25 @@ SECTIONS {
   kernel_boot_section_physical_begin = .;
   kernel_boot_section_virtual_begin  = . + 0xC0000000;
 
-  .boot.text ALIGN(0x1000) :
+  .boot.text :
   {
     KEEP(*(.multiboot2_header))
-    *(.boot.text.*)
+    *(.boot.text .boot.text.*)
   }
 
-  .boot.rodata ALIGN(0x1000) :
+  .boot.rodata :
   {
-    *(.rodata.boot.*)
+    *(.boot.rodata .boot.rodata.*)
   }
 
-  .boot.data ALIGN(0x1000) :
+  .boot.data :
   {
-    *(.data.boot.*)
+    *(.boot.data .boot.data.*)
   }
 
-  .boot.bss ALIGN(0x1000) (NOLOAD) : 
+  .boot.bss (NOLOAD) : 
   {
-    *(.bss.boot.*)
+    *(.boot.bss .boot.bss.*)
   }
   . = ALIGN(0x1000);
   kernel_boot_section_physical_end = .;
@@ -46,9 +46,14 @@ SECTIONS {
 
   kernel_read_only_section_begin = .;
 
-  .text ALIGN (0x1000) : AT(ADDR(.text)-0xC0000000)
+  .text : AT(ADDR(.text)-0xC0000000)
   {
-    *(.text.*)
+    *(.text .text.*)
+  }
+
+  .rodata : AT(ADDR(.rodata)-0xC0000000)
+  {
+    *(.rodata .rodata.*)
   }
 
   .ctors : AT(ADDR(.ctors)-0xC0000000)
@@ -87,11 +92,6 @@ SECTIONS {
     KEEP(*crtn*.o(.fini))
   }
 
-  .rodata ALIGN(0x1000) : AT(ADDR(.rodata)-0xC0000000)
-  {
-    *(.rodata.*)
-  }
-
   . = ALIGN(0x1000);
   kernel_read_only_section_end = .;
 
@@ -100,15 +100,15 @@ SECTIONS {
    *********************/
   kernel_read_write_section_begin = .;
 
-  .data ALIGN(0x1000) : AT(ADDR(.data)-0xC0000000)
+  .data : AT(ADDR(.data)-0xC0000000)
   {
-    *(.data.*)
+    *(.data .data.*)
   }
 
-  .bss ALIGN(0x1000) (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
+  .bss (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
   {
     *(COMMON)
-    *(.bss)
+    *(.bss .bss.*)
   }
 
   . = ALIGN(0x1000);

@@ -25,8 +25,8 @@ namespace common::memory
   class [[gnu::packed]] PageDirectoryEntry
   {
   public:
-    FORCE_INLINE PageDirectoryEntry() = default;
-    FORCE_INLINE PageDirectoryEntry(uint32_t address, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission, PageSize pageSize = PageSize::NORMAL)
+    FORCE_INLINE constexpr PageDirectoryEntry() = default;
+    FORCE_INLINE constexpr PageDirectoryEntry(uint32_t address, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission, PageSize pageSize = PageSize::NORMAL)
     {
       m_data |= address & 0xFFFFF000;
       if(pageSize   == PageSize::LARGE)          m_data |= 1u<<7;
@@ -38,12 +38,12 @@ namespace common::memory
     }
 
   public:
-    FORCE_INLINE bool present() const { return m_data & 1u; }
-    FORCE_INLINE uint32_t address() const { return m_data & 0xFFFFF000; }
+    FORCE_INLINE constexpr bool present() const { return m_data & 1u; }
+    FORCE_INLINE constexpr uint32_t address() const { return m_data & 0xFFFFF000; }
 
   public:
-    FORCE_INLINE void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
-    FORCE_INLINE void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
+    FORCE_INLINE constexpr void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
+    FORCE_INLINE constexpr void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
 
   private:
     uint32_t m_data = 0;
@@ -52,8 +52,8 @@ namespace common::memory
   class PageTableEntry
   {
   public:
-    FORCE_INLINE PageTableEntry() = default;
-    FORCE_INLINE PageTableEntry(uint32_t address, TLBMode tlbMode, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission)
+    FORCE_INLINE constexpr PageTableEntry() = default;
+    FORCE_INLINE constexpr PageTableEntry(uint32_t address, TLBMode tlbMode, CacheMode cacheMode, WriteMode writeMode, Access access, Permission permission)
     {
       m_data = address & 0xFFFFF000;
       if(tlbMode    == TLBMode::GLOBAL)          m_data |= 1u<<8;
@@ -65,14 +65,14 @@ namespace common::memory
     }
 
   public: 
-    FORCE_INLINE bool present() const { return m_data & 1u; }
-    FORCE_INLINE uint32_t address() const { return m_data & 0xFFFFF000; }
+    FORCE_INLINE constexpr bool present() const { return m_data & 1u; }
+    FORCE_INLINE constexpr uint32_t address() const { return m_data & 0xFFFFF000; }
 
   public: 
-    FORCE_INLINE void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
-    FORCE_INLINE void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
+    FORCE_INLINE constexpr void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
+    FORCE_INLINE constexpr void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
 
-  private:
+  public:
     uint32_t m_data = 0;
   };
 

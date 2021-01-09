@@ -19,9 +19,6 @@ namespace core::tasks
     struct Stack
     {
     public:
-      static Stack initial();
-
-    public:
       uintptr_t ptr;
       size_t size;
 
@@ -52,7 +49,7 @@ namespace core::tasks
     // Set up the our stack to match what switchTask expect to found and invoke
     // startUserspaceTask with appropriate arguments.
     void asUserspaceTask(uintptr_t entry);
-    [[noreturn]] static void startUserspaceTask(Task* task, uintptr_t entry);
+    [[noreturn]] static void startUserspaceTask(uintptr_t entry);
 
   private:
     Stack m_kernelStack;
