@@ -1,7 +1,13 @@
 extern isr
 
 isr_common:
-  pushad
+  push ebp
+  mov ebp, esp
+
+  ; Save registers
+  push eax
+  push ecx
+  push edx
 
   mov ax, ds
   push eax
@@ -12,20 +18,29 @@ isr_common:
   mov fs, ax
   mov gs, ax
 
-  push DWORD [esp+0x24]
-  push DWORD [esp+0x28]
+  push DWORD [ebp+0xC]; Old eip
+  push DWORD [ebp+0x8]; Error code
+  push DWORD [ebp+0x4]; Interrupt number
   call isr
-  add esp, 0x8
+  add esp, 0xC
 
+  ; Restore registers
   pop eax
   mov ds, ax
   mov es, ax
   mov fs, ax
   mov gs, ax
 
-  popad
+  push edx
+  push ecx
+  push eax
 
+  mov esp, ebp
+  pop ebp
+
+  ; Clean up passed arguments(Error code and interrupt number)
   add esp, 0x8
+
   iret
 
 %macro ISR_NOERRORCODE 1

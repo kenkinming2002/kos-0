@@ -90,7 +90,6 @@ void kmain()
       core::memory::freeVirtualPages(*virtualPages);
     }
     core::io::print("Done\n");
-
     core::tasks::scheduler.startFirstUserspaceTask();
   }
 }

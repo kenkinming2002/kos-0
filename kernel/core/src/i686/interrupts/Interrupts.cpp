@@ -54,17 +54,17 @@ namespace core::interrupts
   };
   Handler handlers[IDT_SIZE] = {};
 
-  void nullHandler(uint8_t irqNumber, uint32_t errorCode)
+  void nullHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
     io::printf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
     for(;;) asm volatile("hlt");
   }
 
-  void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode)
+  void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
     uint32_t address;
     asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
-    io::printf("\nPage Fault at %lx with error code %lx\n", address, errorCode);
+    io::printf("\nPage Fault at %lx with error code %lx and old eip %lx\n", address, errorCode, oldEip);
     panic("Page Fault\n");
   }
 
@@ -79,18 +79,18 @@ namespace core::interrupts
     for(size_t i=0; i<IDT_SIZE; ++i)
       uninstallHandler(i);
 
-    installHandler(8,  [](uint8_t, uint32_t)   { panic("Double Fault\n"); },       PrivilegeLevel::RING0, true);
-    installHandler(13, [](uint8_t, uint32_t)   { panic("Protection Fault\n"); },   PrivilegeLevel::RING0, true);
+    installHandler(8,  [](uint8_t, uint32_t, uintptr_t)   { panic("Double Fault\n"); },       PrivilegeLevel::RING0, true);
+    installHandler(13, [](uint8_t, uint32_t, uintptr_t)   { panic("Protection Fault\n"); },   PrivilegeLevel::RING0, true);
     installHandler(14, &pageFaultHandler,                                          PrivilegeLevel::RING0, true);
-    installHandler(0x80, [](uint8_t, uint32_t) { io::print("User Interrupt\n"); }, PrivilegeLevel::RING3, true);
+    installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { io::print("User Interrupt\n"); }, PrivilegeLevel::RING3, true);
 
     asm volatile("" : : : "memory");
     io::print("Done\n");
   }
 
-  extern "C" void isr(uint32_t irqNumber, uint32_t errorCode)
+  extern "C" void isr(uint32_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
-    handlers[irqNumber](irqNumber, errorCode);
+    handlers[irqNumber](irqNumber, errorCode, oldEip);
   }
 
   void setKernelStack(uintptr_t ptr, size_t size)

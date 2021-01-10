@@ -33,7 +33,7 @@ namespace core::tasks
    * Note: We have to disable interrupt, however, locking would not be
    *       necessary, since we would or *WILL* have a per-cpu task queue. 
    */
-  static void timerHandler(uint8_t, uint32_t)
+  static void timerHandler(uint8_t, uint32_t, uintptr_t)
   { 
     interrupts::acknowledge(0); 
     scheduler.schedule(); 
