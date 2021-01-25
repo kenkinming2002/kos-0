@@ -1,2 +1,16 @@
 #!/bin/sh
-grep -R INIT_ kernel/core/src/ | cut -d: -f2 | sed 's/  INIT_//' | sed 's/FUNCTION_//' | sort
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_NOLOG'
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_FUNCTION_NOLOG'
+echo
+
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_EARLY'
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_FUNCTION_EARLY'
+echo
+
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_NORMAL'
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_FUNCTION_NORMAL'
+echo
+
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_LATE'
+grep -R INIT_ kernel/src/  | cut -d: -f2 | tr -s '[:blank:]' | grep 'INIT_FUNCTION_LATE'
+

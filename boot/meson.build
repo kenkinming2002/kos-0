@@ -1,0 +1,23 @@
+boot_src = files(
+  'src/generic/stdlib/string.cpp',
+  'src/generic/stdlib/assert.cpp',
+  'src/generic/BootInfomation.cpp',
+  'src/generic/Kernel.cpp',
+  'src/i686/io/Print.cpp',
+  'src/i686/Paging.cpp',
+  'src/i686/bmain.cpp'
+)
+
+boot_asm_obj = asm_gen.process(
+  'src/generic/Multiboot2Header.s',
+  'src/i686/Loader.s'
+)
+
+boot = executable('boot', 
+  boot_src, boot_asm_obj,
+  include_directories : ['../common/include/', 'include/'],
+  link_args : ['-T', meson.current_source_dir()+'/link.ld'],
+  link_depends : 'link.ld',
+  dependencies : common_dep
+)
+

@@ -1,41 +1,10 @@
 ENTRY(loader)
 
 SECTIONS {
-  /*****************
-   * Boot sections *
-   *****************/
-  . = 0x100000;
-  kernel_boot_section_physical_begin = .;
-  kernel_boot_section_virtual_begin  = . + 0xC0000000;
-
-  .boot.text :
-  {
-    KEEP(*(.multiboot2_header))
-    *(.boot.text .boot.text.*)
-  }
-
-  .boot.rodata :
-  {
-    *(.boot.rodata .boot.rodata.*)
-  }
-
-  .boot.data :
-  {
-    *(.boot.data .boot.data.*)
-  }
-
-  .boot.bss (NOLOAD) : 
-  {
-    *(.boot.bss .boot.bss.*)
-  }
-  . = ALIGN(0x1000);
-  kernel_boot_section_physical_end = .;
-  kernel_boot_section_virtual_end  = . + 0xC0000000;
-
   /*******************
    * Normal sections *
    *******************/
-  . += 0xC0000000;
+  . = 0xC0000000;
 
   kernel_virtual_start  = .;
   kernel_physical_start = . - 0xC0000000;

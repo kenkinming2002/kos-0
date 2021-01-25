@@ -38,3 +38,4 @@ cp $GRUB_CONFIG $PRIVATE_DIR/iso/boot/grub/                        || exit 1
 cp "$@" $PRIVATE_DIR/iso/boot/                                     || exit 1
 grub-mkrescue -o $OUTPUT $PRIVATE_DIR/iso -d /usr/lib/grub/i386-pc || exit 1
 
+rm -rf $PRIVATE_DIR/iso
