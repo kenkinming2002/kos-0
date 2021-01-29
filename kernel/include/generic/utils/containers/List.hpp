@@ -10,7 +10,7 @@ namespace utils::containers
   class List
   {
   public:
-    List() { m_tail.prev = m_tail.next = &m_tail; }
+    constexpr List() { m_tail.prev = m_tail.next = &m_tail; }
 
   public:
     List(const List&) = delete;

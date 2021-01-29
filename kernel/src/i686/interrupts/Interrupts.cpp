@@ -5,8 +5,8 @@
 
 #include <i686/internals/Segmentation.hpp>
 
+#include <x86/interrupts/8259.hpp>
 
-#include <generic/Init.hpp>
 #include <generic/Panic.hpp>
 #include <common/generic/io/Print.hpp>
 
@@ -54,12 +54,6 @@ namespace core::interrupts
   };
   Handler handlers[IDT_SIZE] = {};
 
-  void nullHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
-  {
-    io::printf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
-    for(;;) asm volatile("hlt");
-  }
-
   void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
     uint32_t address;
@@ -68,7 +62,17 @@ namespace core::interrupts
     panic("Page Fault\n");
   }
 
-  INIT_FUNCTION_EARLY void initInterrupts()
+  void generalProtectionFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  {
+    panic("General Protection Fault\n");
+  }
+
+  void doubleFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  {
+    panic("Double Fault\n");
+  }
+
+  void initialize()
   {
     io::print("Loading Interrupt Descriptor Table and configuring interrupt handlers...");
 
@@ -76,20 +80,24 @@ namespace core::interrupts
     IDT idt(idtEntries);
     asm volatile ( "lidt %[idt]" : : [idt]"m"(idt) : "ax");
 
-    for(size_t i=0; i<IDT_SIZE; ++i)
-      uninstallHandler(i);
-
-    installHandler(8,  [](uint8_t, uint32_t, uintptr_t)   { panic("Double Fault\n"); },       PrivilegeLevel::RING0, true);
-    installHandler(13, [](uint8_t, uint32_t, uintptr_t)   { panic("Protection Fault\n"); },   PrivilegeLevel::RING0, true);
-    installHandler(14, &pageFaultHandler,                                          PrivilegeLevel::RING0, true);
-    installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { io::print("User Interrupt\n"); }, PrivilegeLevel::RING3, true);
+    installHandler(8,  &doubleFaultHandler,            PrivilegeLevel::RING0, true);
+    installHandler(13, &generalProtectionFaultHandler, PrivilegeLevel::RING0, true);
+    installHandler(14, &pageFaultHandler,              PrivilegeLevel::RING0, true);
 
     asm volatile("" : : : "memory");
     io::print("Done\n");
+
+    initialize8259();
   }
 
   extern "C" void isr(uint32_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
+    if(!handlers[irqNumber])
+    {
+      io::printf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
+      for(;;) asm volatile("hlt");
+    }
+
     handlers[irqNumber](irqNumber, errorCode, oldEip);
   }
 
@@ -104,12 +112,11 @@ namespace core::interrupts
     // TODO: support chaining of handler via additional void* paramter for user
     //       data
     handlers[irqNumber] = handler;
-    auto interruptType = disableInterrupt ? InterruptType::INTERRUPT_GATE_32 : InterruptType::TRAP_GATE_32;
-    idtEntries[irqNumber] = IDTEntry(interruptType, privilegeLevel, 0x8, isrs[irqNumber]);
+    idtEntries[irqNumber] = IDTEntry(disableInterrupt ? InterruptType::INTERRUPT_GATE_32 : InterruptType::TRAP_GATE_32, privilegeLevel, 0x8, isrs[irqNumber]);
   }
 
   void uninstallHandler(int irqNumber)
   {
-    installHandler(irqNumber, &nullHandler, PrivilegeLevel::RING0, true);
+    handlers[irqNumber] = nullptr;
   }
 }

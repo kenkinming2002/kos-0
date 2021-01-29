@@ -1,18 +1,9 @@
 #include <generic/memory/Memory.hpp>
 
-#include <generic/Init.hpp>
-#include <generic/Panic.hpp>
-#include <generic/BootInformation.hpp>
-#include <common/generic/io/Print.hpp>
-#include <generic/memory/LinkedListPagesAllocator.hpp>
-
-#include <i686/memory/MemoryMapping.hpp>
+#include <generic/memory/BootPagesAllocator.hpp>
+#include <generic/memory/PagesAllocator.hpp>
 
 #include <liballoc_1_1.h>
-
-#include <optional>
-
-#include <assert.h>
 
 namespace core::memory
 {
@@ -37,108 +28,36 @@ namespace core::memory
    * before our real allocator is initialized, but that should not happen in
    * the case of LinkedListPagesAllocator with low memory overhead.
    */
-  extern "C" char kernel_physical_start[];
-  extern "C" char kernel_physical_end[];
-  extern "C" char kernel_virtual_start[];
-  extern "C" char kernel_virtual_end[];
+  static auto& bootPagesAllocator() { static constinit BootPagesAllocator bootPagesAllocator; return bootPagesAllocator; }
+  static auto& pagesAllocator() { static PagesAllocator pagesAllocator; return pagesAllocator; }
 
-  bool initialized = false;
+  std::optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator().allocPhysicalPages(count); }
+  void freePhysicalPages(Pages pages) { pagesAllocator().freePhysicalPages(pages); }
 
-  class BootPagesAllocator
-  {
-  public:
-    constexpr BootPagesAllocator() = default;
+  std::optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
+  void freeVirtualPages(Pages pages) { pagesAllocator().freeVirtualPages(pages); }
 
-    std::optional<Pages> allocMappedPages(size_t count)
+  std::optional<Pages> allocMappedPages(size_t count) 
+  { 
+    enum class State { UNINITIALIZED, INITIALIZING, INITIALIZED };
+    static constinit State state = State::UNINITIALIZED;
+
+    switch(state)
     {
-      assert(!m_used && "Early Heap already used but the memory system is not yet initialized");
-      assert(count == 16 && "Early heap size mismatch");
-
-      return Pages::from(reinterpret_cast<uintptr_t>(m_earlyHeap), sizeof m_earlyHeap);
+    case State::UNINITIALIZED:
+      state = State::INITIALIZING;
+      pagesAllocator();
+      state = State::INITIALIZED;
+      return pagesAllocator().allocMappedPages(count);
+    case State::INITIALIZING:
+      return bootPagesAllocator().allocMappedPages(count);
+    case State::INITIALIZED:
+      return pagesAllocator().allocMappedPages(count);
     }
+    __builtin_unreachable();
+  }
 
-
-  private:
-    bool m_used = false;
-    alignas(PAGE_SIZE) char m_earlyHeap[PAGE_SIZE * 16] = {};
-  };
-
-  class PagesAllocator
-  {
-  public:
-    PagesAllocator()
-    {
-      for(size_t i=0; i<bootInformation->memoryMapEntriesCount; ++i)
-      {
-        const auto& memoryMapEntry = bootInformation->memoryMapEntries[i];
-        if(memoryMapEntry.type == MemoryMapEntry::Type::AVAILABLE)
-          m_physicalPagesAllocator.markAsAvailable(Pages::fromConservative(memoryMapEntry.addr, memoryMapEntry.len));
-      }
-
-      for(size_t i=0; i<bootInformation->moduleEntriesCount; ++i)
-      {
-        const auto& moduleEntry = bootInformation->moduleEntries[i];
-        m_physicalPagesAllocator.markAsUsed(Pages::fromAggressive(moduleEntry.addr, moduleEntry.len));
-      }
-
-      for(size_t i=0; i<bootInformation->memoryRegionsCount; ++i)
-      {
-        const auto& memoryRegions = bootInformation->memoryRegions[i];
-        m_physicalPagesAllocator.markAsUsed(Pages::fromAggressive(memoryRegions.addr, memoryRegions.len));
-      }
-
-      uintptr_t kernel_heap_begin = 0xD0000000;
-      uintptr_t kernel_heap_end   = 0xE0000000;
-      m_virtualPagesAllocator.markAsAvailable(Pages::from(kernel_heap_begin, kernel_heap_end-kernel_heap_begin));
-
-      for(const auto& pages : m_physicalPagesAllocator.list())
-        io::printf("Physical memory from 0x%lx to 0x%lx with length 0x%lx\n", pages.address(), pages.address()+pages.length(), pages.length());
-
-      initialized = true;
-    }
-
-  public:
-    std::optional<Pages> allocPhysicalPages(size_t count) { return m_physicalPagesAllocator.allocate(count); }
-    void freePhysicalPages(Pages pages) { m_physicalPagesAllocator.deallocate(pages); }
-
-    std::optional<Pages> allocVirtualPages(size_t count) { return m_virtualPagesAllocator.allocate(count); }
-    void freeVirtualPages(Pages pages) { m_virtualPagesAllocator.deallocate(pages); }
-
-    std::optional<Pages> allocMappedPages(size_t count)
-    {
-      auto virtualPages = allocVirtualPages(count);
-      if(!virtualPages)
-        return std::nullopt;
-
-      MemoryMapping::current->map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_WRITE);
-      return virtualPages;
-    }
-
-    void freeMappedPages(Pages pages)
-    {
-      MemoryMapping::current->unmap(pages);
-      freeVirtualPages(pages);
-    }
-
-  private:
-
-    /* TODO: Use multiple physical pages allocator for DMA and non-DMA memory and
-     *       so on */
-    LinkedListPagesAllocator m_physicalPagesAllocator;
-    LinkedListPagesAllocator m_virtualPagesAllocator;
-  };
-
-  constinit BootPagesAllocator bootPagesAllocator;
-  INIT_EARLY PagesAllocator pagesAllocator;
-
-  std::optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator.allocPhysicalPages(count); }
-  void freePhysicalPages(Pages pages) { pagesAllocator.freePhysicalPages(pages); }
-
-  std::optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator.allocVirtualPages(count); }
-  void freeVirtualPages(Pages pages) { pagesAllocator.freeVirtualPages(pages); }
-
-  std::optional<Pages> allocMappedPages(size_t count) { return initialized ? pagesAllocator.allocMappedPages(count) : bootPagesAllocator.allocMappedPages(count); }
-  void freeMappedPages(Pages pages) { pagesAllocator.freeMappedPages(pages); }
+  void freeMappedPages(Pages pages) { pagesAllocator().freeMappedPages(pages); }
 
   void* malloc(size_t size) { return ::kmalloc(size); }
   void* realloc(void* ptr, size_t size) { return ::krealloc(ptr, size); }

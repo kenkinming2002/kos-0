@@ -1,5 +1,6 @@
 #include "common/i686/memory/Paging.hpp"
 #include "generic/tasks/Elf.hpp"
+#include "i686/interrupts/Interrupts.hpp"
 #include "i686/memory/MemoryMapping.hpp"
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/memory/Memory.hpp>
@@ -7,8 +8,7 @@
 #include <generic/Panic.hpp>
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
-
-#include <generic/Modules.hpp>
+#include <generic/BootInformation.hpp>
 
 #include <assert.h>
 #include <optional>
@@ -17,7 +17,7 @@ void testMemory()
 {
   core::io::print("Testing memory allocation and deallocation...");
 
-  for(size_t j=0; j<512;++j)
+  for(size_t j=0; j<128;++j)
   {
     core::io::printf("Iteration %lu\n", j);
     char* memorys[200] = {};
@@ -65,31 +65,32 @@ void kmain()
   // Memory System
   testMemory();
 
-  if(core::modulesCount != 0)
+  if(bootInformation->moduleEntriesCount != 0)
   {
     core::syscalls::installHandler(1, [](int, int, int, int){ core::io::print("Hello from kernel\n"); return 0;});
+    core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { core::io::print("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
-    for(size_t i=1; i<core::modulesCount; ++i)
+    for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
     {
       // TODO: Parse elf
-      const auto& module = core::modules[i];
+      const auto& module = bootInformation->moduleEntries[i];
 
-      auto physicalPages = core::memory::Pages::fromAggressive(module.phyaddr, module.length);
+      auto physicalPages = core::memory::Pages::fromAggressive(module.addr, module.len);
       auto virtualPages  = core::memory::allocVirtualPages(physicalPages.count);
       if(!virtualPages)
         continue;
 
-      core::memory::MemoryMapping::current->map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
+      core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
       auto task = core::tasks::loadElf(reinterpret_cast<char*>(virtualPages->address()), virtualPages->length());
       if(!task)
         core::panic("Failed to load elf\n");
 
-      core::tasks::scheduler.addTask(std::move(*task));
+      core::tasks::Scheduler::instance().addTask(std::move(*task));
 
-      core::memory::MemoryMapping::current->unmap(*virtualPages);
+      core::memory::MemoryMapping::current().unmap(*virtualPages);
       core::memory::freeVirtualPages(*virtualPages);
     }
     core::io::print("Done\n");
-    core::tasks::scheduler.startFirstUserspaceTask();
+    core::tasks::Scheduler::instance().startFirstUserspaceTask();
   }
 }

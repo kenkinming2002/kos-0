@@ -1,6 +1,5 @@
 #include <generic/devices/Framebuffer.hpp>
 
-#include <generic/Init.hpp>
 #include <generic/BootInformation.hpp>
 
 #include <x86/assembly/io.hpp>
@@ -25,19 +24,6 @@ namespace core::devices
     m_cells = reinterpret_cast<Cell*>(bootInformation->framebuffer);
     m_width = 80;
     m_height = 25;
-#if 0
-    auto& multiboot_tag_framebuffer = bootInformation->frameBuffer;
-
-    if(multiboot_tag_framebuffer.common.framebuffer_type!=2) 
-      return;
-    // The highest 32 bit is not all zero. The address is not an 32-bit address, and require PAE, which we do not support
-    if(multiboot_tag_framebuffer.common.framebuffer_addr >> 32) 
-      return;
-
-    m_cells = reinterpret_cast<Cell*>(static_cast<uintptr_t>(multiboot_tag_framebuffer.common.framebuffer_addr));
-    m_width = multiboot_tag_framebuffer.common.framebuffer_width;
-    m_height = multiboot_tag_framebuffer.common.framebuffer_height;
-#endif
   }
 
   void Framebuffer::put(char c) const
@@ -102,6 +88,4 @@ namespace core::devices
     updateCursor();
     return str.length();
   }
-
-  INIT_NOLOG Framebuffer framebuffer;
 }

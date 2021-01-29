@@ -77,13 +77,13 @@ namespace core::tasks
     if(!task)
       return std::nullopt;
 
-    auto* oldMemoryMapping = memory::MemoryMapping::current;
+    auto& oldMemoryMapping = memory::MemoryMapping::current();
     task->memoryMapping().makeCurrent();
     for(size_t i=0; i<count; ++i)
       if(loadProgramHeader(data, length, *task, programHeaders[i]) != 0)
         return std::nullopt;
     task->asUserspaceTask(header->entry);
-    oldMemoryMapping->makeCurrent();
+    oldMemoryMapping.makeCurrent();
 
     return task;
   }

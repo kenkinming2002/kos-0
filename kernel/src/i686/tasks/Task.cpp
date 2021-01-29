@@ -1,6 +1,6 @@
+#include "i686/tasks/Switch.hpp"
 #include <i686/tasks/Task.hpp>
 
-#include <generic/Init.hpp>
 #include <generic/Panic.hpp>
 #include <generic/memory/Memory.hpp>
 #include <i686/interrupts/Interrupts.hpp>
@@ -75,6 +75,31 @@ namespace core::tasks
     interrupts::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     syscalls::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     m_memoryMapping.makeCurrent();
+  }
+
+  void Task::switchTo()
+  {
+    if(current != nullptr)
+    {
+      auto& previousTask = *Task::current;
+      makeCurrent(); 
+      core_tasks_switch_esp(&previousTask.m_kernelStack.esp, &m_kernelStack.esp);
+    }
+    else
+    {
+      /* 
+       * There is no previous task, so we use a dummy esp
+       *
+       * Note: We cannot call startUserspaceTask ourself, because we have to
+       *       switch the stack first. Otherwise, all hell may break loose if we
+       *       receive a interrupt after we enable interrupt but before using the
+       *       new stack.
+       */
+      uintptr_t dummyEsp;
+      makeCurrent();
+      core_tasks_switch_esp(&dummyEsp, &m_kernelStack.esp);
+      __builtin_unreachable();
+    }
   }
 
   void Task::asUserspaceTask(uintptr_t entry)

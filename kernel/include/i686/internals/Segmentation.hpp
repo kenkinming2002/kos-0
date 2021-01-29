@@ -6,4 +6,5 @@
 namespace core::internals
 {
   extern TSS tss;
+  void initializeSegmentation();
 }

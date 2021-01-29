@@ -1,25 +1,42 @@
 #include <i686/memory/MemoryMapping.hpp>
 
-#include <generic/Init.hpp>
 #include <generic/Panic.hpp>
 #include <generic/BootInformation.hpp>
-#include <common/generic/io/Print.hpp>
 
+#include <common/generic/io/Print.hpp>
 #include <common/i686/memory/Paging.hpp>
 
-#include <assert.h>
 #include <algorithm>
+
+#include <assert.h>
 
 namespace core::memory
 {
-  INIT_NOLOG MemoryMapping initialMemoryMapping = MemoryMapping(bootInformation->pageDirectory);
-  constinit MemoryMapping* MemoryMapping::current = &initialMemoryMapping;
-  constinit common::memory::PageDirectoryEntry kernelPageDirectoryEntries[256];
+  using namespace common::memory;
 
-
-  INIT_FUNCTION_NOLOG void initMemoryMapping()
+  constinit static MemoryMapping* currentMemoryMapping;
+  static auto& kernelPageDirectoryEntries()
   {
-    std::copy(&(*bootInformation->pageDirectory)[768], &(*bootInformation->pageDirectory)[1024], std::begin(kernelPageDirectoryEntries));
+    static PageDirectoryEntry kernelPageDirectoryEntries[256];
+    static struct Initializer
+    {
+      Initializer() 
+      {
+        const auto& bootPageDirectory = *bootInformation->pageDirectory;
+        std::copy(&bootPageDirectory[768], &bootPageDirectory[1024], std::begin(kernelPageDirectoryEntries));
+      }
+    } initializer;
+
+    return kernelPageDirectoryEntries;
+  }
+
+  MemoryMapping& MemoryMapping::current()
+  {
+    static MemoryMapping initialMemoryMapping = MemoryMapping(bootInformation->pageDirectory);
+    if(!currentMemoryMapping)
+      currentMemoryMapping = &initialMemoryMapping;
+
+    return *currentMemoryMapping;
   }
 
   std::optional<MemoryMapping> MemoryMapping::allocate()
@@ -44,15 +61,6 @@ namespace core::memory
     }
   }
 
-  MemoryMapping::MemoryMapping(MemoryMapping&& other) 
-    : m_pageDirectory(std::exchange(other.m_pageDirectory, nullptr)) {}
-
-  MemoryMapping& MemoryMapping::operator=(MemoryMapping&& other) 
-  {
-    std::swap(m_pageDirectory, other.m_pageDirectory);
-    return *this;
-  }
-
   uintptr_t MemoryMapping::doFractalMapping(uintptr_t phyaddr, size_t length)
   {
     using namespace common::memory;
@@ -62,7 +70,7 @@ namespace core::memory
     const uintptr_t phyaddrBase  = phyaddr & ~(LARGE_PAGE_SIZE-1);
     const uintptr_t virtaddrBase = LARGE_PAGE_SIZE * pageDirectoryIndex;
 
-    auto& pageDirectory = *current->m_pageDirectory;
+    auto& pageDirectory = *current().m_pageDirectory;
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
     if(!pageDirectoryEntry.present() || pageDirectoryEntry.address() != phyaddrBase)
     {
@@ -77,7 +85,7 @@ namespace core::memory
   void MemoryMapping::synchronize()
   {
     auto& pageDirectory = *m_pageDirectory;
-    std::copy(std::begin(kernelPageDirectoryEntries), std::end(kernelPageDirectoryEntries), &pageDirectory[768]);
+    std::copy(std::begin(kernelPageDirectoryEntries()), std::end(kernelPageDirectoryEntries()), &pageDirectory[768]);
   }
 
   void MemoryMapping::makeCurrent()
@@ -88,7 +96,7 @@ namespace core::memory
     // pretty high. Premature optimization is the root of all evil they say.
     synchronize();
     asm volatile ("mov cr3, %[pageDirectoryPhysicalAddress]" : : [pageDirectoryPhysicalAddress]"r"(virtualToPhysical(reinterpret_cast<uintptr_t>(m_pageDirectory))) : "memory");
-    current = this;
+    currentMemoryMapping = this;
   }
 
   void MemoryMapping::map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, std::optional<Pages> physicalPages)
@@ -156,7 +164,7 @@ namespace core::memory
     auto& pageDirectory       = *m_pageDirectory;
     auto& pageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
     if(pageDirectoryIndex>=768)
-      pageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
+      pageDirectoryEntry = kernelPageDirectoryEntries()[pageDirectoryIndex-768];
 
     if(!pageDirectoryEntry.present())
     {
@@ -170,7 +178,7 @@ namespace core::memory
       pageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       if(pageDirectoryIndex>=768)
       {
-        auto& kernelPageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
+        auto& kernelPageDirectoryEntry = kernelPageDirectoryEntries()[pageDirectoryIndex-768];
         kernelPageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       }
 

@@ -1,6 +1,5 @@
 #include <x86/interrupts/8259.hpp>
 
-#include <generic/Init.hpp>
 #include <common/generic/io/Print.hpp>
 
 #include <x86/assembly/io.hpp>
@@ -36,7 +35,7 @@ namespace core::interrupts
     ICW4_SFNM	      = 1 << 4,	// Special Fully Nested Mode
   };
 
-  INIT_FUNCTION_EARLY void init8259()
+  void initialize8259()
   {
     io::print("Configuring 8259 PIC...");
 

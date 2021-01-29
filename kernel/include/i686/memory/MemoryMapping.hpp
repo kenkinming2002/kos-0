@@ -24,18 +24,19 @@ namespace core::memory
   class MemoryMapping
   {
   public:
-    static MemoryMapping* current;
+    static MemoryMapping& current();
 
   public:
     static std::optional<MemoryMapping> allocate();
 
   public:
+    constexpr MemoryMapping() : m_pageDirectory(nullptr) {}
     constexpr MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
     ~MemoryMapping();
 
   public:
-    MemoryMapping(MemoryMapping&& other);
-    MemoryMapping& operator=(MemoryMapping&& other);
+    constexpr MemoryMapping(MemoryMapping&& other) : m_pageDirectory(std::exchange(other.m_pageDirectory, nullptr)) {}
+    constexpr MemoryMapping& operator=(MemoryMapping&& other) { std::swap(m_pageDirectory, other.m_pageDirectory); return *this; }
 
   public:
     static uintptr_t doFractalMapping(uintptr_t phyaddr, size_t length);
@@ -45,7 +46,6 @@ namespace core::memory
     void makeCurrent();
 
   public:
-    // This is the API we currently have
     void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, std::optional<Pages> physicalPages = std::nullopt);
     void unmap(Pages virtualPages);
 

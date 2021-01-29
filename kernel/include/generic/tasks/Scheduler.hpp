@@ -8,6 +8,13 @@ namespace core::tasks
   class Scheduler
   {
   public:
+    static Scheduler& instance()
+    {
+      static Scheduler scheduler;
+      return scheduler;
+    }
+
+  public:
     Scheduler();
 
   public:
@@ -19,11 +26,8 @@ namespace core::tasks
 
   public:
     void schedule();
-    void switchTask(Task& nextTask) const;
 
   private:
     utils::containers::List<Task> m_tasks;
   };
-
-  extern Scheduler scheduler;
 }

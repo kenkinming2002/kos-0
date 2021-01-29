@@ -1,20 +1,10 @@
 ENTRY(loader)
 
 SECTIONS {
-  /*******************
-   * Normal sections *
-   *******************/
-  . = 0xC0000000;
-
-  kernel_virtual_start  = .;
-  kernel_physical_start = . - 0xC0000000;
-
   /*********************
    * Read-Only Section *
    *********************/
-
-  kernel_read_only_section_begin = .;
-
+  . = 0xC0000000;
   .text : AT(ADDR(.text)-0xC0000000)
   {
     *(.text .text.*)
@@ -41,14 +31,10 @@ SECTIONS {
     KEEP(*crtn*.o(.fini))
   }
 
-  . = ALIGN(0x1000);
-  kernel_read_only_section_end = .;
-
   /*********************
    * Read-Write Section *
    *********************/
-  kernel_read_write_section_begin = .;
-
+  . = ALIGN(0x1000);
   .data : AT(ADDR(.data)-0xC0000000)
   {
     *(.data .data.*)
@@ -81,9 +67,4 @@ SECTIONS {
   }
 
   . = ALIGN(0x1000);
-  kernel_read_write_section_end = .;
-
-  kernel_virtual_end = .;
-  kernel_physical_end = . - 0xC0000000;
-
 }

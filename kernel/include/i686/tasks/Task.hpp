@@ -44,6 +44,7 @@ namespace core::tasks
 
   public:
     void makeCurrent();
+    void switchTo();
 
   public:
     // Set up the our stack to match what switchTask expect to found and invoke

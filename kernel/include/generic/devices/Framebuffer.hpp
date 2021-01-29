@@ -44,6 +44,13 @@ namespace core::devices
     };
 
   public:
+    static Framebuffer& instance()
+    {
+      static Framebuffer instance;
+      return instance;
+    }
+
+  public:
     Framebuffer();
 
   private:
@@ -67,6 +74,4 @@ namespace core::devices
     Cell* m_cells;
     size_t  m_width, m_height;
   };
-
-  extern Framebuffer framebuffer;
 }

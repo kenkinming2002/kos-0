@@ -1,6 +1,4 @@
 core_src = files(
-  'src/generic/Modules.cpp',
-
   'src/generic/kmain.cpp',
   'src/generic/BootInformation.cpp',
 
@@ -23,6 +21,7 @@ core_src = files(
   'src/i686/interrupts/IDT.cpp',
   'src/i686/interrupts/Interrupts.cpp',
 
+  'src/i686/internals/Internals.cpp',
   'src/i686/internals/GDT.cpp',
   'src/i686/internals/Segmentation.cpp',
 

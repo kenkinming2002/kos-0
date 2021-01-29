@@ -5,6 +5,7 @@
 
 namespace core::syscalls
 {
+  void initialize();
   void setKernelStack(uintptr_t ptr, size_t size);
 
   typedef int(*Handler)(int syscallNumber, int a1, int a2, int a3);

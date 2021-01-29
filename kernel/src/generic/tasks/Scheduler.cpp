@@ -1,6 +1,5 @@
 #include <generic/tasks/Scheduler.hpp>
 
-#include <generic/Init.hpp>
 #include <common/generic/io/Print.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/interrupts/Interrupts.hpp>
@@ -12,8 +11,6 @@
 
 namespace core::tasks
 {
-  INIT_NORMAL Scheduler scheduler;
-
   /* 
    * Yield syscall 
    *
@@ -24,7 +21,7 @@ namespace core::tasks
   static int syscallYield(int, int, int, int)
   { 
     asm volatile ("cli" : : : "memory");
-    scheduler.schedule(); 
+    Scheduler::instance().schedule(); 
     asm volatile ("sti" : : : "memory");
     return 0;
   }
@@ -36,7 +33,7 @@ namespace core::tasks
   static void timerHandler(uint8_t, uint32_t, uintptr_t)
   { 
     interrupts::acknowledge(0); 
-    scheduler.schedule(); 
+    Scheduler::instance().schedule(); 
   }
 
   Scheduler::Scheduler()
@@ -48,19 +45,10 @@ namespace core::tasks
 
   [[noreturn]] void Scheduler::startFirstUserspaceTask()
   {
-    /* 
-     * There is no previous task, so we use a dummy esp
-     *
-     * Note: We cannot call startUserspaceTask ourself, because we have to
-     *       switch the stack first. Otherwise, all hell may break loose if we
-     *       receive a interrupt after we enable interrupt but before using the
-     *       new stack.
-     */
-    uintptr_t dummyEsp;
-    m_tasks.begin()->makeCurrent(); 
-
     io::print("We are starting our first task\n");
-    core_tasks_switch_esp(&dummyEsp, &m_tasks.begin()->m_kernelStack.esp);
+
+    syscalls::initialize();
+    m_tasks.begin()->switchTo();
     __builtin_unreachable();
   }
 
@@ -90,18 +78,10 @@ namespace core::tasks
     for(auto it = m_tasks.begin(); it != std::prev(m_tasks.end()); ++it)
       if(Task::current == &(*it))
       {
-        switchTask(*std::next(it));
+        std::next(it)->switchTo();
         return;
       }
 
-    switchTask(*m_tasks.begin());
-  }
-
-  void Scheduler::switchTask(Task& nextTask) const
-  {
-    assert(Task::current != nullptr);
-    auto& previousTask = *Task::current;
-    nextTask.makeCurrent(); 
-    core_tasks_switch_esp(&previousTask.m_kernelStack.esp, &nextTask.m_kernelStack.esp);
+    m_tasks.begin()->switchTo();
   }
 }

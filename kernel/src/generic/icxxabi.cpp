@@ -107,6 +107,23 @@ void __cxa_finalize(void *f)
 		};
 	};
 };
+
+namespace __cxxabiv1 
+{
+	extern "C" int __cxa_guard_acquire(int64_t* g) 
+	{
+		return !*(char *)(g);
+	}
+ 
+	extern "C" void __cxa_guard_release(int64_t* g)
+	{
+		*(char *)g = 1;
+	}
+ 
+	extern "C" void __cxa_guard_abort(int64_t*)
+	{
+	}
+}
  
 #ifdef __cplusplus
 };
