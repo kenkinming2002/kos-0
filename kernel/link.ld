@@ -5,17 +5,17 @@ SECTIONS {
    * Read-Only Section *
    *********************/
   . = 0xC0000000;
-  .text : AT(ADDR(.text)-0xC0000000)
+  .text :
   {
     *(.text .text.*)
   }
 
-  .rodata : AT(ADDR(.rodata)-0xC0000000)
+  .rodata :
   {
     *(.rodata .rodata.*)
   }
 
-  .init : AT(ADDR(.init)-0xC0000000)
+  .init :
   {
     KEEP(*crti*.o(.init))
     KEEP(*crtbegin*.o(.init))
@@ -23,7 +23,7 @@ SECTIONS {
     KEEP(*crtn*.o(.init))
   }
 
-  .fini : AT(ADDR(.fini)-0xC0000000)
+  .fini :
   {
     KEEP(*crti*.o(.fini))
     KEEP(*crtbegin*.o(.fini))
@@ -35,18 +35,7 @@ SECTIONS {
    * Read-Write Section *
    *********************/
   . = ALIGN(0x1000);
-  .data : AT(ADDR(.data)-0xC0000000)
-  {
-    *(.data .data.*)
-  }
-
-  .bss (NOLOAD) : AT(ADDR(.bss)-0xC0000000)
-  {
-    *(COMMON)
-    *(.bss .bss.*)
-  }
-
-  .ctors : AT(ADDR(.ctors)-0xC0000000)
+  .ctors :
   {
     KEEP(*crtbegin*.o(.ctors))
 
@@ -56,7 +45,7 @@ SECTIONS {
     KEEP(*(.ctors))
   }
 
-  .dtors : AT(ADDR(.dtors)-0xC0000000)
+  .dtors :
   {
     KEEP(*crtbegin*.o(.dtors))
 
@@ -64,6 +53,16 @@ SECTIONS {
     KEEP(*(SORT(.dtors.*)))
 
     KEEP(*(.dtors))
+  }
+
+  .data :
+  {
+    *(.data .data.*)
+  }
+
+  .bss (NOLOAD) :
+  {
+    *(.bss .bss.* COMMON)
   }
 
   . = ALIGN(0x1000);
