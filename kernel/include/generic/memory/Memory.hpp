@@ -7,6 +7,8 @@
 
 namespace core::memory
 {
+  void initialize();
+
   std::optional<Pages> allocPhysicalPages(size_t count);
   void freePhysicalPages(Pages pages);
 

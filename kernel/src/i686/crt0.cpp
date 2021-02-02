@@ -16,6 +16,7 @@ extern "C" void _start(BootInformation* bootInformation)
 
   core::internals::initialize();
   core::interrupts::initialize();
+  core::memory::initialize();
 
   _init();
   kmain();

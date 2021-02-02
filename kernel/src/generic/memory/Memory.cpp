@@ -31,6 +31,13 @@ namespace core::memory
   static auto& bootPagesAllocator() { static constinit BootPagesAllocator bootPagesAllocator; return bootPagesAllocator; }
   static auto& pagesAllocator() { static PagesAllocator pagesAllocator; return pagesAllocator; }
 
+  static bool initialized = false;
+  void initialize()
+  {
+    pagesAllocator();
+    initialized = true;
+  }
+
   std::optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator().allocPhysicalPages(count); }
   void freePhysicalPages(Pages pages) { pagesAllocator().freePhysicalPages(pages); }
 
@@ -39,22 +46,10 @@ namespace core::memory
 
   std::optional<Pages> allocMappedPages(size_t count) 
   { 
-    enum class State { UNINITIALIZED, INITIALIZING, INITIALIZED };
-    static constinit State state = State::UNINITIALIZED;
-
-    switch(state)
-    {
-    case State::UNINITIALIZED:
-      state = State::INITIALIZING;
-      pagesAllocator();
-      state = State::INITIALIZED;
+    if(initialized)
       return pagesAllocator().allocMappedPages(count);
-    case State::INITIALIZING:
+    else
       return bootPagesAllocator().allocMappedPages(count);
-    case State::INITIALIZED:
-      return pagesAllocator().allocMappedPages(count);
-    }
-    __builtin_unreachable();
   }
 
   void freeMappedPages(Pages pages) { pagesAllocator().freeMappedPages(pages); }
