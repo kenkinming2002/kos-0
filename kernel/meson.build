@@ -18,7 +18,6 @@ core_src = files(
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/8259.cpp',
-  'src/i686/interrupts/IDT.cpp',
   'src/i686/interrupts/Interrupts.cpp',
 
   'src/i686/internals/Internals.cpp',

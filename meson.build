@@ -1,7 +1,17 @@
 project('LittleBook', 'cpp', default_options : ['cpp_std=c++2a'])
 
-add_project_arguments('-masm=intel', language : 'cpp')
+# We cannot use fancy registers such as floating point and sse registers
+add_project_arguments('-mgeneral-regs-only', language: ['c', 'cpp'])
 
+# Freestanding without exceptions
+add_project_arguments('-fno-exceptions', language: ['c', 'cpp'])
+add_project_arguments('-ffreestanding',  language: ['c', 'cpp'])
+add_project_link_arguments('-nostdlib',  language: ['c', 'cpp'])
+
+# Intel inline assembly syntax
+add_project_arguments('-masm=intel', language : ['c', 'cpp'])
+
+# Strip unused functions
 add_project_arguments(['-fdata-sections', '-ffunction-sections'], language : ['c', 'cpp'])
 add_project_link_arguments(['-Wl,--gc-sections'], language : ['c', 'cpp'])
 add_project_link_arguments(['-Wl,--sort-section,alignment'], language : ['c', 'cpp'])
