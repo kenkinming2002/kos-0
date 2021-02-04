@@ -7,6 +7,6 @@
 
 namespace core::tasks
 {
-  std::optional<Task> loadElf(char* data, size_t length);
+  int loadElf(Task& task, char* data, size_t length);
 }
 

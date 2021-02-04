@@ -59,6 +59,32 @@ namespace core::tasks
     return 0;
   }
 
+  int loadElf(Task& task, char* data, size_t length)
+  {
+    if(length<sizeof(Elf32Header))
+      return -1;
+
+    const auto* header = getElf32Header(data, length);
+    if(!header)
+      return -1;
+
+    size_t count;
+    const auto* programHeaders = getElf32ProgramHeaders(data, length, header, count);
+    if(!programHeaders)
+      return -1;
+
+    auto& oldMemoryMapping = memory::MemoryMapping::current();
+    task.memoryMapping().makeCurrent();
+    for(size_t i=0; i<count; ++i)
+      if(loadProgramHeader(data, length, task, programHeaders[i]) != 0)
+        return -1;
+
+    task.asUserspaceTask(header->entry);
+    oldMemoryMapping.makeCurrent();
+    
+    return 0;
+  }
+
   std::optional<Task> loadElf(char* data, size_t length)
   {
     if(length<sizeof(Elf32Header))

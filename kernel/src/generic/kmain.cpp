@@ -81,9 +81,11 @@ void kmain()
         continue;
 
       core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
-      auto task = core::tasks::loadElf(reinterpret_cast<char*>(virtualPages->address()), virtualPages->length());
+      auto task = core::tasks::Task::allocate();
       if(!task)
-        core::panic("Failed to load elf\n");
+        core::panic("Failed to create task\n");
+      if(core::tasks::loadElf(*task, reinterpret_cast<char*>(virtualPages->address()), virtualPages->length()) != 0)
+        core::panic("Failed to load ELF\n");
 
       core::tasks::Scheduler::instance().addTask(std::move(*task));
 
