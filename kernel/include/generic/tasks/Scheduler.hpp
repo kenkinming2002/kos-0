@@ -21,6 +21,7 @@ namespace core::tasks
     [[noreturn]] void startFirstUserspaceTask();
 
   public:
+    Task* addTask();
     Task& addTask(Task task);
     void removeTask(Task& task);
 

@@ -52,6 +52,15 @@ namespace core::tasks
     __builtin_unreachable();
   }
 
+  Task* Scheduler::addTask()
+  {
+    auto task = Task::allocate();
+    if(!task)
+      return nullptr;
+
+    return &addTask(std::move(*task));
+  }
+
   Task& Scheduler::addTask(Task task)
   {
     auto it = m_tasks.insert(m_tasks.end(), std::move(task));
