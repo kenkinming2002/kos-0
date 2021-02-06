@@ -8,11 +8,8 @@ namespace core::tasks
   class Scheduler
   {
   public:
-    static Scheduler& instance()
-    {
-      static Scheduler scheduler;
-      return scheduler;
-    }
+    static void initialize();
+    static Scheduler& instance();
 
   public:
     Scheduler();

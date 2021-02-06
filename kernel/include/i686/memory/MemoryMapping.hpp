@@ -24,6 +24,9 @@ namespace core::memory
   class MemoryMapping
   {
   public:
+    static void initialize();
+
+  public:
     static MemoryMapping& current();
 
   public:

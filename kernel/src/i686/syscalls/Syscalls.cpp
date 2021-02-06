@@ -21,7 +21,7 @@ namespace core::syscalls
 
   void setKernelStack(uintptr_t ptr, size_t size) { assembly::wrmsr(IA32_SYSENTER_ESP, ptr+size); }
 
-  Handler handlers[MAX_SYSCALL_COUNT]; // TODO: Record additional information for debugging
+  constinit static Handler handlers[MAX_SYSCALL_COUNT]; // TODO: Record additional information for debugging
 
   void installHandler(int syscallNumber, Handler handler) 
   { 

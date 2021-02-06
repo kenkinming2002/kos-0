@@ -1,3 +1,4 @@
+#include "generic/Global.hpp"
 #include <generic/memory/Memory.hpp>
 
 #include <generic/memory/BootPagesAllocator.hpp>
@@ -28,13 +29,13 @@ namespace core::memory
    * before our real allocator is initialized, but that should not happen in
    * the case of LinkedListPagesAllocator with low memory overhead.
    */
-  static auto& bootPagesAllocator() { static constinit BootPagesAllocator bootPagesAllocator; return bootPagesAllocator; }
-  static auto& pagesAllocator() { static PagesAllocator pagesAllocator; return pagesAllocator; }
+  constinit static BootPagesAllocator bootPagesAllocator;
+  constinit static utils::Global<PagesAllocator> pagesAllocator;
 
   static bool initialized = false;
   void initialize()
   {
-    pagesAllocator();
+    pagesAllocator.construct();
     initialized = true;
   }
 
@@ -49,7 +50,7 @@ namespace core::memory
     if(initialized)
       return pagesAllocator().allocMappedPages(count);
     else
-      return bootPagesAllocator().allocMappedPages(count);
+      return bootPagesAllocator.allocMappedPages(count);
   }
 
   void freeMappedPages(Pages pages) { pagesAllocator().freeMappedPages(pages); }

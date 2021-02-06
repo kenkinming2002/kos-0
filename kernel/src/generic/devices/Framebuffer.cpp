@@ -1,3 +1,4 @@
+#include "generic/Global.hpp"
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/BootInformation.hpp>
@@ -8,6 +9,18 @@
 
 namespace core::devices
 {
+  constinit static utils::Global<Framebuffer> framebuffer;
+
+  void Framebuffer::initialize()
+  {
+    framebuffer.construct();
+  }
+
+  Framebuffer& Framebuffer::instance()
+  {
+    return framebuffer();
+  }
+
   namespace
   {
     /* The I/O ports */

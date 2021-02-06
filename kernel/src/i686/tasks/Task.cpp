@@ -25,7 +25,12 @@ namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
-  constinit Task* Task::current = nullptr; // FIXME: Implement for multiprocessor
+  constinit Task* currentTask = nullptr; // FIXME: Implement for multiprocessor
+
+  Task* Task::current()
+  {
+    return currentTask;
+  }
 
   std::optional<Task> Task::allocate()
   {
@@ -71,7 +76,7 @@ namespace core::tasks
 
   void Task::makeCurrent()
   {
-    current = this;
+    currentTask = this;
     interrupts::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     syscalls::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     m_memoryMapping.makeCurrent();
@@ -79,9 +84,9 @@ namespace core::tasks
 
   void Task::switchTo()
   {
-    if(current != nullptr)
+    if(current() != nullptr)
     {
-      auto& previousTask = *Task::current;
+      auto& previousTask = *current();
       makeCurrent(); 
       core_tasks_switch_esp(&previousTask.m_kernelStack.esp, &m_kernelStack.esp);
     }

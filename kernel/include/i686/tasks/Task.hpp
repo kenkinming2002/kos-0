@@ -26,7 +26,7 @@ namespace core::tasks
     };
 
   public:
-    static Task* current; // FIXME: Implement for multiprocessor
+    static Task* current(); // FIXME: Implement for multiprocessor
 
   public:
     static std::optional<Task> allocate();

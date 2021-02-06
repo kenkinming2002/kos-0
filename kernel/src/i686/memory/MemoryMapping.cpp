@@ -1,6 +1,7 @@
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <generic/Panic.hpp>
+#include <generic/Global.hpp>
 #include <generic/BootInformation.hpp>
 
 #include <common/generic/io/Print.hpp>
@@ -14,28 +15,22 @@ namespace core::memory
 {
   using namespace common::memory;
 
-  constinit static MemoryMapping* currentMemoryMapping;
-  static auto& kernelPageDirectoryEntries()
-  {
-    static PageDirectoryEntry kernelPageDirectoryEntries[256];
-    static struct Initializer
-    {
-      Initializer() 
-      {
-        const auto& bootPageDirectory = *bootInformation->pageDirectory;
-        std::copy(&bootPageDirectory[768], &bootPageDirectory[1024], std::begin(kernelPageDirectoryEntries));
-      }
-    } initializer;
+  constinit static PageDirectoryEntry kernelPageDirectoryEntries[256];
 
-    return kernelPageDirectoryEntries;
+  constinit static utils::Global<MemoryMapping> initialMemoryMapping;
+  constinit static MemoryMapping* currentMemoryMapping;
+
+  void MemoryMapping::initialize()
+  {
+    const auto& bootPageDirectory = *bootInformation->pageDirectory;
+    std::copy(&bootPageDirectory[768], &bootPageDirectory[1024], std::begin(kernelPageDirectoryEntries));
+
+    initialMemoryMapping.construct(bootInformation->pageDirectory);
+    currentMemoryMapping = &initialMemoryMapping();
   }
 
   MemoryMapping& MemoryMapping::current()
   {
-    static MemoryMapping initialMemoryMapping = MemoryMapping(bootInformation->pageDirectory);
-    if(!currentMemoryMapping)
-      currentMemoryMapping = &initialMemoryMapping;
-
     return *currentMemoryMapping;
   }
 
@@ -85,7 +80,7 @@ namespace core::memory
   void MemoryMapping::synchronize()
   {
     auto& pageDirectory = *m_pageDirectory;
-    std::copy(std::begin(kernelPageDirectoryEntries()), std::end(kernelPageDirectoryEntries()), &pageDirectory[768]);
+    std::copy(std::begin(kernelPageDirectoryEntries), std::end(kernelPageDirectoryEntries), &pageDirectory[768]);
   }
 
   void MemoryMapping::makeCurrent()
@@ -164,7 +159,7 @@ namespace core::memory
     auto& pageDirectory       = *m_pageDirectory;
     auto& pageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
     if(pageDirectoryIndex>=768)
-      pageDirectoryEntry = kernelPageDirectoryEntries()[pageDirectoryIndex-768];
+      pageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
 
     if(!pageDirectoryEntry.present())
     {
@@ -178,7 +173,7 @@ namespace core::memory
       pageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       if(pageDirectoryIndex>=768)
       {
-        auto& kernelPageDirectoryEntry = kernelPageDirectoryEntries()[pageDirectoryIndex-768];
+        auto& kernelPageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
         kernelPageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       }
 

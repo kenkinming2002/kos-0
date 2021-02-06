@@ -1,5 +1,6 @@
 #pragma once
 
+#include "generic/Global.hpp"
 #include <string_view>
 
 #include <stddef.h>
@@ -9,6 +10,10 @@ namespace core::devices
 {
   class Framebuffer
   {
+  public:
+    static void initialize();
+    static Framebuffer& instance();
+
   public:
     enum class Color
     {
@@ -44,13 +49,6 @@ namespace core::devices
     };
 
   public:
-    static Framebuffer& instance()
-    {
-      static Framebuffer instance;
-      return instance;
-    }
-
-  public:
     Framebuffer();
 
   private:
@@ -74,4 +72,5 @@ namespace core::devices
     Cell* m_cells;
     size_t  m_width, m_height;
   };
+
 }

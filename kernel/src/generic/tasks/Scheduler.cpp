@@ -1,3 +1,4 @@
+#include "generic/Global.hpp"
 #include <generic/tasks/Scheduler.hpp>
 
 #include <common/generic/io/Print.hpp>
@@ -11,6 +12,17 @@
 
 namespace core::tasks
 {
+  static utils::Global<Scheduler> scheduler;
+  void Scheduler::initialize()
+  {
+    scheduler.construct();
+  }
+
+  Scheduler& Scheduler::instance()
+  {
+    return scheduler();
+  }
+
   /* 
    * Yield syscall 
    *
@@ -85,7 +97,7 @@ namespace core::tasks
     // We can actually convert pointer to iterator directly if we export 
     // a interface from the container to do so
     for(auto it = m_tasks.begin(); it != std::prev(m_tasks.end()); ++it)
-      if(Task::current == &(*it))
+      if(Task::current() == &(*it))
       {
         std::next(it)->switchTo();
         return;

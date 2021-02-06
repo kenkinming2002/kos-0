@@ -2,8 +2,6 @@ core_src = files(
   'src/generic/kmain.cpp',
   'src/generic/BootInformation.cpp',
 
-  'src/generic/icxxabi.cpp',
-
   'src/generic/stdlib/assert.cpp',
   'src/generic/stdlib/string.cpp',
   'src/generic/stdlib/new.cpp',
@@ -21,7 +19,6 @@ core_src = files(
   'src/i686/interrupts/Interrupts.cpp',
 
   'src/i686/internals/Internals.cpp',
-  'src/i686/internals/GDT.cpp',
   'src/i686/internals/Segmentation.cpp',
 
   'src/i686/syscalls/Syscalls.cpp',
@@ -38,8 +35,6 @@ core_src = files(
 
 core_asm_obj = asm_gen.process(
   'src/i686/Loader.s',
-  'src/i686/crti.s',
-  'src/i686/crtn.s',
   'src/i686/interrupts/ISR.s',
   'src/i686/syscalls/Entry.s',
   'src/i686/tasks/Switch.s',
@@ -50,13 +45,8 @@ core_asm_obj = asm_gen.process(
 liballoc_proj = subproject('liballoc')
 liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
 
-compiler = meson.get_compiler('cpp')
-crtbegin_obj = run_command(compiler, '-print-file-name=crtbegin.o').stdout().split('\n')[0]
-crtend_obj   = run_command(compiler, '-print-file-name=crtend.o').stdout().split('\n')[0]
-
 kernel = executable('kernel', 
   core_src, core_asm_obj,
-  objects : [crtbegin_obj, crtend_obj],
   include_directories : ['../common/include/', '../boot/include/', 'include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld'],
   link_depends : 'link.ld',
