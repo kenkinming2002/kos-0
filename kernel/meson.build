@@ -29,8 +29,6 @@ core_src = files(
 
   'src/x86/assembly/io.cpp',
   'src/x86/assembly/msr.cpp',
-
-  'src/i686/crt0.cpp'
 )
 
 core_asm_obj = asm_gen.process(

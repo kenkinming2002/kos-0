@@ -1,19 +1,22 @@
-#include "common/i686/memory/Paging.hpp"
-#include "generic/tasks/Elf.hpp"
-#include "i686/interrupts/Interrupts.hpp"
-#include "i686/memory/MemoryMapping.hpp"
+#include <generic/tasks/Elf.hpp>
+#include <generic/devices/Framebuffer.hpp>
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/memory/Memory.hpp>
-#include <common/generic/io/Print.hpp>
+#include <generic/BootInformation.hpp>
 #include <generic/Panic.hpp>
+
+#include <i686/internals/Internals.hpp>
+#include <i686/interrupts/Interrupts.hpp>
+#include <i686/memory/MemoryMapping.hpp>
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
-#include <generic/BootInformation.hpp>
+
+#include <common/generic/io/Print.hpp>
 
 #include <assert.h>
 #include <optional>
 
-void testMemory()
+static void testMemory()
 {
   core::io::print("Testing memory allocation and deallocation...");
 
@@ -51,46 +54,55 @@ end:
   core::io::print("Done\n");
 }
 
-template<typename T>
-T unwrap(std::optional<T> t)
+static void kmainInitialize(BootInformation* bootInformation)
 {
-  if(!t)
-    core::panic("Null optional");
+  ::bootInformation = bootInformation;
 
-  return std::move(*t);
+  core::devices::Framebuffer::initialize();
+  core::internals::initialize();
+  core::interrupts::initialize();
+  core::memory::MemoryMapping::initialize();
+  core::memory::initialize();
+  core::tasks::Scheduler::initialize();
+
 }
 
-void kmain()
+[[noreturn]] static void kmainLoadAndRunUserspaceTask()
 {
-  // Memory System
+  if(bootInformation->moduleEntriesCount == 0)
+    core::panic("No modules to run");
+
+  for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
+  {
+    // TODO: Parse elf
+    const auto& module = bootInformation->moduleEntries[i];
+
+    auto physicalPages = core::memory::Pages::fromAggressive(module.addr, module.len);
+    auto virtualPages  = core::memory::allocVirtualPages(physicalPages.count);
+    if(!virtualPages)
+      continue;
+
+    core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
+    auto task = core::tasks::Scheduler::instance().addTask();
+    if(!task)
+      core::panic("Failed to create task\n");
+    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(virtualPages->address()), virtualPages->length()) != 0)
+      core::panic("Failed to load ELF\n");
+
+    core::memory::MemoryMapping::current().unmap(*virtualPages);
+    core::memory::freeVirtualPages(*virtualPages);
+  }
+  core::io::print("Done\n");
+  core::tasks::Scheduler::instance().startFirstUserspaceTask();
+}
+
+extern "C" void kmain(BootInformation* bootInformation)
+{
+  kmainInitialize(bootInformation);
   testMemory();
 
-  if(bootInformation->moduleEntriesCount != 0)
-  {
-    core::syscalls::installHandler(1, [](int, int, int, int){ core::io::print("Hello from kernel\n"); return 0;});
-    core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { core::io::print("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
+  core::syscalls::installHandler(1, [](int, int, int, int){ core::io::print("Hello from kernel\n"); return 0;});
+  core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { core::io::print("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
-    for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
-    {
-      // TODO: Parse elf
-      const auto& module = bootInformation->moduleEntries[i];
-
-      auto physicalPages = core::memory::Pages::fromAggressive(module.addr, module.len);
-      auto virtualPages  = core::memory::allocVirtualPages(physicalPages.count);
-      if(!virtualPages)
-        continue;
-
-      core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
-      auto task = core::tasks::Scheduler::instance().addTask();
-      if(!task)
-        core::panic("Failed to create task\n");
-      if(core::tasks::loadElf(*task, reinterpret_cast<char*>(virtualPages->address()), virtualPages->length()) != 0)
-        core::panic("Failed to load ELF\n");
-
-      core::memory::MemoryMapping::current().unmap(*virtualPages);
-      core::memory::freeVirtualPages(*virtualPages);
-    }
-    core::io::print("Done\n");
-    core::tasks::Scheduler::instance().startFirstUserspaceTask();
-  }
+  kmainLoadAndRunUserspaceTask();
 }

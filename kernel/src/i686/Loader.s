@@ -2,7 +2,7 @@ global loader
 global kernel_stack_bottom
 global kernel_stack_top
 
-extern _start
+extern kmain
 
 STACK_SIZE equ 4096 
 
@@ -17,7 +17,7 @@ loader:
   xor ebp, ebp
   mov esp, kernel_stack_top
   push ebx
-  call _start
+  call kmain
 
 .fail:
   hlt
