@@ -92,8 +92,7 @@ namespace core::interrupts
 
   void setKernelStack(uintptr_t ptr, size_t size)
   {
-    internals::tss.ss0  = 0x10;
-    internals::tss.esp0 = ptr + size;
+    internals::setKernelStack(0x10, ptr+size);
   }
 
   void installHandler(int irqNumber, Handler handler, PrivilegeLevel privilegeLevel, bool disableInterrupt)

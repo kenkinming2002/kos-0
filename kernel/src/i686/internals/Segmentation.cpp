@@ -9,7 +9,7 @@ namespace core::internals
   using namespace common;
 
   static constexpr size_t GDT_SIZE = 6;
-  constinit TSS tss;
+  constinit static TSS tss;
   constinit static GDTEntry gdtEntries[GDT_SIZE];
 
   void initializeSegmentation()
@@ -45,6 +45,12 @@ namespace core::internals
       : : [gdt]"m"(gdt) : "ax"
     );
     io::print("Done\n");
+  }
+
+  void setKernelStack(uint32_t ss, uint32_t esp)
+  {
+    tss.ss0  = ss;
+    tss.esp0 = esp;
   }
 }
 

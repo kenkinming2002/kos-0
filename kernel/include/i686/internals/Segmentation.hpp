@@ -5,6 +5,6 @@
 
 namespace core::internals
 {
-  extern TSS tss;
   void initializeSegmentation();
+  void setKernelStack(uint32_t ss, uint32_t esp);
 }
