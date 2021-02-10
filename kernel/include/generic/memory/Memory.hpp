@@ -1,21 +1,22 @@
 #pragma once
 
-#include <optional>
-#include <stddef.h>
-
 #include <generic/memory/Pages.hpp>
+
+#include <librt/Optional.hpp>
+
+#include <stddef.h> 
 
 namespace core::memory
 {
   void initialize();
 
-  std::optional<Pages> allocPhysicalPages(size_t count);
+  rt::Optional<Pages> allocPhysicalPages(size_t count);
   void freePhysicalPages(Pages pages);
 
-  std::optional<Pages> allocVirtualPages(size_t count);
+  rt::Optional<Pages> allocVirtualPages(size_t count);
   void freeVirtualPages(Pages pages);
 
-  std::optional<Pages> allocMappedPages(size_t count);
+  rt::Optional<Pages> allocMappedPages(size_t count);
   void freeMappedPages(Pages pages);
 
   void* malloc(size_t size);

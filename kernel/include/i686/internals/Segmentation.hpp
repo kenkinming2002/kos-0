@@ -1,7 +1,6 @@
 #pragma once
 
-#include <i686/internals/GDT.hpp>
-#include <i686/internals/TSS.hpp>
+#include <stdint.h>
 
 namespace core::internals
 {

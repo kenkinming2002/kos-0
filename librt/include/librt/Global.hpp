@@ -1,10 +1,11 @@
 #pragma once
 
-#include <type_traits>
-#include <utility>
-#include <assert.h>
+#include <librt/Utility.hpp>
+#include <librt/Assert.hpp>
 
-namespace utils
+#include <type_traits>
+
+namespace rt
 {
   template<typename T>
   struct Global
@@ -34,7 +35,7 @@ namespace utils
 
   public:
     template<typename... Args>
-    void construct(Args&&... args) { new(&m_storage) T(std::forward<Args>(args)...); set(true); }
+    void construct(Args&&... args) { new(&m_storage) T(forward<Args>(args)...); set(true); }
     void destruct() { this->operator()().~T(); set(false); }
 
   private:

@@ -4,7 +4,7 @@
 #include <boot/generic/multiboot2.h>
 #include <common/generic/tasks/Elf.hpp>
 
-#include <optional>
+#include <librt/Optional.hpp>
 
 #include <stddef.h>
 
@@ -13,7 +13,7 @@ namespace boot
   class Kernel
   {
   public:
-    static std::optional<Kernel> from(const multiboot_boot_information* multiboot2BootInformation);
+    static rt::Optional<Kernel> from(const multiboot_boot_information* multiboot2BootInformation);
 
   public:
     /* In the future, we may support decompression, though it is highly doubted

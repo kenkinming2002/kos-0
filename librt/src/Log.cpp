@@ -1,13 +1,26 @@
-#include <common/generic/io/Print.hpp>
+#include <librt/Log.hpp>
+
+#include <librt/Strings.hpp>
+#include <librt/Hooks.hpp>
 
 #include <limits.h>
 
-namespace common::io
+namespace rt
 {
-  void print(unsigned value, unsigned base)
+  void log(const char* str, size_t length)
+  {
+    hooks::log(str, length);
+  }
+
+  void log(const char* str)
+  {
+    log(str, strlen(str));
+  }
+
+  void log(unsigned value, unsigned base)
   {
     if(base==0 || base>16)
-      return print("NaN");
+      return log("NaN");
 
     char buf[sizeof value * CHAR_BIT+1];
     int index = sizeof buf;
@@ -22,15 +35,15 @@ namespace common::io
     }
 
     if(index != sizeof buf)
-      print(std::string_view(&buf[index], sizeof buf - index));
+      log(&buf[index], sizeof buf - index);
     else
-      print("0");
+      log("0");
   }
 
-  void print(long unsigned value, unsigned base)
+  void log(long unsigned value, unsigned base)
   {
     if(base==0 || base>16)
-      return print("NaN");
+      return log("NaN");
 
     char buf[sizeof value * CHAR_BIT+1];
     int index = sizeof buf;
@@ -45,49 +58,49 @@ namespace common::io
     }
 
     if(index != sizeof buf)
-      print(std::string_view(&buf[index], sizeof buf - index));
+      log(&buf[index], sizeof buf - index);
     else
-      print("0");
+      log("0");
   }
 
-  void print(int value, unsigned base)
+  void log(int value, unsigned base)
   {
     if(value>=0)
     {
-      print(static_cast<unsigned>(value), base);
+      log(static_cast<unsigned>(value), base);
     }
     else
     {
-      print("-");
-      print(static_cast<unsigned>(-value), base);
+      log("-");
+      log(static_cast<unsigned>(-value), base);
     }
   }
 
-  void print(long int value, unsigned base)
+  void log(long int value, unsigned base)
   {
     if(value>=0)
     {
-      print(static_cast<long unsigned>(value), base);
+      log(static_cast<long unsigned>(value), base);
     }
     else
     {
-      print("-");
-      print(static_cast<long unsigned>(-value), base);
+      log("-");
+      log(static_cast<long unsigned>(-value), base);
     }
   }
 
-  void printf(const char* format, ...)
+  void logf(const char* format, ...)
   {
     va_list ap;
     va_start(ap, format);
-    vprintf(format, ap);
+    vlogf(format, ap);
     va_end(ap);
   }
 
-  void vprintf(const char* format, va_list ap)
+  void vlogf(const char* format, va_list ap)
   {
     const char *begin = format, *it = format;
-    auto flush = [&](){ print(std::string_view(begin, it)); };
+    auto flush = [&](){ log(begin, it-begin); };
 
     while(*it != 0)
     {
@@ -97,22 +110,22 @@ namespace common::io
         switch(it[1])
         {
         case 's':
-          print(va_arg(ap, const char*));
+          log(va_arg(ap, const char*));
           break;
 
         // Decimal Integer
         case 'u':
-          print(va_arg(ap, unsigned), 10);
+          log(va_arg(ap, unsigned), 10);
           break;
         case 'd':
         case 'i':
-          print(va_arg(ap, int), 10);
+          log(va_arg(ap, int), 10);
           break;
 
         // Hexadecimal Integer
         case 'x': // TODO: Implement lower case haxadecimal
         case 'X':
-          print(va_arg(ap, unsigned), 16);
+          log(va_arg(ap, unsigned), 16);
           break;
 
         // Long
@@ -120,17 +133,17 @@ namespace common::io
           switch(it[2])
           {
           case 'u':
-            print(va_arg(ap, long unsigned), 10);
+            log(va_arg(ap, long unsigned), 10);
             break;
           case 'd':
           case 'i':
-            print(va_arg(ap, long int), 10);
+            log(va_arg(ap, long int), 10);
             break;
 
           // Hexadecimal Integer
           case 'x': // TODO: Implement lower case haxadecimal
           case 'X':
-            print(va_arg(ap, long unsigned), 16);
+            log(va_arg(ap, long unsigned), 16);
             break;
           }
           ++it;
@@ -148,4 +161,3 @@ namespace common::io
     flush();
   }
 }
-

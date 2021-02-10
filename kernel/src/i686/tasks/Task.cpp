@@ -1,13 +1,13 @@
-#include "i686/tasks/Switch.hpp"
-#include <i686/tasks/Task.hpp>
+#include <i686/tasks/Switch.hpp>
 
-#include <generic/Panic.hpp>
 #include <generic/memory/Memory.hpp>
+
+#include <i686/tasks/Task.hpp>
 #include <i686/interrupts/Interrupts.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/tasks/Entry.hpp>
 
-#include <cassert>
+#include <librt/Panic.hpp>
 
 extern "C"
 {
@@ -32,15 +32,15 @@ namespace core::tasks
     return currentTask;
   }
 
-  std::optional<Task> Task::allocate()
+  rt::Optional<Task> Task::allocate()
   {
     auto memoryMapping = memory::MemoryMapping::allocate();
     if(!memoryMapping)
-      return std::nullopt;
+      return rt::nullOptional;
 
     auto kernelStackPage = memory::allocMappedPages(1);
     if(!kernelStackPage)
-      return std::nullopt;
+      return rt::nullOptional;
 
     auto stack = Stack{
       .ptr = kernelStackPage->address(), 
@@ -48,11 +48,11 @@ namespace core::tasks
       .esp = kernelStackPage->address() + kernelStackPage->length()
     };
 
-    return Task(stack, std::move(*memoryMapping));
+    return Task(stack, rt::move(*memoryMapping));
   }
 
   Task::Task(Stack kernelStack, memory::MemoryMapping memoryMapping)
-    : m_kernelStack(kernelStack), m_memoryMapping(std::move(memoryMapping)) {}
+    : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
 
   Task::~Task()
   {
@@ -64,13 +64,13 @@ namespace core::tasks
   }
 
   Task::Task(Task&& other)
-    : m_kernelStack{std::exchange(other.m_kernelStack, Stack{.ptr=0,.size=0,.esp=0})},
-      m_memoryMapping(std::move(other.m_memoryMapping)) {}
+    : m_kernelStack{rt::exchange(other.m_kernelStack, Stack{.ptr=0,.size=0,.esp=0})},
+      m_memoryMapping(rt::move(other.m_memoryMapping)) {}
 
   Task& Task::operator=(Task&& other)
   {
-    m_memoryMapping = std::move(other.m_memoryMapping);
-    std::swap(m_kernelStack, other.m_kernelStack);
+    m_memoryMapping = rt::move(other.m_memoryMapping);
+    rt::swap(m_kernelStack, other.m_kernelStack);
     return *this;
   }
 

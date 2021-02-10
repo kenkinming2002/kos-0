@@ -1,20 +1,21 @@
 #include <i686/internals/Segmentation.hpp>
 
-#include <common/generic/io/Print.hpp>
+#include <i686/internals/GDT.hpp>
+#include <i686/internals/TSS.hpp>
 
-#include <cstddef>
+#include <librt/Log.hpp>
+
+#include <stddef.h>
 
 namespace core::internals
 {
-  using namespace common;
-
   static constexpr size_t GDT_SIZE = 6;
   constinit static TSS tss;
   constinit static GDTEntry gdtEntries[GDT_SIZE];
 
   void initializeSegmentation()
   {
-    io::print("Loading Global Descriptor Table and Segment Registers...");
+    rt::log("Loading Global Descriptor Table and Segment Registers...");
 
     // Null Segment
     gdtEntries[0] = GDTEntry(0, 0,          PrivilegeLevel::RING0, SegmentType::NONE_SEGMENT, Granularity::PAGE);
@@ -44,7 +45,7 @@ namespace core::internals
       "ltr ax" 
       : : [gdt]"m"(gdt) : "ax"
     );
-    io::print("Done\n");
+    rt::log("Done\n");
   }
 
   void setKernelStack(uint32_t ss, uint32_t esp)

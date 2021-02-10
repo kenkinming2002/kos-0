@@ -2,7 +2,7 @@
 
 #include <i686/memory/MemoryMapping.hpp>
 
-#include <optional>
+#include <librt/Optional.hpp>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -29,7 +29,7 @@ namespace core::tasks
     static Task* current(); // FIXME: Implement for multiprocessor
 
   public:
-    static std::optional<Task> allocate();
+    static rt::Optional<Task> allocate();
 
   public:
     Task(Stack kernelStack, memory::MemoryMapping memoryMapping);

@@ -4,8 +4,8 @@
 
 #include <x86/assembly/msr.hpp>
 
-#include <generic/Panic.hpp>
-#include <common/generic/io/Print.hpp>
+#include <librt/Panic.hpp>
+#include <librt/Log.hpp>
 
 namespace core::syscalls
 {
@@ -26,7 +26,7 @@ namespace core::syscalls
   void installHandler(int syscallNumber, Handler handler) 
   { 
     if(handlers[syscallNumber])
-      panic("Attempting to install mutiple syscall handlers for same syscall number\n"
+      rt::panic("Attempting to install mutiple syscall handlers for same syscall number\n"
             "  syscall number: %i\n"
             "  old addr: 0x%lx\n"
             "  new addr: 0x%lx\n", syscallNumber, 
@@ -45,13 +45,13 @@ namespace core::syscalls
   {
     if(syscallNumber<0 || syscallNumber>=MAX_SYSCALL_COUNT)
     {
-      core::io::print("Syscall numbers out of range\n");
+      rt::log("Syscall numbers out of range\n");
       return -1;
     }
 
     if(!handlers[syscallNumber])
     {
-      core::io::print("Unknown Syscalls\n");
+      rt::log("Unknown Syscalls\n");
       return -1; // TODO: Error code
     }
 

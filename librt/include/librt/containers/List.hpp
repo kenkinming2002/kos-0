@@ -1,23 +1,15 @@
 #pragma once
 
-#include <stddef.h>
 #include <iterator>
-#include <type_traits>
+#include <librt/Utility.hpp>
 
-namespace utils::containers
+#include <stddef.h>
+
+namespace rt::containers
 {
   template<typename T>
   class List
   {
-  public:
-    constexpr List() { m_tail.prev = m_tail.next = &m_tail; }
-
-  public:
-    List(const List&) = delete;
-    List(List&&) = delete;
-    List& operator=(const List&) = delete;
-    List& operator=(List&&) = delete;
-
   public:
     struct NodeBase
     {
@@ -30,7 +22,7 @@ namespace utils::containers
     };
 
     template<typename U>
-    struct iterator_base
+    struct IteratorBase
     {
     public:
       using iterator_category = std::bidirectional_iterator_tag;
@@ -40,9 +32,9 @@ namespace utils::containers
       using reference         = U&;
 
     public:
-      iterator_base(NodeBase* nodeBase) : nodeBase(nodeBase) {}
+      IteratorBase(NodeBase* nodeBase) : nodeBase(nodeBase) {}
       template<typename V>
-      iterator_base(iterator_base<V> other) : nodeBase(other.nodeBase) {}
+      IteratorBase(IteratorBase<V> other) : nodeBase(other.nodeBase) {}
 
     public:
       pointer operator->() const { return &static_cast<Node*>(nodeBase)->value; }
@@ -50,17 +42,17 @@ namespace utils::containers
 
     public:
       template<typename V>
-      bool operator==(const iterator_base<V>& other) const { return nodeBase == other.nodeBase; }
+      bool operator==(const IteratorBase<V>& other) const { return nodeBase == other.nodeBase; }
       template<typename V>
-      bool operator!=(const iterator_base<V>& other) const { return nodeBase != other.nodeBase; }
+      bool operator!=(const IteratorBase<V>& other) const { return nodeBase != other.nodeBase; }
 
     public:
-      iterator_base& operator++() { nodeBase = nodeBase->next; return *this; }
-      iterator_base operator++(int) { iterator_base result = *this; ++(*this); return result; }
+      IteratorBase& operator++() { nodeBase = nodeBase->next; return *this; }
+      IteratorBase operator++(int) { IteratorBase result = *this; ++(*this); return result; }
 
     public:
-      iterator_base& operator--() { nodeBase = nodeBase->prev; return *this; }
-      iterator_base operator--(int) { iterator_base result = *this; --(*this); return result; }
+      IteratorBase& operator--() { nodeBase = nodeBase->prev; return *this; }
+      IteratorBase operator--(int) { IteratorBase result = *this; --(*this); return result; }
 
     public:
       NodeBase* nodeBase;
@@ -68,8 +60,18 @@ namespace utils::containers
 
   public:
     using value_type     = T;
-    using iterator       = iterator_base<T>;
-    using const_iterator = iterator_base<const T>;
+    using iterator       = IteratorBase<T>;
+    using const_iterator = IteratorBase<const T>;
+
+  public:
+    constexpr List() { m_tail.prev = m_tail.next = &m_tail; }
+
+  public:
+    List(const List&) = delete;
+    List(List&&) = delete;
+    List& operator=(const List&) = delete;
+    List& operator=(List&&) = delete;
+
 
   public:
     iterator begin() { return iterator(m_tail.next); }
@@ -94,7 +96,7 @@ namespace utils::containers
 
     iterator insert(const_iterator position, value_type&& value)
     {
-      auto* nodeBase = static_cast<NodeBase*>(new Node{{nullptr, nullptr}, std::move(value)});
+      auto* nodeBase = static_cast<NodeBase*>(new Node{{nullptr, nullptr}, move(value)});
 
       nodeBase->next = position.nodeBase;
       nodeBase->prev = position.nodeBase->prev;

@@ -3,7 +3,7 @@
 #include <common/i686/memory/Paging.hpp>
 #include <generic/memory/Memory.hpp>
 
-#include <optional>
+#include <librt/Optional.hpp>
   
 namespace core::memory
 {
@@ -30,7 +30,7 @@ namespace core::memory
     static MemoryMapping& current();
 
   public:
-    static std::optional<MemoryMapping> allocate();
+    static rt::Optional<MemoryMapping> allocate();
 
   public:
     constexpr MemoryMapping() : m_pageDirectory(nullptr) {}
@@ -38,8 +38,8 @@ namespace core::memory
     ~MemoryMapping();
 
   public:
-    constexpr MemoryMapping(MemoryMapping&& other) : m_pageDirectory(std::exchange(other.m_pageDirectory, nullptr)) {}
-    constexpr MemoryMapping& operator=(MemoryMapping&& other) { std::swap(m_pageDirectory, other.m_pageDirectory); return *this; }
+    constexpr MemoryMapping(MemoryMapping&& other) : m_pageDirectory(rt::exchange(other.m_pageDirectory, nullptr)) {}
+    constexpr MemoryMapping& operator=(MemoryMapping&& other) { rt::swap(m_pageDirectory, other.m_pageDirectory); return *this; }
 
   public:
     static uintptr_t doFractalMapping(uintptr_t phyaddr, size_t length);
@@ -49,7 +49,7 @@ namespace core::memory
     void makeCurrent();
 
   public:
-    void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, std::optional<Pages> physicalPages = std::nullopt);
+    void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages = rt::nullOptional);
     void unmap(Pages virtualPages);
 
   public:

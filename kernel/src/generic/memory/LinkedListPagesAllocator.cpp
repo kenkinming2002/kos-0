@@ -1,10 +1,10 @@
-#include <algorithm>
 #include <generic/memory/LinkedListPagesAllocator.hpp>
 
+#include <librt/Algorithm.hpp>
 
 namespace core::memory
 {
-  std::optional<Pages> LinkedListPagesAllocator::allocate(size_t count)
+  rt::Optional<Pages> LinkedListPagesAllocator::allocate(size_t count)
   {
     for(auto& pages : m_pagesList)
       if(pages.count>=count)
@@ -17,7 +17,7 @@ namespace core::memory
         return result;
       }
 
-    return std::nullopt;
+    return rt::nullOptional;
   }
 
   void LinkedListPagesAllocator::deallocate(Pages target)
@@ -43,9 +43,9 @@ namespace core::memory
     //        The issue could be in the erase function, but we will see.
     //
     // TODO: Defragmentation
-    //for(auto it=m_pagesList.begin(); it!=std::prev(m_pagesList.end()); ++it)
+    //for(auto it=m_pagesList.begin(); it!=rt::prev(m_pagesList.end()); ++it)
     //{
-    //  auto nextIt = std::next(it);
+    //  auto nextIt = rt::next(it);
     //  auto &pages = *it, &nextPages = *nextIt;
     //  if(pages.index+pages.count==nextPages.index)
     //  {
@@ -57,7 +57,7 @@ namespace core::memory
 
   void LinkedListPagesAllocator::markAsUsed(Pages target)
   {
-    auto it = std::find_if(m_pagesList.begin(), m_pagesList.end(), [&](auto& pages){
+    auto it = rt::find_if(m_pagesList.begin(), m_pagesList.end(), [&](auto& pages){
       return pages.index<=target.index && target.index+target.count<=pages.index+pages.count;
     });
     auto& pages = *it;

@@ -1,15 +1,15 @@
-#include "generic/Global.hpp"
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/BootInformation.hpp>
 
 #include <x86/assembly/io.hpp>
 
-#include <algorithm>
+#include <librt/Global.hpp>
+#include <librt/Algorithm.hpp>
 
 namespace core::devices
 {
-  constinit static utils::Global<Framebuffer> framebuffer;
+  constinit static rt::Global<Framebuffer> framebuffer;
 
   void Framebuffer::initialize()
   {
@@ -57,8 +57,8 @@ namespace core::devices
   void Framebuffer::scroll()
   {
     --m_y;
-    std::copy(&m_cells[m_width], &m_cells[m_width*m_height], m_cells);
-    std::fill(&m_cells[m_width*(m_height-1)], &m_cells[m_width*m_height], Cell(' ', m_fg, m_bg));
+    rt::copy(&m_cells[m_width], &m_cells[m_width*m_height], m_cells);
+    rt::fill(&m_cells[m_width*(m_height-1)], &m_cells[m_width*m_height], Cell(' ', m_fg, m_bg));
   }
 
   void Framebuffer::updateCursor() const
@@ -71,10 +71,11 @@ namespace core::devices
     assembly::outb(FB_DATA_PORT, pos & 0x00FF);
   }
 
-  int Framebuffer::write(std::string_view str)
+  int Framebuffer::write(const char* str, size_t length)
   {
-    for(char c : str)
+    for(size_t i=0; i<length; ++i)
     {
+      const auto c = str[i];
       switch(c)
       {
       case '\n':
@@ -99,6 +100,6 @@ namespace core::devices
       }
     }
     updateCursor();
-    return str.length();
+    return length;
   }
 }

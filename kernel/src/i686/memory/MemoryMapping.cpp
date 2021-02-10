@@ -1,15 +1,14 @@
 #include <i686/memory/MemoryMapping.hpp>
 
-#include <generic/Panic.hpp>
-#include <generic/Global.hpp>
 #include <generic/BootInformation.hpp>
-
-#include <common/generic/io/Print.hpp>
 #include <common/i686/memory/Paging.hpp>
 
-#include <algorithm>
-
-#include <assert.h>
+#include <librt/Panic.hpp>
+#include <librt/Global.hpp>
+#include <librt/Iterator.hpp>
+#include <librt/Log.hpp>
+#include <librt/Algorithm.hpp>
+#include <librt/Assert.hpp>
 
 namespace core::memory
 {
@@ -17,13 +16,13 @@ namespace core::memory
 
   constinit static PageDirectoryEntry kernelPageDirectoryEntries[256];
 
-  constinit static utils::Global<MemoryMapping> initialMemoryMapping;
+  constinit static rt::Global<MemoryMapping> initialMemoryMapping;
   constinit static MemoryMapping* currentMemoryMapping;
 
   void MemoryMapping::initialize()
   {
     const auto& bootPageDirectory = *bootInformation->pageDirectory;
-    std::copy(&bootPageDirectory[768], &bootPageDirectory[1024], std::begin(kernelPageDirectoryEntries));
+    rt::copy(&bootPageDirectory[768], &bootPageDirectory[1024], rt::begin(kernelPageDirectoryEntries));
 
     initialMemoryMapping.construct(bootInformation->pageDirectory);
     currentMemoryMapping = &initialMemoryMapping();
@@ -34,14 +33,14 @@ namespace core::memory
     return *currentMemoryMapping;
   }
 
-  std::optional<MemoryMapping> MemoryMapping::allocate()
+  rt::Optional<MemoryMapping> MemoryMapping::allocate()
   {
     auto page = allocMappedPages(1);
     if(!page)
-      return std::nullopt;
+      return rt::nullOptional;
 
     auto& pageDirectory = *reinterpret_cast<common::memory::PageDirectory*>(page->address());
-    std::fill(std::begin(pageDirectory), std::end(pageDirectory), common::memory::PageDirectoryEntry());
+    rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), common::memory::PageDirectoryEntry());
     MemoryMapping memoryMapping(&pageDirectory);
     memoryMapping.synchronize();
     return memoryMapping;
@@ -80,7 +79,7 @@ namespace core::memory
   void MemoryMapping::synchronize()
   {
     auto& pageDirectory = *m_pageDirectory;
-    std::copy(std::begin(kernelPageDirectoryEntries), std::end(kernelPageDirectoryEntries), &pageDirectory[768]);
+    rt::copy(rt::begin(kernelPageDirectoryEntries), rt::end(kernelPageDirectoryEntries), &pageDirectory[768]);
   }
 
   void MemoryMapping::makeCurrent()
@@ -94,18 +93,18 @@ namespace core::memory
     currentMemoryMapping = this;
   }
 
-  void MemoryMapping::map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, std::optional<Pages> physicalPages)
+  void MemoryMapping::map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages)
   {
     using namespace common::memory;
 
-    assert(!physicalPages || physicalPages->count == virtualPages.count);
+    ASSERT(!physicalPages || physicalPages->count == virtualPages.count);
 
     for(size_t i=0; i<virtualPages.count; ++i)
     {
       size_t virtualIndex = virtualPages.index+i;
       auto& pageTableEntry = this->pageTableEntry(virtualIndex, true/*allocate*/);
       if(pageTableEntry.present())
-        panic("Attempting to map pages that have already been mapped\n");
+        rt::panic("Attempting to map pages that have already been mapped\n");
 
       if(physicalPages)
       {
@@ -115,7 +114,7 @@ namespace core::memory
       {
         auto physicalPage = allocPhysicalPages(1);
         if(!physicalPage)
-          panic("Out of physical pages\n");
+          rt::panic("Out of physical pages\n");
 
         pageTableEntry = PageTableEntry(physicalPage->address(), TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
       }
@@ -133,7 +132,7 @@ namespace core::memory
       size_t virtualIndex = virtualPages.index+i;
       auto& pageTableEntry = this->pageTableEntry(virtualIndex, false/*allocate*/);
       if(!pageTableEntry.present())
-        panic("Attempting to unmap pages that are not mapped");
+        rt::panic("Attempting to unmap pages that are not mapped");
 
       auto physicalPages = Pages::from(pageTableEntry.address(), PAGE_SIZE);
       pageTableEntry = PageTableEntry();
@@ -146,7 +145,7 @@ namespace core::memory
   {
     auto& pageTableEntry = this->pageTableEntry(virtaddr / PAGE_SIZE, false/*allocate*/);
     if(!pageTableEntry.present())
-      panic("Page Table Entry not present\n");
+      rt::panic("Page Table Entry not present\n");
 
     return pageTableEntry.address();
   }
@@ -164,11 +163,11 @@ namespace core::memory
     if(!pageDirectoryEntry.present())
     {
       if(!allocate)
-        panic("Page Directory Entry not present\n");
+        rt::panic("Page Directory Entry not present\n");
 
       auto physicalPage = allocPhysicalPages(1);
       if(!physicalPage)
-        panic("Out of physical pages");
+        rt::panic("Out of physical pages");
 
       pageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       if(pageDirectoryIndex>=768)
@@ -178,7 +177,7 @@ namespace core::memory
       }
 
       auto& pageTable = *reinterpret_cast<common::memory::PageTable*>(doFractalMapping(pageDirectoryEntry.address(), PAGE_SIZE));
-      std::fill(std::begin(pageTable), std::end(pageTable), PageTableEntry());
+      rt::fill(rt::begin(pageTable), rt::end(pageTable), PageTableEntry());
     }
 
     return pageDirectoryEntry;

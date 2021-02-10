@@ -1,16 +1,16 @@
 #pragma once
 
 #include <generic/memory/Pages.hpp>
-#include <generic/utils/containers/List.hpp>
 
-#include <optional>
+#include <librt/containers/List.hpp>
+#include <librt/Optional.hpp>
 
 namespace core::memory
 {
   class LinkedListPagesAllocator
   {
   public:
-    std::optional<Pages> allocate(size_t count);
+    rt::Optional<Pages> allocate(size_t count);
     void deallocate(Pages target);
 
   public:
@@ -21,6 +21,6 @@ namespace core::memory
     const auto& list() const { return m_pagesList; }
 
   private:
-    utils::containers::List<Pages> m_pagesList;
+    rt::containers::List<Pages> m_pagesList;
   };
 }

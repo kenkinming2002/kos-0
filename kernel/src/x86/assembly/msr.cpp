@@ -1,6 +1,5 @@
 #include <x86/assembly/msr.hpp>
 
-
 namespace core::assembly
 {
   void wrmsr(uint32_t reg, uint64_t value)

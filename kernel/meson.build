@@ -1,12 +1,7 @@
 core_src = files(
   'src/generic/kmain.cpp',
   'src/generic/BootInformation.cpp',
-
-  'src/generic/stdlib/assert.cpp',
-  'src/generic/stdlib/string.cpp',
-  'src/generic/stdlib/new.cpp',
-
-  'src/generic/io/Print.cpp',
+  'src/generic/librt/Hooks.cpp',
 
   'src/generic/devices/Framebuffer.cpp',
 
@@ -48,6 +43,6 @@ kernel = executable('kernel',
   include_directories : ['../common/include/', '../boot/include/', 'include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld'],
   link_depends : 'link.ld',
-  dependencies : [liballoc_dep, common_dep]
+  dependencies : [liballoc_dep, common_dep, librt_dep]
 )
 

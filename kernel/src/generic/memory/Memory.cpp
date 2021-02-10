@@ -1,10 +1,11 @@
-#include "generic/Global.hpp"
 #include <generic/memory/Memory.hpp>
 
 #include <generic/memory/BootPagesAllocator.hpp>
 #include <generic/memory/PagesAllocator.hpp>
 
 #include <liballoc_1_1.h>
+
+#include <librt/Global.hpp>
 
 namespace core::memory
 {
@@ -30,7 +31,7 @@ namespace core::memory
    * the case of LinkedListPagesAllocator with low memory overhead.
    */
   constinit static BootPagesAllocator bootPagesAllocator;
-  constinit static utils::Global<PagesAllocator> pagesAllocator;
+  constinit static rt::Global<PagesAllocator> pagesAllocator;
 
   static bool initialized = false;
   void initialize()
@@ -39,13 +40,13 @@ namespace core::memory
     initialized = true;
   }
 
-  std::optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator().allocPhysicalPages(count); }
+  rt::Optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator().allocPhysicalPages(count); }
   void freePhysicalPages(Pages pages) { pagesAllocator().freePhysicalPages(pages); }
 
-  std::optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
+  rt::Optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
   void freeVirtualPages(Pages pages) { pagesAllocator().freeVirtualPages(pages); }
 
-  std::optional<Pages> allocMappedPages(size_t count) 
+  rt::Optional<Pages> allocMappedPages(size_t count) 
   { 
     if(initialized)
       return pagesAllocator().allocMappedPages(count);

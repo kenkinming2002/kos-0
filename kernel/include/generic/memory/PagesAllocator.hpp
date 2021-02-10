@@ -36,21 +36,21 @@ namespace core::memory
       m_virtualPagesAllocator.markAsAvailable(Pages::from(kernel_heap_begin, kernel_heap_end-kernel_heap_begin));
 
       for(const auto& pages : m_physicalPagesAllocator.list())
-        io::printf("Physical memory from 0x%lx to 0x%lx with length 0x%lx\n", pages.address(), pages.address()+pages.length(), pages.length());
+        rt::logf("Physical memory from 0x%lx to 0x%lx with length 0x%lx\n", pages.address(), pages.address()+pages.length(), pages.length());
     }
 
   public:
-    std::optional<Pages> allocPhysicalPages(size_t count) { return m_physicalPagesAllocator.allocate(count); }
+    rt::Optional<Pages> allocPhysicalPages(size_t count) { return m_physicalPagesAllocator.allocate(count); }
     void freePhysicalPages(Pages pages) { m_physicalPagesAllocator.deallocate(pages); }
 
-    std::optional<Pages> allocVirtualPages(size_t count) { return m_virtualPagesAllocator.allocate(count); }
+    rt::Optional<Pages> allocVirtualPages(size_t count) { return m_virtualPagesAllocator.allocate(count); }
     void freeVirtualPages(Pages pages) { m_virtualPagesAllocator.deallocate(pages); }
 
-    std::optional<Pages> allocMappedPages(size_t count)
+    rt::Optional<Pages> allocMappedPages(size_t count)
     {
       auto virtualPages = allocVirtualPages(count);
       if(!virtualPages)
-        return std::nullopt;
+        return rt::nullOptional;
 
       MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_WRITE);
       return virtualPages;

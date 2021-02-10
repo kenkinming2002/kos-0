@@ -1,14 +1,13 @@
 #include <x86/interrupts/8259.hpp>
 
-#include <common/generic/io/Print.hpp>
-
 #include <x86/assembly/io.hpp>
+
+#include <librt/Log.hpp>
+
 #include <stddef.h>
 
 namespace core::interrupts
 {
-  using namespace common;
-
   constexpr static size_t MASTER_COMMAND_PORT = 0x0020;
   constexpr static size_t MASTER_DATA_PORT    = 0x0021;
 
@@ -37,7 +36,7 @@ namespace core::interrupts
 
   void initialize8259()
   {
-    io::print("Configuring 8259 PIC...");
+    rt::log("Configuring 8259 PIC...");
 
     // Initialization Command Word 1 - starts the initialization sequence (in cascade mode)
     assembly::outb(MASTER_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);  
@@ -70,7 +69,7 @@ namespace core::interrupts
 
     // TODO: Register handler for spurious interrupt
 
-    io::print("Done\n");
+    rt::log("Done\n");
   }
 
   void setMask(uint8_t irqLine)

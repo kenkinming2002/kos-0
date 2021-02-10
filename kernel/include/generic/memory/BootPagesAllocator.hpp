@@ -2,8 +2,8 @@
 
 #include <generic/memory/Pages.hpp>
 
-#include <optional>
-#include <assert.h>
+#include <librt/Optional.hpp>
+#include <librt/Assert.hpp>
 
 namespace core::memory
 {
@@ -12,10 +12,10 @@ namespace core::memory
   public:
     constexpr BootPagesAllocator() = default;
 
-    std::optional<Pages> allocMappedPages(size_t count)
+    rt::Optional<Pages> allocMappedPages(size_t count)
     {
-      assert(!m_used && "Early Heap already used but the memory system is not yet initialized");
-      assert(count == 16 && "Early heap size mismatch");
+      ASSERT(!m_used && "Early Heap already used but the memory system is not yet initialized");
+      ASSERT(count == 16 && "Early heap size mismatch");
 
       return Pages::from(reinterpret_cast<uintptr_t>(m_earlyHeap), sizeof m_earlyHeap);
     }

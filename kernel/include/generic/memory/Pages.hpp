@@ -1,12 +1,12 @@
 #pragma once
 
+#include <common/i686/memory/Paging.hpp>
+
+#include <librt/Panic.hpp>
+#include <librt/Log.hpp>
+
 #include <stdint.h>
 #include <stddef.h>
-
-#include <generic/Panic.hpp>
-#include <common/generic/io/Print.hpp>
-
-#include <common/i686/memory/Paging.hpp>
 
 namespace core::memory
 {
@@ -19,7 +19,7 @@ namespace core::memory
     static Pages from(uintptr_t addr, size_t length)
     {
       if(addr % PAGE_SIZE != 0 || length % PAGE_SIZE !=0)
-        panic("Unaligned pages");
+        rt::panic("Unaligned pages");
 
       return Pages{addr / PAGE_SIZE, length / PAGE_SIZE};
     }

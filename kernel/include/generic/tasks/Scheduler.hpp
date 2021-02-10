@@ -1,7 +1,8 @@
 #pragma once
 
-#include <generic/utils/containers/List.hpp>
 #include <i686/tasks/Task.hpp>
+
+#include <librt/containers/List.hpp>
 
 namespace core::tasks
 {
@@ -26,6 +27,6 @@ namespace core::tasks
     void schedule();
 
   private:
-    utils::containers::List<Task> m_tasks;
+    rt::containers::List<Task> m_tasks;
   };
 }

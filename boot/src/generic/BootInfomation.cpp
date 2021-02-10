@@ -5,7 +5,7 @@
 #include <boot/generic/multiboot2-Utils.hpp>
 #include <boot/generic/Config.h>
 
-#include <string.h>
+#include <librt/Strings.hpp>
 
 namespace boot
 {
@@ -59,14 +59,14 @@ namespace boot
             auto& moduleEntry = bootInformation.moduleEntries[bootInformation.moduleEntriesCount];
             moduleEntry.addr = module_tag->mod_start; 
             moduleEntry.len  = module_tag->mod_end-module_tag->mod_start;
-            strncpy(moduleEntry.cmdline, module_tag->cmdline, sizeof moduleEntry.cmdline);
+            rt::strncpy(moduleEntry.cmdline, module_tag->cmdline, sizeof moduleEntry.cmdline);
             ++bootInformation.moduleEntriesCount;
             break;
           }
         case MULTIBOOT_TAG_TYPE_CMDLINE:
           {
             auto* string_tag = reinterpret_cast<struct multiboot_tag_string*>(tag);
-            strncpy(bootInformation.cmdline, string_tag->string, sizeof bootInformation.cmdline);
+            rt::strncpy(bootInformation.cmdline, string_tag->string, sizeof bootInformation.cmdline);
             break;
           }
       } 

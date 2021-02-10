@@ -3,17 +3,19 @@
 #include <boot/generic/multiboot2-Utils.hpp>
 #include <boot/generic/Config.h>
 #include <boot/i686/Paging.hpp>
-#include <boot/generic/Panic.hpp>
+#include <librt/Panic.hpp>
 
-#include <string.h>
-#include <algorithm>
+#include <librt/Iterator.hpp>
+
+#include <librt/Strings.hpp>
+#include <librt/Algorithm.hpp>
 
 namespace boot
 {
   [[gnu::section(".kernelImage")]] alignas(0x1000) char kernelImageStorage[KERNEL_IMAGE_STORAGE_SIZE];
   char* kernelImageEnd = kernelImageStorage;
 
-  std::optional<Kernel> Kernel::from(const multiboot_boot_information* multiboot2BootInformation)
+  rt::Optional<Kernel> Kernel::from(const multiboot_boot_information* multiboot2BootInformation)
   {  
     using namespace common::tasks;
     
@@ -22,23 +24,23 @@ namespace boot
       if(tag->type == MULTIBOOT_TAG_TYPE_MODULE)
       {
         auto* module_tag = reinterpret_cast<const struct multiboot_tag_module*>(tag);
-        if(strncmp(module_tag->cmdline, "kernel", 6) == 0)
+        if(rt::strncmp(module_tag->cmdline, "kernel", 6) == 0)
         {
           kernel.m_data   = reinterpret_cast<char*>(module_tag->mod_start);
           kernel.m_length = module_tag->mod_end-module_tag->mod_start;
           kernel.m_header = getElf32Header(kernel.m_data, kernel.m_length);
           if(!kernel.m_header)
-            return std::nullopt;
+            return rt::nullOptional;
 
           kernel.m_programHeaders = getElf32ProgramHeaders(kernel.m_data, kernel.m_length, kernel.m_header, kernel.m_programHeadersCount);
           if(!kernel.m_programHeaders)
-            return std::nullopt;
+            return rt::nullOptional;
 
           return kernel;
         }
       }
 
-    return std::nullopt;
+    return rt::nullOptional;
   }
 
   int Kernel::extract(size_t loadOffset)
@@ -55,7 +57,7 @@ namespace boot
       if(programHeader.vaddr<loadOffset)
         return -1;
 
-      if(segmentEnd>std::end(kernelImageStorage))
+      if(segmentEnd>rt::end(kernelImageStorage))
         return -1;
 
       if(segmentEnd>kernelImageEnd)
@@ -64,8 +66,8 @@ namespace boot
       if(programHeader.filesz>programHeader.memsz)
         return -1;
 
-      std::fill(segmentBegin, segmentEnd, 0);
-      std::copy(fileSegmentBegin, fileSegmentEnd, segmentBegin);
+      rt::fill(segmentBegin, segmentEnd, 0);
+      rt::copy(fileSegmentBegin, fileSegmentEnd, segmentBegin);
     }
 
     return 0;

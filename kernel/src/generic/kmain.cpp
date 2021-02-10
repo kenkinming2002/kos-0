@@ -3,7 +3,6 @@
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/memory/Memory.hpp>
 #include <generic/BootInformation.hpp>
-#include <generic/Panic.hpp>
 
 #include <i686/internals/Internals.hpp>
 #include <i686/interrupts/Interrupts.hpp>
@@ -11,18 +10,18 @@
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 
-#include <common/generic/io/Print.hpp>
-
-#include <assert.h>
-#include <optional>
+#include <librt/Optional.hpp>
+#include <librt/Log.hpp>
+#include <librt/Panic.hpp>
+#include <librt/Assert.hpp>
 
 static void testMemory()
 {
-  core::io::print("Testing memory allocation and deallocation...");
+  rt::log("Testing memory allocation and deallocation...");
 
   for(size_t j=0; j<128;++j)
   {
-    core::io::printf("Iteration %lu\n", j);
+    rt::logf("Iteration %lu\n", j);
     char* memorys[200] = {};
 
     for(size_t i=0; i<200; ++i)
@@ -38,7 +37,7 @@ static void testMemory()
       for(size_t k=0; k<0x100; ++k)
       {
         static_cast<volatile char*>(memorys[i])[k]=str[k%8];
-        assert(static_cast<volatile char*>(memorys[i])[k]==str[k%8]);
+        ASSERT(static_cast<volatile char*>(memorys[i])[k]==str[k%8]);
       }
     }
 
@@ -51,7 +50,7 @@ static void testMemory()
   }
 end:
 
-  core::io::print("Done\n");
+  rt::log("Done\n");
 }
 
 static void kmainInitialize(BootInformation* bootInformation)
@@ -64,13 +63,12 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::memory::MemoryMapping::initialize();
   core::memory::initialize();
   core::tasks::Scheduler::initialize();
-
 }
 
 [[noreturn]] static void kmainLoadAndRunUserspaceTask()
 {
   if(bootInformation->moduleEntriesCount == 0)
-    core::panic("No modules to run");
+    rt::panic("No modules to run");
 
   for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
   {
@@ -85,14 +83,14 @@ static void kmainInitialize(BootInformation* bootInformation)
     core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
     auto task = core::tasks::Scheduler::instance().addTask();
     if(!task)
-      core::panic("Failed to create task\n");
+      rt::panic("Failed to create task\n");
     if(core::tasks::loadElf(*task, reinterpret_cast<char*>(virtualPages->address()), virtualPages->length()) != 0)
-      core::panic("Failed to load ELF\n");
+      rt::panic("Failed to load ELF\n");
 
     core::memory::MemoryMapping::current().unmap(*virtualPages);
     core::memory::freeVirtualPages(*virtualPages);
   }
-  core::io::print("Done\n");
+  rt::log("Done\n");
   core::tasks::Scheduler::instance().startFirstUserspaceTask();
 }
 
@@ -101,8 +99,8 @@ extern "C" void kmain(BootInformation* bootInformation)
   kmainInitialize(bootInformation);
   testMemory();
 
-  core::syscalls::installHandler(1, [](int, int, int, int){ core::io::print("Hello from kernel\n"); return 0;});
-  core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { core::io::print("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
+  core::syscalls::installHandler(1, [](int, int, int, int){ rt::log("Hello from kernel\n"); return 0;});
+  core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
   kmainLoadAndRunUserspaceTask();
 }

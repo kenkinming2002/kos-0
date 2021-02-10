@@ -1,6 +1,6 @@
 #include <generic/memory/Memory.hpp>
 
-#include <generic/Panic.hpp>
+#include <librt/Panic.hpp>
 
 // NOTE: It has to be Reentrant and MT-Safe
 extern "C" int liballoc_lock() { return 0; }

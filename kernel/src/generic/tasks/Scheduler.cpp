@@ -1,18 +1,19 @@
-#include "generic/Global.hpp"
 #include <generic/tasks/Scheduler.hpp>
 
-#include <common/generic/io/Print.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/interrupts/Interrupts.hpp>
-#include <x86/interrupts/8259.hpp>
 #include <i686/tasks/Switch.hpp>
 
-#include <functional>
-#include <assert.h>
+#include <x86/interrupts/8259.hpp>
+
+#include <librt/Global.hpp>
+#include <librt/Iterator.hpp>
+#include <librt/Log.hpp>
+#include <librt/Assert.hpp>
 
 namespace core::tasks
 {
-  static utils::Global<Scheduler> scheduler;
+  static rt::Global<Scheduler> scheduler;
   void Scheduler::initialize()
   {
     scheduler.construct();
@@ -57,7 +58,7 @@ namespace core::tasks
 
   [[noreturn]] void Scheduler::startFirstUserspaceTask()
   {
-    io::print("We are starting our first task\n");
+    rt::log("We are starting our first task\n");
 
     syscalls::initialize();
     m_tasks.begin()->switchTo();
@@ -70,12 +71,12 @@ namespace core::tasks
     if(!task)
       return nullptr;
 
-    return &addTask(std::move(*task));
+    return &addTask(rt::move(*task));
   }
 
   Task& Scheduler::addTask(Task task)
   {
-    auto it = m_tasks.insert(m_tasks.end(), std::move(task));
+    auto it = m_tasks.insert(m_tasks.end(), rt::move(task));
     return *it;
   }
 
@@ -92,14 +93,14 @@ namespace core::tasks
 
   void Scheduler::schedule()
   {
-    assert(!m_tasks.empty());
+    ASSERT(!m_tasks.empty());
 
     // We can actually convert pointer to iterator directly if we export 
     // a interface from the container to do so
-    for(auto it = m_tasks.begin(); it != std::prev(m_tasks.end()); ++it)
+    for(auto it = m_tasks.begin(); it != rt::prev(m_tasks.end()); ++it)
       if(Task::current() == &(*it))
       {
-        std::next(it)->switchTo();
+        rt::next(it)->switchTo();
         return;
       }
 

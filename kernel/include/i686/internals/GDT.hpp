@@ -1,9 +1,9 @@
 #pragma once
 
+#include <i686/PrivilegeLevel.hpp>
+
 #include <stdint.h>
 #include <stddef.h>
-
-#include <i686/PrivilegeLevel.hpp>
 
 namespace core::internals
 {

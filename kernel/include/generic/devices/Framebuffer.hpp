@@ -1,7 +1,6 @@
 #pragma once
 
-#include "generic/Global.hpp"
-#include <string_view>
+#include <librt/Global.hpp>
 
 #include <stddef.h>
 #include <stdint.h>
@@ -58,7 +57,7 @@ namespace core::devices
     void updateCursor() const;
 
   public:
-    int write(std::string_view str);
+    int write(const char* str, size_t length);
 
   public:
     size_t width() const { return m_width; }

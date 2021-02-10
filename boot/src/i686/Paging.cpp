@@ -1,15 +1,17 @@
 #include <boot/i686/Paging.hpp>
 
-#include <boot/generic/Panic.hpp>
+#include <librt/Panic.hpp>
 #include <boot/generic/Config.h>
 
-#include <common/generic/io/Print.hpp>
 #include <common/i686/memory/Paging.hpp>
 
-#include <assert.h>
-#include <string.h>
+#include <librt/Log.hpp>
+#include <librt/Iterator.hpp>
 
-#include <algorithm>
+#include <librt/Assert.hpp>
+#include <librt/Strings.hpp>
+
+#include <librt/Algorithm.hpp>
 
 using namespace common::memory;
 
@@ -24,7 +26,7 @@ namespace boot::memory
   static PageTable* allocPageTable()
   {
     auto* result = nextPageTable++;
-    if(result == std::end(pageTables))
+    if(result == rt::end(pageTables))
       return nullptr;
 
     return result;
@@ -34,7 +36,7 @@ namespace boot::memory
   int map(uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
   {    
     using namespace common::memory;
-    common::io::printf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
+    rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
 
     if(nextVirtaddr<virtaddr+length)
       nextVirtaddr = (virtaddr+length+(PAGE_SIZE-1))&(~(PAGE_SIZE-1));

@@ -2,16 +2,15 @@
 
 #include <i686/interrupts/IDT.hpp>
 #include <i686/interrupts/ISR.hpp>
-
 #include <i686/internals/Segmentation.hpp>
 
 #include <x86/interrupts/8259.hpp>
 
-#include <generic/Panic.hpp>
-#include <common/generic/io/Print.hpp>
+#include <librt/Panic.hpp>
+#include <librt/Log.hpp>
+#include <librt/Assert.hpp>
 
 #include <stddef.h>
-#include <assert.h>
 
 namespace core::interrupts
 {
@@ -44,23 +43,23 @@ namespace core::interrupts
   {
     uint32_t address;
     asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
-    io::printf("\nPage Fault at %lx with error code %lx and old eip %lx\n", address, errorCode, oldEip);
-    panic("Page Fault\n");
+    rt::logf("\nPage Fault at %lx with error code %lx and old eip %lx\n", address, errorCode, oldEip);
+    rt::panic("Page Fault\n");
   }
 
   void generalProtectionFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
-    panic("General Protection Fault\n");
+    rt::panic("General Protection Fault\n");
   }
 
   void doubleFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
-    panic("Double Fault\n");
+    rt::panic("Double Fault\n");
   }
 
   void initialize()
   {
-    io::print("Loading Interrupt Descriptor Table and configuring interrupt handlers...");
+    rt::log("Loading Interrupt Descriptor Table and configuring interrupt handlers...");
 
     // Setup the idt
     for(size_t i=0; i<IDT_SIZE; ++i)
@@ -74,7 +73,7 @@ namespace core::interrupts
     installHandler(13, &generalProtectionFaultHandler, PrivilegeLevel::RING0, true);
     installHandler(14, &pageFaultHandler,              PrivilegeLevel::RING0, true);
 
-    io::print("Done\n");
+    rt::log("Done\n");
 
     initialize8259();
   }
@@ -83,7 +82,7 @@ namespace core::interrupts
   {
     if(!handlers[irqNumber])
     {
-      io::printf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
+      rt::logf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
       for(;;) asm volatile("hlt");
     }
 
