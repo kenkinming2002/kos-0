@@ -1,3 +1,4 @@
+#include "librt/UniquePtr.hpp"
 #include <i686/tasks/Switch.hpp>
 
 #include <generic/memory/Memory.hpp>
@@ -32,15 +33,15 @@ namespace core::tasks
     return currentTask;
   }
 
-  rt::Optional<Task> Task::allocate()
+  rt::UniquePtr<Task> Task::allocate()
   {
     auto memoryMapping = memory::MemoryMapping::allocate();
     if(!memoryMapping)
-      return rt::nullOptional;
+      return nullptr;
 
     auto kernelStackPage = memory::allocMappedPages(1);
     if(!kernelStackPage)
-      return rt::nullOptional;
+      return nullptr;
 
     auto stack = Stack{
       .ptr = kernelStackPage->address(), 
@@ -48,38 +49,25 @@ namespace core::tasks
       .esp = kernelStackPage->address() + kernelStackPage->length()
     };
 
-    return Task(stack, rt::move(*memoryMapping));
+    return rt::makeUnique<Task>(stack, rt::move(memoryMapping));
   }
 
-  Task::Task(Stack kernelStack, memory::MemoryMapping memoryMapping)
+  Task::Task(Stack kernelStack, rt::UniquePtr<memory::MemoryMapping> memoryMapping)
     : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
 
   Task::~Task()
   {
-    if(m_kernelStack.ptr == 0 || m_kernelStack.size == 0)
-      return;
-
     auto kernelStackPage = memory::Pages::from(m_kernelStack.ptr, m_kernelStack.size);
     memory::freeMappedPages(kernelStackPage);
   }
 
-  Task::Task(Task&& other)
-    : m_kernelStack{rt::exchange(other.m_kernelStack, Stack{.ptr=0,.size=0,.esp=0})},
-      m_memoryMapping(rt::move(other.m_memoryMapping)) {}
-
-  Task& Task::operator=(Task&& other)
-  {
-    m_memoryMapping = rt::move(other.m_memoryMapping);
-    rt::swap(m_kernelStack, other.m_kernelStack);
-    return *this;
-  }
 
   void Task::makeCurrent()
   {
     currentTask = this;
     interrupts::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     syscalls::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
-    m_memoryMapping.makeCurrent();
+    m_memoryMapping->makeCurrent();
   }
 
   void Task::switchTo()

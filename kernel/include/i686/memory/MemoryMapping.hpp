@@ -3,7 +3,8 @@
 #include <common/i686/memory/Paging.hpp>
 #include <generic/memory/Memory.hpp>
 
-#include <librt/Optional.hpp>
+#include <librt/UniquePtr.hpp>
+#include <librt/NonCopyable.hpp>
   
 namespace core::memory
 {
@@ -21,7 +22,7 @@ namespace core::memory
    * mitigation for meltdown or spectre so the entirety of kernel and kernel
    * heap is always mapped in.
    */
-  class MemoryMapping
+  class MemoryMapping : public rt::NonCopyable
   {
   public:
     static void initialize();
@@ -30,16 +31,11 @@ namespace core::memory
     static MemoryMapping& current();
 
   public:
-    static rt::Optional<MemoryMapping> allocate();
+    static rt::UniquePtr<MemoryMapping> allocate();
 
   public:
-    constexpr MemoryMapping() : m_pageDirectory(nullptr) {}
     constexpr MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
     ~MemoryMapping();
-
-  public:
-    constexpr MemoryMapping(MemoryMapping&& other) : m_pageDirectory(rt::exchange(other.m_pageDirectory, nullptr)) {}
-    constexpr MemoryMapping& operator=(MemoryMapping&& other) { rt::swap(m_pageDirectory, other.m_pageDirectory); return *this; }
 
   public:
     static uintptr_t doFractalMapping(uintptr_t phyaddr, size_t length);

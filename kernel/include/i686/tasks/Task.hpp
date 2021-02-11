@@ -3,6 +3,8 @@
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <librt/Optional.hpp>
+#include <librt/UniquePtr.hpp>
+#include <librt/NonCopyable.hpp>
 
 #include <stdint.h>
 #include <stddef.h>
@@ -10,7 +12,7 @@
 
 namespace core::tasks
 {
-  class Task
+  class Task : public rt::NonCopyable
   {
   public:
     friend class Scheduler;
@@ -29,15 +31,11 @@ namespace core::tasks
     static Task* current(); // FIXME: Implement for multiprocessor
 
   public:
-    static rt::Optional<Task> allocate();
+    static rt::UniquePtr<Task> allocate();
 
   public:
-    Task(Stack kernelStack, memory::MemoryMapping memoryMapping);
+    Task(Stack kernelStack, rt::UniquePtr<memory::MemoryMapping> memoryMapping);
     ~Task();
-
-  public:
-    Task(Task&& other);
-    Task& operator=(Task&& other);
 
   public:
     constexpr auto& memoryMapping() { return m_memoryMapping; }
@@ -54,6 +52,6 @@ namespace core::tasks
 
   private:
     Stack m_kernelStack;
-    memory::MemoryMapping m_memoryMapping; // FIXME: Do reference counting
+    rt::UniquePtr<memory::MemoryMapping> m_memoryMapping; // FIXME: Do reference counting
   };
 }

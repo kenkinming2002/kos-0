@@ -1,3 +1,4 @@
+#include "librt/UniquePtr.hpp"
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <generic/BootInformation.hpp>
@@ -33,26 +34,24 @@ namespace core::memory
     return *currentMemoryMapping;
   }
 
-  rt::Optional<MemoryMapping> MemoryMapping::allocate()
+  rt::UniquePtr<MemoryMapping> MemoryMapping::allocate()
   {
     auto page = allocMappedPages(1);
     if(!page)
-      return rt::nullOptional;
+      return nullptr;
 
     auto& pageDirectory = *reinterpret_cast<common::memory::PageDirectory*>(page->address());
     rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), common::memory::PageDirectoryEntry());
-    MemoryMapping memoryMapping(&pageDirectory);
-    memoryMapping.synchronize();
+
+    auto memoryMapping = rt::makeUnique<MemoryMapping>(&pageDirectory);
+    memoryMapping->synchronize();
     return memoryMapping;
   }
 
   MemoryMapping::~MemoryMapping()
   {
-    if(m_pageDirectory)
-    {
-      auto page = Pages::from(reinterpret_cast<uintptr_t>(m_pageDirectory), PAGE_SIZE);
-      freeMappedPages(page);
-    }
+    auto page = Pages::from(reinterpret_cast<uintptr_t>(m_pageDirectory), PAGE_SIZE);
+    freeMappedPages(page);
   }
 
   uintptr_t MemoryMapping::doFractalMapping(uintptr_t phyaddr, size_t length)

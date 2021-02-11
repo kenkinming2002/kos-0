@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iterator>
+
+#include <librt/NonCopyable.hpp>
 #include <librt/Utility.hpp>
 
 #include <stddef.h>
@@ -8,7 +10,7 @@
 namespace rt::containers
 {
   template<typename T>
-  class List
+  class List : rt::NonCopyable
   {
   public:
     struct NodeBase
@@ -65,13 +67,7 @@ namespace rt::containers
 
   public:
     constexpr List() { m_tail.prev = m_tail.next = &m_tail; }
-
-  public:
-    List(const List&) = delete;
-    List(List&&) = delete;
-    List& operator=(const List&) = delete;
-    List& operator=(List&&) = delete;
-
+    ~List() { while(!empty()) erase(begin()); }
 
   public:
     iterator begin() { return iterator(m_tail.next); }

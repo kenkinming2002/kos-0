@@ -1,5 +1,6 @@
 #pragma once
 
+#include "librt/UniquePtr.hpp"
 #include <i686/tasks/Task.hpp>
 
 #include <librt/containers/List.hpp>
@@ -20,13 +21,12 @@ namespace core::tasks
 
   public:
     Task* addTask();
-    Task& addTask(Task task);
     void removeTask(Task& task);
 
   public:
     void schedule();
 
   private:
-    rt::containers::List<Task> m_tasks;
+    rt::containers::List<rt::UniquePtr<Task>> m_tasks;
   };
 }

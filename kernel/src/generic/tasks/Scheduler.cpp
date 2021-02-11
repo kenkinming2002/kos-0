@@ -61,7 +61,7 @@ namespace core::tasks
     rt::log("We are starting our first task\n");
 
     syscalls::initialize();
-    m_tasks.begin()->switchTo();
+    m_tasks.begin()->get()->switchTo();
     __builtin_unreachable();
   }
 
@@ -71,20 +71,15 @@ namespace core::tasks
     if(!task)
       return nullptr;
 
-    return &addTask(rt::move(*task));
-  }
-
-  Task& Scheduler::addTask(Task task)
-  {
     auto it = m_tasks.insert(m_tasks.end(), rt::move(task));
-    return *it;
+    return it->get();
   }
 
   void Scheduler::removeTask(Task& task)
   {
     // FIXME: We can do better than that
     for(auto it = m_tasks.begin(); it!=m_tasks.end(); ++it)
-      if(&(*it) == &task)
+      if(it->get() == &task)
       {
         m_tasks.erase(it);
         return;
@@ -98,12 +93,12 @@ namespace core::tasks
     // We can actually convert pointer to iterator directly if we export 
     // a interface from the container to do so
     for(auto it = m_tasks.begin(); it != rt::prev(m_tasks.end()); ++it)
-      if(Task::current() == &(*it))
+      if(Task::current() == it->get())
       {
-        rt::next(it)->switchTo();
+        rt::next(it)->get()->switchTo();
         return;
       }
 
-    m_tasks.begin()->switchTo();
+    m_tasks.begin()->get()->switchTo();
   }
 }
