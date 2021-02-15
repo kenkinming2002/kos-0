@@ -16,9 +16,9 @@ namespace boot
   char* kernelImageEnd = kernelImageStorage;
 
   rt::Optional<Kernel> Kernel::from(const multiboot_boot_information* multiboot2BootInformation)
-  {  
+  {
     using namespace common::tasks;
-    
+
     Kernel kernel;
     for(auto* tag = multiboot2BootInformation->tags; tag->type != MULTIBOOT_TAG_TYPE_END; tag = multiboot2::next_tag(tag))
       if(tag->type == MULTIBOOT_TAG_TYPE_MODULE)
@@ -94,14 +94,14 @@ namespace boot
     using namespace boot::memory;
     using namespace common::memory;
 
-    asm volatile ( 
+    asm volatile (
         // Load page directory
-        "jmp %[entry];"       
+        "jmp %[entry];"
         : : [entry]"r"(m_header->entry), "b"(&bootInformation) : "eax", "memory"
         );
     __builtin_unreachable();
   }
-  
+
   Kernel kernel;
   int initKernel(const multiboot_boot_information* multiboot2BootInformation)
   {

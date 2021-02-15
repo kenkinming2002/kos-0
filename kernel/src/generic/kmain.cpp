@@ -32,7 +32,7 @@ static void testMemory()
       /* Note: Don't be stupid like me and try to use break to break out of
        * nested loop and be puzzled as to why the loop does not end */
       if(memorys[i] == nullptr)
-        goto end;  
+        goto end;
 
       const char* str = "deadbeef";
       for(size_t k=0; k<0x100; ++k)

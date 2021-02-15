@@ -34,7 +34,7 @@ namespace boot::memory
 
   uintptr_t nextVirtaddr = 0;
   int map(uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
-  {    
+  {
     using namespace common::memory;
     rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
 
@@ -85,18 +85,18 @@ namespace boot::memory
     // Setup identity paging before enabling paging just so that we can continue
     // execution, before we transfer control to the kernel
     pageDirectory[0] = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
-    asm volatile ( 
+    asm volatile (
         // Load page directory
         "mov cr3, %[pageDirectory];"
 
         // Set PSE(Page Size Extension) bit
-        "mov eax, cr4;"       
+        "mov eax, cr4;"
         "or  eax, 0x00000010;"
         "mov cr4, eax;"
 
         // Set PG(Paging) and PE(Protention) bit
-        "mov eax, cr0;"         
-        "or  eax, 0x80000001;"  
+        "mov eax, cr0;"
+        "or  eax, 0x80000001;"
         "mov cr0, eax;"
         : : [pageDirectory]"r"(&pageDirectory) : "eax", "memory"
         );

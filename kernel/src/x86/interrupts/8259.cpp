@@ -39,11 +39,11 @@ namespace core::interrupts
     rt::log("Configuring 8259 PIC...");
 
     // Initialization Command Word 1 - starts the initialization sequence (in cascade mode)
-    assembly::outb(MASTER_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);  
+    assembly::outb(MASTER_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);
     assembly::ioWait();
     assembly::outb(SLAVE_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);
     assembly::ioWait();
-    
+
     // Initialization Command Word 2 - set master and slave offset
     assembly::outb(MASTER_DATA_PORT, PIC_OFFSET);
     assembly::ioWait();
@@ -56,7 +56,7 @@ namespace core::interrupts
     assembly::ioWait();
     assembly::outb(SLAVE_DATA_PORT, 2);
     assembly::ioWait();
-   
+
     // Initialization Command Word 4
     assembly::outb(MASTER_DATA_PORT, ICW4_8086);
     assembly::ioWait();
@@ -76,38 +76,38 @@ namespace core::interrupts
   {
     uint16_t port;
     uint8_t value;
- 
-    if(irqLine < 8) 
+
+    if(irqLine < 8)
     {
         port = MASTER_DATA_PORT;
-    } 
-    else 
+    }
+    else
     {
         port = SLAVE_DATA_PORT;
         irqLine -= 8;
     }
 
     value = assembly::inb(port) | static_cast<uint8_t>(1 << irqLine);
-    assembly::outb(port, value); 
+    assembly::outb(port, value);
   }
 
   void clearMask(uint8_t irqLine)
   {
     uint16_t port;
     uint8_t value;
- 
-    if(irqLine < 8) 
+
+    if(irqLine < 8)
     {
         port = MASTER_DATA_PORT;
-    } 
-    else 
+    }
+    else
     {
         port = SLAVE_DATA_PORT;
         irqLine -= 8;
     }
 
     value = assembly::inb(port) & ~static_cast<uint8_t>(1 << irqLine);
-    assembly::outb(port, value); 
+    assembly::outb(port, value);
   }
 
   void acknowledge(uint8_t interrupt)

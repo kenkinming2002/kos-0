@@ -23,21 +23,21 @@ namespace core::syscalls
 
   constinit static Handler handlers[MAX_SYSCALL_COUNT]; // TODO: Record additional information for debugging
 
-  void installHandler(int syscallNumber, Handler handler) 
-  { 
+  void installHandler(int syscallNumber, Handler handler)
+  {
     if(handlers[syscallNumber])
       rt::panic("Attempting to install mutiple syscall handlers for same syscall number\n"
             "  syscall number: %i\n"
             "  old addr: 0x%lx\n"
-            "  new addr: 0x%lx\n", syscallNumber, 
+            "  new addr: 0x%lx\n", syscallNumber,
             reinterpret_cast<uintptr_t>(handlers[syscallNumber]),
             reinterpret_cast<uintptr_t>(handler));
 
-    handlers[syscallNumber] = handler; 
+    handlers[syscallNumber] = handler;
   }
 
-  void uninstallHandler(int syscallNumber)                
-  { 
+  void uninstallHandler(int syscallNumber)
+  {
     handlers[syscallNumber] = nullptr;
   }
 

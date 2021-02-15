@@ -33,16 +33,16 @@ namespace core::internals
 
     // Load GDT
     GDT gdt(gdtEntries, sizeof gdtEntries / sizeof gdtEntries[0]);
-    asm volatile ( 
-      "lgdt %[gdt];" 
+    asm volatile (
+      "lgdt %[gdt];"
       "mov ax, 0x10;"
       "mov ds, ax;"
       "mov ss, ax;"
       "mov es, ax;"
       "jmp 0x08:1f;"
-      "1:" 
+      "1:"
       "mov ax, 0x28;"
-      "ltr ax" 
+      "ltr ax"
       : : [gdt]"m"(gdt) : "ax"
     );
     rt::log("Done\n");

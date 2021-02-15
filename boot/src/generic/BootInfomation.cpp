@@ -29,17 +29,17 @@ namespace boot
     for(auto* tag = multiboot2BootInformation->tags; tag->type != MULTIBOOT_TAG_TYPE_END; tag = multiboot2::next_tag(tag))
       switch(tag->type)
       {
-        case MULTIBOOT_TAG_TYPE_MMAP:             
+        case MULTIBOOT_TAG_TYPE_MMAP:
           {
             // Somehow using constructor does not work here, but leaving
             // MemoryMapEntry as aggregate works. I have no idea why. Probably I am
             // invoking some form of UB.
             auto* mmapTag = reinterpret_cast<struct multiboot_tag_mmap*>(tag);
-            for (auto mmapEntry = multiboot2::mmap_entry_begin(mmapTag); mmapEntry < multiboot2::mmap_entry_end(mmapTag); mmapEntry = multiboot2::next_mmap_entry(mmapTag, mmapEntry)) 
+            for (auto mmapEntry = multiboot2::mmap_entry_begin(mmapTag); mmapEntry < multiboot2::mmap_entry_end(mmapTag); mmapEntry = multiboot2::next_mmap_entry(mmapTag, mmapEntry))
             {
               bootInformation.memoryMapEntries[bootInformation.memoryMapEntriesCount].addr = mmapEntry->addr;
               bootInformation.memoryMapEntries[bootInformation.memoryMapEntriesCount].len = mmapEntry->len;
-              switch (mmapEntry->type) 
+              switch (mmapEntry->type)
               {
                 case 1:  bootInformation.memoryMapEntries[bootInformation.memoryMapEntriesCount].type = MemoryMapEntry::Type::AVAILABLE; break;
                 case 3:  bootInformation.memoryMapEntries[bootInformation.memoryMapEntriesCount].type = MemoryMapEntry::Type::ACPI;      break;
@@ -57,7 +57,7 @@ namespace boot
             // initialization does not work.
             auto* module_tag = reinterpret_cast<struct multiboot_tag_module*>(tag);
             auto& moduleEntry = bootInformation.moduleEntries[bootInformation.moduleEntriesCount];
-            moduleEntry.addr = module_tag->mod_start; 
+            moduleEntry.addr = module_tag->mod_start;
             moduleEntry.len  = module_tag->mod_end-module_tag->mod_start;
             rt::strncpy(moduleEntry.cmdline, module_tag->cmdline, sizeof moduleEntry.cmdline);
             ++bootInformation.moduleEntriesCount;
@@ -69,7 +69,7 @@ namespace boot
             rt::strncpy(bootInformation.cmdline, string_tag->string, sizeof bootInformation.cmdline);
             break;
           }
-      } 
+      }
 
     using namespace boot::memory;
     using namespace common::memory;

@@ -22,8 +22,8 @@ namespace core::interrupts
   {
     TASK_GATE_32      = 0x5,
     INTERRUPT_GATE_16 = 0x6,
-    TRAP_GATE_16      = 0x7, 
-    INTERRUPT_GATE_32 = 0xE, 
+    TRAP_GATE_16      = 0x7,
+    INTERRUPT_GATE_32 = 0xE,
     TRAP_GATE_32      = 0xF
   };
 
@@ -55,11 +55,11 @@ namespace core::interrupts
     constexpr void privilegeLevel(PrivilegeLevel privilegeLevel) { m_typeAttr = (static_cast<uint8_t>(m_typeAttr) & ~PRIVILEGE_LEVEL_MASK) | (static_cast<uint8_t>(privilegeLevel) << PRIVILEGE_LEVEL_SHIFT); }
 
   private:
-    uint16_t m_offsetLow  = 0; 
-    uint16_t m_selector   = 0; 
-    uint8_t  m_zero       = 0;      
+    uint16_t m_offsetLow  = 0;
+    uint16_t m_selector   = 0;
+    uint8_t  m_zero       = 0;
     uint8_t  m_typeAttr   = 0;
-    uint16_t m_offsetHigh = 0; 
+    uint16_t m_offsetHigh = 0;
   }__attribute((packed));
 
   struct IDT

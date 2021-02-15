@@ -30,7 +30,7 @@ namespace core::memory
       size_t endIndex   = (addr + length)        / PAGE_SIZE;
       if(beginIndex<endIndex)
         return Pages{beginIndex, endIndex-beginIndex};
-      else 
+      else
         return Pages{0, 0}; // We don't even have a page
     }
 

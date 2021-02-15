@@ -5,10 +5,10 @@
 
 #include <librt/UniquePtr.hpp>
 #include <librt/NonCopyable.hpp>
-  
+
 namespace core::memory
 {
-  /* 
+  /*
    * Each class MemoryMapping manages the virtual to physical address translation of a single process.
    *
    * On i686 platform, the virtual address range are splited into multiple parts

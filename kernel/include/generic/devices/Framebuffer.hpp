@@ -38,7 +38,7 @@ namespace core::devices
     struct [[gnu::packed]] Cell
     {
     public:
-      Cell(char c, Color fg, Color bg) 
+      Cell(char c, Color fg, Color bg)
         : c(c), color(static_cast<uint8_t>(bg) << 4 | static_cast<uint8_t>(fg)) {}
 
     public:

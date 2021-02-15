@@ -43,8 +43,8 @@ namespace core::memory
   rt::Optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
   void freeVirtualPages(Pages pages) { pagesAllocator().freeVirtualPages(pages); }
 
-  rt::Optional<Pages> allocMappedPages(size_t count) 
-  { 
+  rt::Optional<Pages> allocMappedPages(size_t count)
+  {
     if(initialized)
       return pagesAllocator().allocMappedPages(count);
     else

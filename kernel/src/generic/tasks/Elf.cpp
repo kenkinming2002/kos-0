@@ -83,7 +83,7 @@ namespace core::tasks
 
     task.asUserspaceTask(header->entry);
     oldMemoryMapping.makeCurrent();
-    
+
     return 0;
   }
 }

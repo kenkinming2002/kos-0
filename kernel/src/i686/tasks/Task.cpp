@@ -44,7 +44,7 @@ namespace core::tasks
       return nullptr;
 
     auto stack = Stack{
-      .ptr = kernelStackPage->address(), 
+      .ptr = kernelStackPage->address(),
       .size = kernelStackPage->length(),
       .esp = kernelStackPage->address() + kernelStackPage->length()
     };
@@ -75,12 +75,12 @@ namespace core::tasks
     if(current() != nullptr)
     {
       auto& previousTask = *current();
-      makeCurrent(); 
+      makeCurrent();
       core_tasks_switch_esp(&previousTask.m_kernelStack.esp, &m_kernelStack.esp);
     }
     else
     {
-      /* 
+      /*
        * There is no previous task, so we use a dummy esp
        *
        * Note: We cannot call startUserspaceTask ourself, because we have to

@@ -67,11 +67,11 @@ namespace common::memory
       m_data |= 1u; // Present
     }
 
-  public: 
+  public:
     FORCE_INLINE constexpr bool present() const { return m_data & 1u; }
     FORCE_INLINE constexpr uint32_t address() const { return m_data & 0xFFFFF000; }
 
-  public: 
+  public:
     FORCE_INLINE constexpr void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
     FORCE_INLINE constexpr void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
 

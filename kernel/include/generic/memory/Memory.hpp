@@ -4,7 +4,7 @@
 
 #include <librt/Optional.hpp>
 
-#include <stddef.h> 
+#include <stddef.h>
 
 namespace core::memory
 {
