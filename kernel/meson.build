@@ -8,6 +8,7 @@ core_src = files(
   'src/generic/memory/Memory.cpp',
   'src/generic/memory/LinkedListPagesAllocator.cpp',
   'src/generic/memory/liballocImpl.cpp',
+  'src/generic/memory/Physical.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/8259.cpp',

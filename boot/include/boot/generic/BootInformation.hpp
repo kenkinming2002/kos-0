@@ -25,7 +25,7 @@ public:
   char cmdline[MAX_CMDLINE_LENGTH];
 };
 
-struct MemoryRegion
+struct ReservedMemoryRegion
 {
   uintptr_t addr;
   size_t len;
@@ -54,8 +54,8 @@ struct BootInformation
   ModuleEntry moduleEntries[MAX_MODULE_ENTRIES_COUNT];
   size_t moduleEntriesCount;
 
-  MemoryRegion memoryRegions[MAX_MEMORY_REGIONS_COUNT];
-  size_t memoryRegionsCount;
+  ReservedMemoryRegion reservedMemoryRegions[MAX_MEMORY_REGIONS_COUNT];
+  size_t reservedMemoryRegionsCount;
 
   common::memory::PageDirectory* pageDirectory;
   void* framebuffer;
@@ -67,5 +67,5 @@ namespace boot
   extern BootInformation bootInformation;
 
   BootInformation* initBootInformation(struct multiboot_boot_information* multiboot2BootInformation);
-  void addMemoryRegion(uintptr_t addr, size_t len, MemoryRegion::Type type);
+  void addReservedMemoryRegion(uintptr_t addr, size_t len, ReservedMemoryRegion::Type type);
 }

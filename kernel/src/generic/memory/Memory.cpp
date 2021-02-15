@@ -40,9 +40,6 @@ namespace core::memory
     initialized = true;
   }
 
-  rt::Optional<Pages> allocPhysicalPages(size_t count) { return pagesAllocator().allocPhysicalPages(count); }
-  void freePhysicalPages(Pages pages) { pagesAllocator().freePhysicalPages(pages); }
-
   rt::Optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
   void freeVirtualPages(Pages pages) { pagesAllocator().freeVirtualPages(pages); }
 

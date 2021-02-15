@@ -12,37 +12,12 @@ namespace core::memory
   public:
     PagesAllocator()
     {
-      for(size_t i=0; i<bootInformation->memoryMapEntriesCount; ++i)
-      {
-        const auto& memoryMapEntry = bootInformation->memoryMapEntries[i];
-        if(memoryMapEntry.type == MemoryMapEntry::Type::AVAILABLE)
-          m_physicalPagesAllocator.markAsAvailable(Pages::fromConservative(memoryMapEntry.addr, memoryMapEntry.len));
-      }
-
-      for(size_t i=0; i<bootInformation->moduleEntriesCount; ++i)
-      {
-        const auto& moduleEntry = bootInformation->moduleEntries[i];
-        m_physicalPagesAllocator.markAsUsed(Pages::fromAggressive(moduleEntry.addr, moduleEntry.len));
-      }
-
-      for(size_t i=0; i<bootInformation->memoryRegionsCount; ++i)
-      {
-        const auto& memoryRegions = bootInformation->memoryRegions[i];
-        m_physicalPagesAllocator.markAsUsed(Pages::fromAggressive(memoryRegions.addr, memoryRegions.len));
-      }
-
       uintptr_t kernel_heap_begin = 0xD0000000;
       uintptr_t kernel_heap_end   = 0xE0000000;
       m_virtualPagesAllocator.markAsAvailable(Pages::from(kernel_heap_begin, kernel_heap_end-kernel_heap_begin));
-
-      for(const auto& pages : m_physicalPagesAllocator.list())
-        rt::logf("Physical memory from 0x%lx to 0x%lx with length 0x%lx\n", pages.address(), pages.address()+pages.length(), pages.length());
     }
 
   public:
-    rt::Optional<Pages> allocPhysicalPages(size_t count) { return m_physicalPagesAllocator.allocate(count); }
-    void freePhysicalPages(Pages pages) { m_physicalPagesAllocator.deallocate(pages); }
-
     rt::Optional<Pages> allocVirtualPages(size_t count) { return m_virtualPagesAllocator.allocate(count); }
     void freeVirtualPages(Pages pages) { m_virtualPagesAllocator.deallocate(pages); }
 
@@ -63,10 +38,6 @@ namespace core::memory
     }
 
   private:
-
-    /* TODO: Use multiple physical pages allocator for DMA and non-DMA memory and
-     *       so on */
-    LinkedListPagesAllocator m_physicalPagesAllocator;
     LinkedListPagesAllocator m_virtualPagesAllocator;
   };
 

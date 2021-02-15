@@ -5,20 +5,16 @@
 namespace rt
 {
   template<typename BidirectionalIterator>
-  BidirectionalIterator prev(BidirectionalIterator it, typename BidirectionalIterator::difference_type n = 1)
+  BidirectionalIterator prev(BidirectionalIterator it)
   {
-    while(n--)
-      --it;
-
+    --it;
     return it;
   }
 
   template<typename InputIterator>
-  InputIterator next(InputIterator it, typename InputIterator::difference_type n = 1)
+  InputIterator next(InputIterator it)
   {
-    while(n--)
-      ++it;
-
+    ++it;
     return it;
   }
 

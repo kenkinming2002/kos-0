@@ -122,7 +122,7 @@ namespace boot
 
   void updateBootInformationKernel()
   {
-    addMemoryRegion(reinterpret_cast<uintptr_t>(kernelImageStorage), reinterpret_cast<uintptr_t>(kernelImageEnd) - reinterpret_cast<uintptr_t>(kernelImageStorage), MemoryRegion::Type::KERNEL);
+    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(kernelImageStorage), reinterpret_cast<uintptr_t>(kernelImageEnd) - reinterpret_cast<uintptr_t>(kernelImageStorage), ReservedMemoryRegion::Type::KERNEL);
   }
 
   [[noreturn]] void runKernel(BootInformation& bootInformation)

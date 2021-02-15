@@ -2,6 +2,7 @@
 #include <generic/devices/Framebuffer.hpp>
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/memory/Memory.hpp>
+#include <generic/memory/Physical.hpp>
 #include <generic/BootInformation.hpp>
 
 #include <i686/internals/Internals.hpp>
@@ -17,7 +18,7 @@
 
 static void testMemory()
 {
-  rt::log("Testing memory allocation and deallocation...");
+  rt::log("Testing memory allocation and deallocation...\n");
 
   for(size_t j=0; j<128;++j)
   {
@@ -61,6 +62,7 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::internals::initialize();
   core::interrupts::initialize();
   core::memory::MemoryMapping::initialize();
+  core::memory::initializePhysical();
   core::memory::initialize();
   core::tasks::Scheduler::initialize();
 }

@@ -78,7 +78,7 @@ namespace boot
     if(result == MAP_FAILED)
       return nullptr;
 
-    addMemoryRegion(reinterpret_cast<uintptr_t>(&bootInformation), sizeof bootInformation, MemoryRegion::Type::BOOT_INFORMATION);
+    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&bootInformation), sizeof bootInformation, ReservedMemoryRegion::Type::BOOT_INFORMATION);
 
     updateBootInformationFramebuffer();
     updateBootInformationPaging();
@@ -87,8 +87,8 @@ namespace boot
     return reinterpret_cast<BootInformation*>(result);
   }
 
-  void addMemoryRegion(uintptr_t addr, size_t len, MemoryRegion::Type type)
+  void addReservedMemoryRegion(uintptr_t addr, size_t len, ReservedMemoryRegion::Type type)
   {
-    bootInformation.memoryRegions[bootInformation.memoryRegionsCount++] = MemoryRegion{addr, len, type};
+    bootInformation.reservedMemoryRegions[bootInformation.reservedMemoryRegionsCount++] = ReservedMemoryRegion{addr, len, type};
   }
 }

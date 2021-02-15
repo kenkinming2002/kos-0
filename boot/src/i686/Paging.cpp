@@ -107,8 +107,8 @@ namespace boot::memory
     using namespace boot::memory;
     using namespace common::memory;
 
-    addMemoryRegion(reinterpret_cast<uintptr_t>(&pageDirectory), sizeof pageDirectory, MemoryRegion::Type::PAGING);
-    addMemoryRegion(reinterpret_cast<uintptr_t>(&pageTables),    reinterpret_cast<uintptr_t>(nextPageTable) - reinterpret_cast<uintptr_t>(&pageTables), MemoryRegion::Type::PAGING);
+    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&pageDirectory), sizeof pageDirectory, ReservedMemoryRegion::Type::PAGING);
+    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&pageTables),    reinterpret_cast<uintptr_t>(nextPageTable) - reinterpret_cast<uintptr_t>(&pageTables), ReservedMemoryRegion::Type::PAGING);
 
     auto result = memory::map(reinterpret_cast<uintptr_t>(pageDirectory), sizeof pageDirectory, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
     if(result == MAP_FAILED)
