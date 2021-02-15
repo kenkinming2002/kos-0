@@ -75,21 +75,17 @@ static void kmainInitialize(BootInformation* bootInformation)
   {
     // TODO: Parse elf
     const auto& module = bootInformation->moduleEntries[i];
-
-    auto physicalPages = core::memory::Pages::fromAggressive(module.addr, module.len);
-    auto virtualPages  = core::memory::allocVirtualPages(physicalPages.count);
-    if(!virtualPages)
+    auto pages = core::memory::mapPages(core::memory::Pages::fromAggressive(module.addr, module.len));
+    if(!pages)
       continue;
 
-    core::memory::MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_ONLY, physicalPages);
     auto task = core::tasks::Scheduler::instance().addTask();
     if(!task)
       rt::panic("Failed to create task\n");
-    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(virtualPages->address()), virtualPages->length()) != 0)
+    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(pages->address()), pages->length()) != 0)
       rt::panic("Failed to load ELF\n");
 
-    core::memory::MemoryMapping::current().unmap(*virtualPages);
-    core::memory::freeVirtualPages(*virtualPages);
+    core::memory::freeMappedPages(*pages);
   }
   rt::log("Done\n");
   core::tasks::Scheduler::instance().startFirstUserspaceTask();

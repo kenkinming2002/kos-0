@@ -35,6 +35,16 @@ namespace core::memory
     initializeVirtual();
   }
 
+  rt::Optional<Pages> mapPages(Pages physicalPages)
+  {
+    auto virtualPages = allocVirtualPages(physicalPages.count);
+    if(!virtualPages)
+      return rt::nullOptional;
+
+    MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_WRITE, physicalPages);
+    return virtualPages;
+  }
+
   rt::Optional<Pages> allocMappedPages(size_t count)
   {
     auto virtualPages = allocVirtualPages(count);
