@@ -16,126 +16,123 @@
 
 namespace core::memory
 {
-  struct MemoryRegion
+  namespace
   {
-    uintptr_t addr;
-    size_t length;
-
-    static constexpr MemoryRegion from(uintptr_t begin, uintptr_t end)
+    struct MemoryRegion
     {
-      uintptr_t addr = begin;
-      uintptr_t length = end>=begin ? end-begin : 0;
-      return MemoryRegion{addr, length};
-    }
-    constexpr uintptr_t begin() const { return addr; }
-    constexpr uintptr_t end()   const { return addr+length; }
-    constexpr bool empty() const { return length == 0; }
+      uintptr_t addr;
+      size_t length;
 
-    constexpr static bool overlap(MemoryRegion lhs, MemoryRegion rhs)
-    {
-      return lhs.begin()<rhs.end() && rhs.begin()<lhs.end();
-    }
-
-    // Precondition: overlap(lhs, rhs) == true
-    static constexpr MemoryRegion merge(MemoryRegion lhs, MemoryRegion rhs)
-    {
-      return MemoryRegion::from(rt::min(lhs.begin(), rhs.begin()), rt::max(lhs.end(), rhs.end()));
-    }
-
-    // Precondition: overlap(lhs, rhs) == true
-    constexpr rt::Pair<MemoryRegion, MemoryRegion> splitBy(MemoryRegion memoryRegion) const
-    {
-      auto front = MemoryRegion::from(this->begin(), memoryRegion.begin());
-      auto back  = MemoryRegion::from(memoryRegion.end(), this->end());
-      return {front, back};
-    }
-  };
-
-  static void add(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion) { memoryRegions.pushBack(memoryRegion); }
-  static void remove(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion)
-  {
-    rt::StaticVector<MemoryRegion, 32> newMemoryRegions; // We need to be careful of stack usage
-    for(const auto& existingMemoryRegion : memoryRegions)
-      if(MemoryRegion::overlap(existingMemoryRegion, memoryRegion))
+      static constexpr MemoryRegion from(uintptr_t begin, uintptr_t end)
       {
-        const auto [first, second] = existingMemoryRegion.splitBy(memoryRegion);
-        if(!first.empty())
-          newMemoryRegions.pushBack(first);
-        if(!second.empty())
-          newMemoryRegions.pushBack(second);
-
-        // The memory region to remove may collide with multiple existing memory
-        // region so we can not bail out early.
+        uintptr_t addr = begin;
+        uintptr_t length = end>=begin ? end-begin : 0;
+        return MemoryRegion{addr, length};
       }
-      else
-        newMemoryRegions.pushBack(existingMemoryRegion);
+      constexpr uintptr_t begin() const { return addr; }
+      constexpr uintptr_t end()   const { return addr+length; }
+      constexpr bool empty() const { return length == 0; }
 
-    memoryRegions = rt::move(newMemoryRegions);
-  }
-
-  static void sanitize(rt::StaticVector<MemoryRegion, 32>& memoryRegions)
-  {
-    rt::sort(memoryRegions.begin(), memoryRegions.end(), [](const MemoryRegion& lhs, const MemoryRegion& rhs) { return lhs.addr<=rhs.addr; });
-
-    // We shouldn't actually need to do this step if bootloader hand us a sane
-    // memory map which does not have any overlapping region
-    memoryRegions.erase(rt::adjacentMerge(memoryRegions.begin(), memoryRegions.end(), &MemoryRegion::overlap, &MemoryRegion::merge), memoryRegions.end());
-  }
-
-  static rt::StaticVector<MemoryRegion, 32> prepare()
-  {
-    rt::StaticVector<MemoryRegion, 32> memoryRegions;
-    for(size_t i=0; i<bootInformation->memoryMapEntriesCount; ++i)
-      if(bootInformation->memoryMapEntries[i].type == MemoryMapEntry::Type::AVAILABLE)
+      constexpr static bool overlap(MemoryRegion lhs, MemoryRegion rhs)
       {
-        const auto& memoryMapEntries = bootInformation->memoryMapEntries[i];
-        add(memoryRegions, MemoryRegion{memoryMapEntries.addr, memoryMapEntries.len});
+        return lhs.begin()<rhs.end() && rhs.begin()<lhs.end();
       }
 
-    for(size_t i=0; i<bootInformation->moduleEntriesCount; ++i)
+      // Precondition: overlap(lhs, rhs) == true
+      static constexpr MemoryRegion merge(MemoryRegion lhs, MemoryRegion rhs)
+      {
+        return MemoryRegion::from(rt::min(lhs.begin(), rhs.begin()), rt::max(lhs.end(), rhs.end()));
+      }
+
+      // Precondition: overlap(lhs, rhs) == true
+      constexpr rt::Pair<MemoryRegion, MemoryRegion> splitBy(MemoryRegion memoryRegion) const
+      {
+        auto front = MemoryRegion::from(this->begin(), memoryRegion.begin());
+        auto back  = MemoryRegion::from(memoryRegion.end(), this->end());
+        return {front, back};
+      }
+    };
+
+    void add(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion) { memoryRegions.pushBack(memoryRegion); }
+    void remove(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion)
     {
-      const auto& moduleEntries = bootInformation->moduleEntries[i];
-      remove(memoryRegions, MemoryRegion{moduleEntries.addr, moduleEntries.len});
+      rt::StaticVector<MemoryRegion, 32> newMemoryRegions; // We need to be careful of stack usage
+      for(const auto& existingMemoryRegion : memoryRegions)
+        if(MemoryRegion::overlap(existingMemoryRegion, memoryRegion))
+        {
+          const auto [first, second] = existingMemoryRegion.splitBy(memoryRegion);
+          if(!first.empty())
+            newMemoryRegions.pushBack(first);
+          if(!second.empty())
+            newMemoryRegions.pushBack(second);
+
+          // The memory region to remove may collide with multiple existing memory
+          // region so we can not bail out early.
+        }
+        else
+          newMemoryRegions.pushBack(existingMemoryRegion);
+
+      memoryRegions = rt::move(newMemoryRegions);
     }
 
-    for(size_t i=0; i<bootInformation->reservedMemoryRegionsCount; ++i)
+    void sanitize(rt::StaticVector<MemoryRegion, 32>& memoryRegions)
     {
-      const auto& reservedMemoryRegions = bootInformation->reservedMemoryRegions[i];
-      remove(memoryRegions, MemoryRegion{reservedMemoryRegions.addr, reservedMemoryRegions.len});
+      rt::sort(memoryRegions.begin(), memoryRegions.end(), [](const MemoryRegion& lhs, const MemoryRegion& rhs) { return lhs.addr<=rhs.addr; });
+
+      // We shouldn't actually need to do this step if bootloader hand us a sane
+      // memory map which does not have any overlapping region
+      memoryRegions.erase(rt::adjacentMerge(memoryRegions.begin(), memoryRegions.end(), &MemoryRegion::overlap, &MemoryRegion::merge), memoryRegions.end());
     }
 
-    sanitize(memoryRegions);
-    return memoryRegions;
+    rt::StaticVector<MemoryRegion, 32> prepare()
+    {
+      rt::StaticVector<MemoryRegion, 32> memoryRegions;
+      for(size_t i=0; i<bootInformation->memoryMapEntriesCount; ++i)
+        if(bootInformation->memoryMapEntries[i].type == MemoryMapEntry::Type::AVAILABLE)
+        {
+          const auto& memoryMapEntries = bootInformation->memoryMapEntries[i];
+          add(memoryRegions, MemoryRegion{memoryMapEntries.addr, memoryMapEntries.len});
+        }
+
+      for(size_t i=0; i<bootInformation->moduleEntriesCount; ++i)
+      {
+        const auto& moduleEntries = bootInformation->moduleEntries[i];
+        remove(memoryRegions, MemoryRegion{moduleEntries.addr, moduleEntries.len});
+      }
+
+      for(size_t i=0; i<bootInformation->reservedMemoryRegionsCount; ++i)
+      {
+        const auto& reservedMemoryRegions = bootInformation->reservedMemoryRegions[i];
+        remove(memoryRegions, MemoryRegion{reservedMemoryRegions.addr, reservedMemoryRegions.len});
+      }
+
+      sanitize(memoryRegions);
+      return memoryRegions;
+    }
+
+    constexpr uintptr_t SENTINEL = UINTPTR_MAX;
+    struct PhysicalPagesHeader
+    {
+      uintptr_t prev, next;
+      size_t length;
+    };
+
+    PhysicalPagesHeader* getPhysicalPagesHeader(uintptr_t addr)
+    {
+      return reinterpret_cast<PhysicalPagesHeader*>(MemoryMapping::doFractalMapping(addr, sizeof(PhysicalPagesHeader)));
+    }
+
+    constexpr bool aligned(uintptr_t addr, size_t alignment) { return addr / alignment * alignment == addr; }
+    constexpr uintptr_t alignUp(uintptr_t addr, size_t alignment) { return (addr + (alignment-1)) / alignment * alignment; }
+
+    static uintptr_t head;
   }
 
-  static constexpr uintptr_t SENTINEL = UINTPTR_MAX;
-  struct PhysicalPagesHeader
-  {
-    uintptr_t prev, next;
-    size_t length;
-  };
-
-  static PhysicalPagesHeader* getPhysicalPagesHeader(uintptr_t addr)
-  {
-    return reinterpret_cast<PhysicalPagesHeader*>(MemoryMapping::doFractalMapping(addr, sizeof(PhysicalPagesHeader)));
-  }
-
-  static constexpr bool aligned(uintptr_t addr, size_t alignment)
-  {
-    return addr / alignment * alignment == addr;
-  }
-
-  static constexpr uintptr_t alignUp(uintptr_t addr, size_t alignment)
-  {
-    return (addr + (alignment-1)) / alignment * alignment;
-  }
-
-  static uintptr_t m_head;
   void initializePhysical()
   {
     const auto memoryRegions = prepare();
 
-    m_head = memoryRegions.begin()->addr;
+    head = memoryRegions.begin()->addr;
     for(auto it = memoryRegions.begin(); it != memoryRegions.end(); ++it)
     {
       rt::logf("begin:%lx, end:%lx\n", it->begin(), it->end());
@@ -160,7 +157,7 @@ namespace core::memory
   rt::Optional<Pages> allocPhysicalPages(size_t count)
   {
     PhysicalPagesHeader* header;
-    for(auto addr = m_head; addr != SENTINEL; addr = header->next)
+    for(auto addr = head; addr != SENTINEL; addr = header->next)
     {
       header = getPhysicalPagesHeader(addr);
 
@@ -175,7 +172,7 @@ namespace core::memory
           *newHeader = {.prev = prev, .next = next, .length = length - count * PAGE_SIZE};
 
           if(prev == SENTINEL)
-            m_head = newAddr;
+            head = newAddr;
 
           if(prev != SENTINEL)
             getPhysicalPagesHeader(prev)->next = newAddr;
@@ -186,7 +183,7 @@ namespace core::memory
         else
         {
           if(prev == SENTINEL)
-            m_head = next;
+            head = next;
 
           if(prev != SENTINEL)
             getPhysicalPagesHeader(prev)->next = next;
@@ -207,13 +204,13 @@ namespace core::memory
     auto addr = pages.address();
     auto length = pages.length();
 
-    auto* header = getPhysicalPagesHeader(m_head);
+    auto* header = getPhysicalPagesHeader(head);
     header->prev = addr;
 
     auto* newHeader = getPhysicalPagesHeader(addr);
-    *newHeader = {.prev = SENTINEL, .next = m_head, .length = length};
+    *newHeader = {.prev = SENTINEL, .next = head, .length = length};
 
-    m_head = addr;
+    head = addr;
 
   }
 }
