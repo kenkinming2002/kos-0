@@ -1,11 +1,8 @@
 #include <generic/memory/Memory.hpp>
 
-#include <generic/memory/BootPagesAllocator.hpp>
-#include <generic/memory/PagesAllocator.hpp>
+#include <i686/memory/MemoryMapping.hpp>
 
 #include <liballoc_1_1.h>
-
-#include <librt/Global.hpp>
 
 namespace core::memory
 {
@@ -30,28 +27,29 @@ namespace core::memory
    * before our real allocator is initialized, but that should not happen in
    * the case of LinkedListPagesAllocator with low memory overhead.
    */
-  constinit static BootPagesAllocator bootPagesAllocator;
-  constinit static rt::Global<PagesAllocator> pagesAllocator;
 
-  static bool initialized = false;
   void initialize()
   {
-    pagesAllocator.construct();
-    initialized = true;
+    MemoryMapping::initialize();
+    initializePhysical();
+    initializeVirtual();
   }
-
-  rt::Optional<Pages> allocVirtualPages(size_t count) { return pagesAllocator().allocVirtualPages(count); }
-  void freeVirtualPages(Pages pages) { pagesAllocator().freeVirtualPages(pages); }
 
   rt::Optional<Pages> allocMappedPages(size_t count)
   {
-    if(initialized)
-      return pagesAllocator().allocMappedPages(count);
-    else
-      return bootPagesAllocator.allocMappedPages(count);
+    auto virtualPages = allocVirtualPages(count);
+    if(!virtualPages)
+      return rt::nullOptional;
+
+    MemoryMapping::current().map(*virtualPages, common::memory::Access::SUPERVISOR_ONLY, common::memory::Permission::READ_WRITE);
+    return virtualPages;
   }
 
-  void freeMappedPages(Pages pages) { pagesAllocator().freeMappedPages(pages); }
+  void freeMappedPages(Pages pages)
+  {
+    MemoryMapping::current().unmap(pages);
+    freeVirtualPages(pages);
+  }
 
   void* malloc(size_t size) { return ::kmalloc(size); }
   void* realloc(void* ptr, size_t size) { return ::krealloc(ptr, size); }

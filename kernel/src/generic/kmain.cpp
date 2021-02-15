@@ -3,6 +3,7 @@
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/memory/Memory.hpp>
 #include <generic/memory/Physical.hpp>
+#include <generic/memory/Virtual.hpp>
 #include <generic/BootInformation.hpp>
 
 #include <i686/internals/Internals.hpp>
@@ -61,8 +62,6 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::devices::Framebuffer::initialize();
   core::internals::initialize();
   core::interrupts::initialize();
-  core::memory::MemoryMapping::initialize();
-  core::memory::initializePhysical();
   core::memory::initialize();
   core::tasks::Scheduler::initialize();
 }

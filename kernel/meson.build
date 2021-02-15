@@ -6,9 +6,9 @@ core_src = files(
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/Memory.cpp',
-  'src/generic/memory/LinkedListPagesAllocator.cpp',
   'src/generic/memory/liballocImpl.cpp',
   'src/generic/memory/Physical.cpp',
+  'src/generic/memory/Virtual.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/8259.cpp',
@@ -39,7 +39,7 @@ core_asm_obj = asm_gen.process(
 liballoc_proj = subproject('liballoc')
 liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
 
-kernel = executable('kernel', 
+kernel = executable('kernel',
   core_src, core_asm_obj,
   include_directories : ['../common/include/', '../boot/include/', 'include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld'],

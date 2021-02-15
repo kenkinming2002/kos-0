@@ -1,6 +1,8 @@
 #pragma once
 
 #include <generic/memory/Pages.hpp>
+#include <generic/memory/Physical.hpp>
+#include <generic/memory/Virtual.hpp>
 
 #include <librt/Optional.hpp>
 
@@ -9,12 +11,6 @@
 namespace core::memory
 {
   void initialize();
-
-  rt::Optional<Pages> allocPhysicalPages(size_t count);
-  void freePhysicalPages(Pages pages);
-
-  rt::Optional<Pages> allocVirtualPages(size_t count);
-  void freeVirtualPages(Pages pages);
 
   rt::Optional<Pages> allocMappedPages(size_t count);
   void freeMappedPages(Pages pages);
