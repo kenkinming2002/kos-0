@@ -1,32 +1,17 @@
 #pragma once
 
-#include "librt/UniquePtr.hpp"
 #include <i686/tasks/Task.hpp>
 
+#include <librt/UniquePtr.hpp>
 #include <librt/containers/List.hpp>
 
 namespace core::tasks
 {
-  class Scheduler
-  {
-  public:
-    static void initialize();
-    static Scheduler& instance();
+  void initializeScheduler();
 
-  public:
-    Scheduler();
+  Task* addTask();
+  void removeTask(Task* task);
 
-  public:
-    [[noreturn]] void startFirstUserspaceTask();
-
-  public:
-    Task* addTask();
-    void removeTask(Task& task);
-
-  public:
-    void schedule();
-
-  private:
-    rt::containers::List<rt::UniquePtr<Task>> m_tasks;
-  };
+  [[noreturn]] void scheduleInitial();
+  void schedule();
 }

@@ -63,7 +63,8 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::internals::initialize();
   core::interrupts::initialize();
   core::memory::initialize();
-  core::tasks::Scheduler::initialize();
+  core::syscalls::initialize();
+  core::tasks::initializeScheduler();
 }
 
 [[noreturn]] static void kmainLoadAndRunUserspaceTask()
@@ -79,7 +80,7 @@ static void kmainInitialize(BootInformation* bootInformation)
     if(!pages)
       continue;
 
-    auto task = core::tasks::Scheduler::instance().addTask();
+    auto task = core::tasks::addTask();
     if(!task)
       rt::panic("Failed to create task\n");
     if(core::tasks::loadElf(*task, reinterpret_cast<char*>(pages->address()), pages->length()) != 0)
@@ -88,7 +89,7 @@ static void kmainInitialize(BootInformation* bootInformation)
     core::memory::freeMappedPages(*pages);
   }
   rt::log("Done\n");
-  core::tasks::Scheduler::instance().startFirstUserspaceTask();
+  core::tasks::scheduleInitial();
 }
 
 extern "C" void kmain(BootInformation* bootInformation)

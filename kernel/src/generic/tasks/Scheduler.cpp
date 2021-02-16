@@ -6,6 +6,7 @@
 
 #include <x86/interrupts/8259.hpp>
 
+#include <librt/Panic.hpp>
 #include <librt/Global.hpp>
 #include <librt/Iterator.hpp>
 #include <librt/Log.hpp>
@@ -13,92 +14,84 @@
 
 namespace core::tasks
 {
-  static rt::Global<Scheduler> scheduler;
-  void Scheduler::initialize()
+  namespace
   {
-    scheduler.construct();
+    rt::containers::List<rt::UniquePtr<Task>> tasks;
+
+    /*
+     * Yield syscall
+     *
+     * Note: We can just use cli and sti instruction instead of
+     *       saving and restoring eflags. This is based on the assumption that
+     *       syscall must come from userspace and thus, interrupt must be enabled.
+     */
+    int syscallYield(int, int, int, int)
+    {
+      asm volatile ("cli" : : : "memory");
+      schedule();
+      asm volatile ("sti" : : : "memory");
+      return 0;
+    }
+
+    /*
+     * Note: We have to disable interrupt, however, locking would not be
+     *       necessary, since we would or *WILL* have a per-cpu task queue.
+     */
+    void timerHandler(uint8_t, uint32_t, uintptr_t)
+    {
+      interrupts::acknowledge(0);
+      schedule();
+    }
+
+    auto findTask(Task* task)
+    {
+      ASSERT(task);
+
+      // FIXME: We can do better than that
+      for(auto it = tasks.begin(); it!=tasks.end(); ++it)
+        if(it->get() == task)
+          return it;
+
+      rt::panic("Failed to find task\n");
+    }
   }
 
-  Scheduler& Scheduler::instance()
-  {
-    return scheduler();
-  }
-
-  /*
-   * Yield syscall
-   *
-   * Note: We can just use cli and sti instruction instead of
-   *       saving and restoring eflags. This is based on the assumption that
-   *       syscall must come from userspace and thus, interrupt must be enabled.
-   */
-  static int syscallYield(int, int, int, int)
-  {
-    asm volatile ("cli" : : : "memory");
-    Scheduler::instance().schedule();
-    asm volatile ("sti" : : : "memory");
-    return 0;
-  }
-
-  /*
-   * Note: We have to disable interrupt, however, locking would not be
-   *       necessary, since we would or *WILL* have a per-cpu task queue.
-   */
-  static void timerHandler(uint8_t, uint32_t, uintptr_t)
-  {
-    interrupts::acknowledge(0);
-    Scheduler::instance().schedule();
-  }
-
-  Scheduler::Scheduler()
+  void initializeScheduler()
   {
     syscalls::installHandler(0, &syscallYield);
     interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
     interrupts::clearMask(0);
   }
 
-  [[noreturn]] void Scheduler::startFirstUserspaceTask()
-  {
-    rt::log("We are starting our first task\n");
-
-    syscalls::initialize();
-    m_tasks.begin()->get()->switchTo();
-    __builtin_unreachable();
-  }
-
-  Task* Scheduler::addTask()
+  Task* addTask()
   {
     auto task = Task::allocate();
     if(!task)
       return nullptr;
 
-    auto it = m_tasks.insert(m_tasks.end(), rt::move(task));
+    auto it = tasks.insert(tasks.end(), rt::move(task));
     return it->get();
   }
 
-  void Scheduler::removeTask(Task& task)
+  void removeTask(Task* task)
   {
-    // FIXME: We can do better than that
-    for(auto it = m_tasks.begin(); it!=m_tasks.end(); ++it)
-      if(it->get() == &task)
-      {
-        m_tasks.erase(it);
-        return;
-      }
+    auto it = findTask(task);
+    tasks.erase(it);
   }
 
-  void Scheduler::schedule()
+  [[noreturn]] void scheduleInitial()
   {
-    ASSERT(!m_tasks.empty());
+    rt::log("We are starting our first task\n");
+    tasks.begin()->get()->switchTo();
+    __builtin_unreachable();
+  }
 
-    // We can actually convert pointer to iterator directly if we export
-    // a interface from the container to do so
-    for(auto it = m_tasks.begin(); it != rt::prev(m_tasks.end()); ++it)
-      if(Task::current() == it->get())
-      {
-        rt::next(it)->get()->switchTo();
-        return;
-      }
-
-    m_tasks.begin()->get()->switchTo();
+  void schedule()
+  {
+    ASSERT(!tasks.empty());
+    auto currentTask = Task::current();
+    auto it = findTask(currentTask);
+    auto nextIt = rt::next(it) != tasks.end() ? rt::next(it) : tasks.begin();
+    (*nextIt)->switchTo();
   }
 }
