@@ -1,11 +1,14 @@
 #include <librt/Log.hpp>
+#include <librt/Hooks.hpp>
 
-extern "C" void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
+namespace rt::internals
 {
-  rt::logf("Assertion Failure:\n");
-  rt::logf("  line: %d\n", line);
-  rt::logf("  function: %s\n", func);
-  rt::logf("  failedexpr: %s\n", failedexpr);
-  for(;;)
-    asm("hlt");
+  void assertFunc(const char* file, int line, const char* func, const char* expr)
+  {
+    rt::logf("Assertion Failure:\n");
+    rt::logf("  line: %d\n", line);
+    rt::logf("  function: %s\n", func);
+    rt::logf("  expr: %s\n", expr);
+    rt::hooks::abort();
+  }
 }

@@ -13,7 +13,7 @@ namespace rt
   private:
 #ifndef NDEBUG
     bool m_initialized = false;
-    void check(bool state) const { assert(m_initialized == state); }
+    void check(bool state) const { ASSERT(m_initialized == state); }
     void set(bool state) { m_initialized = state; }
 #else
     void check(bool state) const {}
