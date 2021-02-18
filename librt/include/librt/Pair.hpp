@@ -7,6 +7,7 @@ namespace rt
   template<typename T1, typename T2>
   struct Pair
   {
+    constexpr Pair() = default;
     template<typename U, typename V>
     constexpr Pair(U&& u, V&& v) : first(rt::forward<U>(u)), second(rt::forward<V>(v)) {}
 

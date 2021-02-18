@@ -14,6 +14,15 @@ namespace rt
     return dest;
   }
 
+  template<typename InputIterator, typename OutputIterator>
+  OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest)
+  {
+    while(first != last)
+      *dest++ = move(*first++);
+
+    return dest;
+  }
+
   template<typename ForwardIterator, typename T>
   void fill(ForwardIterator first, ForwardIterator last, const T& value)
   {

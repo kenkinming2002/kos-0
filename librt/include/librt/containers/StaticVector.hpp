@@ -2,6 +2,8 @@
 
 #include <librt/Assert.hpp>
 #include <librt/Iterator.hpp>
+#include <librt/Algorithm.hpp>
+#include <librt/Utility.hpp>
 
 #include <stddef.h>
 #include <type_traits>
@@ -76,10 +78,17 @@ namespace rt
     constexpr void clear() { resize(0); }
 
   public:
+    iterator erase(const_iterator it)
+    {
+      move(next(it), end(), it);
+      resize(size()-1);
+      return const_cast<iterator>(it);
+    }
+
     iterator erase(const_iterator first, const_iterator last)
     {
-      ASSERT(last == end() && "Erase not at the end not implemented");
-      resize(first-begin());
+      move(const_cast<iterator>(last), end(), const_cast<iterator>(first));
+      resize(size()-(last-first));
       return const_cast<iterator>(first);
     }
 
@@ -87,5 +96,4 @@ namespace rt
     size_t m_size = 0;
     std::aligned_storage_t<sizeof(T), alignof(T)> m_storage[N] = {};
   };
-
 }

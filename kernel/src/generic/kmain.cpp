@@ -1,3 +1,4 @@
+#include <generic/log/Log.hpp>
 #include <generic/tasks/Elf.hpp>
 #include <generic/devices/Framebuffer.hpp>
 #include <generic/tasks/Scheduler.hpp>
@@ -59,7 +60,7 @@ static void kmainInitialize(BootInformation* bootInformation)
 {
   ::bootInformation = bootInformation;
 
-  core::devices::Framebuffer::initialize();
+  core::log::initialize();
   core::internals::initialize();
   core::interrupts::initialize();
   core::memory::initialize();

@@ -10,7 +10,6 @@ namespace core::devices
   class Framebuffer
   {
   public:
-    static void initialize();
     static Framebuffer& instance();
 
   public:

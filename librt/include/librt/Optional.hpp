@@ -36,14 +36,15 @@ namespace rt
     const T* operator->() const { return &get(); }
 
   public:
-    Optional(NullOptional) : dummy{}, m_initialized(false) {}
+    constexpr Optional()             : dummy{}, m_initialized(false) {}
+    constexpr Optional(NullOptional) : dummy{}, m_initialized(false) {}
     Optional(T&& t) : value(move(t)), m_initialized(true)  {}
     Optional(const T& t) : value(t), m_initialized(true)  {}
     ~Optional() { reset(); }
 
   public:
     Optional& operator=(Optional&& other)
-    { 
+    {
       reset();
       if(other.m_initialized)
       {

@@ -3,6 +3,7 @@ core_src = files(
   'src/generic/BootInformation.cpp',
   'src/generic/librt/Hooks.cpp',
 
+  'src/generic/log/Log.cpp',
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/Memory.cpp',

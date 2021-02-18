@@ -1,3 +1,4 @@
+#include "librt/Optional.hpp"
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/BootInformation.hpp>
@@ -9,16 +10,17 @@
 
 namespace core::devices
 {
-  constinit static rt::Global<Framebuffer> framebuffer;
-
-  void Framebuffer::initialize()
+  namespace
   {
-    framebuffer.construct();
+    constinit rt::Optional<Framebuffer> framebuffer;
   }
 
   Framebuffer& Framebuffer::instance()
   {
-    return framebuffer();
+    if(!framebuffer)
+      framebuffer = Framebuffer();
+
+    return *framebuffer;
   }
 
   namespace
