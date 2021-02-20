@@ -4,28 +4,18 @@
 #include <boot/generic/Kernel.hpp>
 #include <boot/generic/multiboot2-Utils.hpp>
 #include <boot/generic/Config.h>
+#include <boot/generic/Memory.hpp>
 
+#include <librt/Panic.hpp>
 #include <librt/Strings.hpp>
 
 namespace boot
 {
-  [[gnu::section(".bootInformation")]] BootInformation bootInformation;
-
-  static int updateBootInformationFramebuffer()
+  void bootInformationInitialize(BootInformation& bootInformation, struct multiboot_boot_information* multiboot2BootInformation)
   {
     using namespace boot::memory;
     using namespace common::memory;
 
-    auto result = memory::map(0xb8000, PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_ONLY);
-    if(result == MAP_FAILED)
-      return -1;
-
-    bootInformation.framebuffer = reinterpret_cast<void*>(result);
-    return 0;
-  }
-
-  BootInformation* initBootInformation(struct multiboot_boot_information* multiboot2BootInformation)
-  {
     for(auto* tag = multiboot2BootInformation->tags; tag->type != MULTIBOOT_TAG_TYPE_END; tag = multiboot2::next_tag(tag))
       switch(tag->type)
       {
@@ -71,24 +61,18 @@ namespace boot
           }
       }
 
-    using namespace boot::memory;
-    using namespace common::memory;
+    uintptr_t result;
 
-    auto result = memory::map(reinterpret_cast<uintptr_t>(&bootInformation), sizeof bootInformation, Access::SUPERVISOR_ONLY, Permission::READ_ONLY);
+    result = memory::map(bootInformation, 0xb8000, PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
     if(result == MAP_FAILED)
-      return nullptr;
+      rt::panic("Failed to map framebuffer");
 
-    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&bootInformation), sizeof bootInformation, ReservedMemoryRegion::Type::BOOT_INFORMATION);
+    bootInformation.framebuffer = reinterpret_cast<void*>(result);
 
-    updateBootInformationFramebuffer();
-    updateBootInformationPaging();
-    updateBootInformationKernel();
+    result = memory::map(bootInformation, reinterpret_cast<uintptr_t>(memory::pageDirectory), PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
+    if(result == MAP_FAILED)
+      rt::panic("Failed to map page directory");
 
-    return reinterpret_cast<BootInformation*>(result);
-  }
-
-  void addReservedMemoryRegion(uintptr_t addr, size_t len, ReservedMemoryRegion::Type type)
-  {
-    bootInformation.reservedMemoryRegions[bootInformation.reservedMemoryRegionsCount++] = ReservedMemoryRegion{addr, len, type};
+    bootInformation.pageDirectory = reinterpret_cast<PageDirectory*>(result);
   }
 }

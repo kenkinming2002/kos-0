@@ -2,6 +2,7 @@
 
 #include <librt/Panic.hpp>
 #include <boot/generic/Config.h>
+#include <boot/generic/Memory.hpp>
 
 #include <common/i686/memory/Paging.hpp>
 
@@ -13,78 +14,38 @@
 
 #include <librt/Algorithm.hpp>
 
-using namespace common::memory;
-
 namespace boot::memory
 {
-  // FIXME: determine this from max kernel size
+  using namespace common::memory;
 
-  [[gnu::section(".paging")]] alignas(PAGE_SIZE) constinit PageDirectory pageDirectory;
-  [[gnu::section(".paging")]] alignas(PAGE_SIZE) constinit PageTable pageTables[PAGE_TABLE_COUNT];
-
-  PageTable* nextPageTable = pageTables;
-  static PageTable* allocPageTable()
+  PageDirectory* pageDirectory;
+  namespace
   {
-    auto* result = nextPageTable++;
-    if(result == rt::end(pageTables))
-      return nullptr;
-
-    return result;
-  }
-
-  uintptr_t nextVirtaddr = 0;
-  int map(uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
-  {
-    using namespace common::memory;
-    rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
-
-    if(nextVirtaddr<virtaddr+length)
-      nextVirtaddr = (virtaddr+length+(PAGE_SIZE-1))&(~(PAGE_SIZE-1));
-
-    for(size_t offset=0; offset<length; offset+=PAGE_SIZE)
+    uintptr_t nextVirtaddr = 0;
+    PageTableEntry& getPageTableEntry(BootInformation& bootInformation, uintptr_t virtaddr)
     {
-      uintptr_t localPhyaddr  = phyaddr+offset;
-      uintptr_t localVirtaddr = virtaddr+offset;
+      size_t pageDirectoryIndex = virtaddr / LARGE_PAGE_SIZE;
+      size_t pageTableIndex     = (virtaddr % LARGE_PAGE_SIZE) / PAGE_SIZE;
 
-      size_t pageDirectoryIndex = localVirtaddr / LARGE_PAGE_SIZE;
-      size_t pageTableIndex     = (localVirtaddr % LARGE_PAGE_SIZE) / PAGE_SIZE;
-
-      auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
+      auto& pageDirectoryEntry = (*pageDirectory)[pageDirectoryIndex];
       if(!pageDirectoryEntry.present())
       {
-        auto* pageTable = allocPageTable();
-        if(!pageTable)
-          return -1;
-
+        PageTable* pageTable = static_cast<PageTable*>(allocPages(bootInformation, 1, ReservedMemoryRegion::Type::PAGING));
         pageDirectoryEntry = PageDirectoryEntry(reinterpret_cast<uintptr_t>(pageTable), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       }
 
-      auto& pageTable = *reinterpret_cast<PageTable*>(pageDirectoryEntry.address());
-      auto& pageTableEntry = pageTable[pageTableIndex];
-      if(pageTableEntry.present())
-        return -1;
-
-      pageTableEntry = PageTableEntry(localPhyaddr, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+      auto pageTable = reinterpret_cast<PageTable*>(pageDirectoryEntry.address());
+      auto& pageTableEntry = (*pageTable)[pageTableIndex];
+      return pageTableEntry;
     }
-
-    return 0;
   }
 
-  uintptr_t map(uintptr_t phyaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
+  void initializePaging(BootInformation& bootInformation)
   {
-    auto virtaddr = nextVirtaddr;
-    auto result = map(phyaddr, virtaddr, length, access, permission);
-    if(result == -1)
-      return MAP_FAILED;
-
-    return virtaddr;
-  }
-
-  void initPaging()
-  {
+    pageDirectory = static_cast<PageDirectory*>(allocPages(bootInformation, 1, ReservedMemoryRegion::Type::PAGING));
     // Setup identity paging before enabling paging just so that we can continue
     // execution, before we transfer control to the kernel
-    pageDirectory[0] = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+    (*pageDirectory)[0] = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
     asm volatile (
         // Load page directory
         "mov cr3, %[pageDirectory];"
@@ -98,25 +59,40 @@ namespace boot::memory
         "mov eax, cr0;"
         "or  eax, 0x80000001;"
         "mov cr0, eax;"
-        : : [pageDirectory]"r"(&pageDirectory) : "eax", "memory"
+        : : [pageDirectory]"r"(pageDirectory) : "eax", "memory"
         );
   }
 
-  int updateBootInformationPaging()
+  uintptr_t map(BootInformation& bootInformation, uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
   {
-    using namespace boot::memory;
     using namespace common::memory;
+    rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
 
-    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&pageDirectory), sizeof pageDirectory, ReservedMemoryRegion::Type::PAGING);
-    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(&pageTables),    reinterpret_cast<uintptr_t>(nextPageTable) - reinterpret_cast<uintptr_t>(&pageTables), ReservedMemoryRegion::Type::PAGING);
+    if(nextVirtaddr<virtaddr+length)
+      nextVirtaddr = (virtaddr+length+(PAGE_SIZE-1))&(~(PAGE_SIZE-1));
 
-    auto result = memory::map(reinterpret_cast<uintptr_t>(pageDirectory), sizeof pageDirectory, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
+    for(size_t offset=0; offset<length; offset+=PAGE_SIZE)
+    {
+      const auto phyaddrLocal  = phyaddr + offset;
+      const auto virtaddrLocal = virtaddr + offset;
+      auto& pageTableEntry = getPageTableEntry(bootInformation, virtaddrLocal);
+      if(pageTableEntry.present())
+        return MAP_FAILED;
+
+      pageTableEntry = PageTableEntry(phyaddrLocal, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+    }
+
+    return virtaddr;
+  }
+
+  uintptr_t map(BootInformation& bootInformation, uintptr_t phyaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
+  {
+    auto virtaddr = nextVirtaddr;
+    auto result = map(bootInformation, phyaddr, virtaddr, length, access, permission);
     if(result == MAP_FAILED)
-      return -1;
+      return MAP_FAILED;
 
-    bootInformation.pageDirectory = reinterpret_cast<PageDirectory*>(result);
-
-    return 0;
+    return virtaddr;
   }
 }
 

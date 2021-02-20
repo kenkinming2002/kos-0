@@ -64,8 +64,5 @@ struct BootInformation
 
 namespace boot
 {
-  extern BootInformation bootInformation;
-
-  BootInformation* initBootInformation(struct multiboot_boot_information* multiboot2BootInformation);
-  void addReservedMemoryRegion(uintptr_t addr, size_t len, ReservedMemoryRegion::Type type);
+  void bootInformationInitialize(BootInformation& bootInformation, struct multiboot_boot_information* multiboot2BootInformation);
 }

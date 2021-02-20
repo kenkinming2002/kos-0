@@ -20,8 +20,7 @@ namespace boot
      * whether that is necessary considering the minimalistic nature of our
      * kernel.
      */
-    [[nodiscard]] int extract(size_t loadOffset);
-    [[nodiscard]] int map(size_t loadOffset);
+    [[nodiscard]] int extractAndMap(BootInformation& bootInformation);
     [[noreturn]] void run(BootInformation& bootInformation);
 
   private:
@@ -33,8 +32,4 @@ namespace boot
     const char* m_data;
     size_t m_length;
   };
-
-  int initKernel(const multiboot_boot_information* multiboot2BootInformation);
-  void updateBootInformationKernel();
-  [[noreturn]] void runKernel(BootInformation& bootInformation);
 }

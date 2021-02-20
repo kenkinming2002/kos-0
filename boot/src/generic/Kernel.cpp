@@ -1,20 +1,18 @@
 #include <boot/generic/Kernel.hpp>
 
 #include <boot/generic/multiboot2-Utils.hpp>
-#include <boot/generic/Config.h>
+#include <boot/generic/Memory.hpp>
 #include <boot/i686/Paging.hpp>
 #include <librt/Panic.hpp>
 
 #include <librt/Iterator.hpp>
+#include <librt/Log.hpp>
 
 #include <librt/Strings.hpp>
 #include <librt/Algorithm.hpp>
 
 namespace boot
 {
-  [[gnu::section(".kernelImage")]] alignas(0x1000) char kernelImageStorage[KERNEL_IMAGE_STORAGE_SIZE];
-  char* kernelImageEnd = kernelImageStorage;
-
   rt::Optional<Kernel> Kernel::from(const multiboot_boot_information* multiboot2BootInformation)
   {
     using namespace common::tasks;
@@ -43,37 +41,7 @@ namespace boot
     return rt::nullOptional;
   }
 
-  int Kernel::extract(size_t loadOffset)
-  {
-    for(size_t i=0; i<m_programHeadersCount; ++i)
-    {
-      const auto& programHeader = m_programHeaders[i];
-      char* segmentBegin = kernelImageStorage + (programHeader.vaddr - loadOffset);
-      char* segmentEnd   = kernelImageStorage + (programHeader.vaddr - loadOffset) + programHeader.memsz;
-
-      const char* fileSegmentBegin = m_data+programHeader.offset;
-      const char* fileSegmentEnd   = m_data+programHeader.offset+programHeader.filesz;
-
-      if(programHeader.vaddr<loadOffset)
-        return -1;
-
-      if(segmentEnd>rt::end(kernelImageStorage))
-        return -1;
-
-      if(segmentEnd>kernelImageEnd)
-        kernelImageEnd = segmentEnd;
-
-      if(programHeader.filesz>programHeader.memsz)
-        return -1;
-
-      rt::fill(segmentBegin, segmentEnd, 0);
-      rt::copy(fileSegmentBegin, fileSegmentEnd, segmentBegin);
-    }
-
-    return 0;
-  }
-
-  int Kernel::map(size_t loadOffset)
+  int Kernel::extractAndMap(BootInformation& bootInformation)
   {
     using namespace boot::memory;
     using namespace common::memory;
@@ -81,9 +49,16 @@ namespace boot
     for(size_t i=0; i<m_programHeadersCount; ++i)
     {
       const auto& programHeader = m_programHeaders[i];
-      char* segmentBegin = kernelImageStorage + (programHeader.vaddr - loadOffset);
-      if(int result = memory::map(reinterpret_cast<uintptr_t>(segmentBegin), programHeader.vaddr, programHeader.memsz, Access::SUPERVISOR_ONLY, Permission::READ_WRITE); result != 0)
-        return result;
+      if(programHeader.filesz>programHeader.memsz)
+        return -1;
+
+      const char* fileSegment = m_data+programHeader.offset;
+      char* segment = static_cast<char*>(memory::alloc(bootInformation, programHeader.memsz, ReservedMemoryRegion::Type::KERNEL));
+      rt::fill(segment    , segment     + programHeader.memsz , 0);
+      rt::copy(fileSegment, fileSegment + programHeader.filesz, segment);
+
+      if(memory::map(bootInformation, reinterpret_cast<uintptr_t>(segment), programHeader.vaddr, programHeader.memsz, Access::SUPERVISOR_ONLY, Permission::READ_WRITE) == MAP_FAILED)
+        return -1;
     }
 
     return 0;
@@ -94,40 +69,19 @@ namespace boot
     using namespace boot::memory;
     using namespace common::memory;
 
+    auto* allocBootInformation = static_cast<BootInformation*>(memory::alloc(bootInformation, sizeof bootInformation, ReservedMemoryRegion::Type::BOOT_INFORMATION));
+    *allocBootInformation = bootInformation;
+
+    auto result = memory::map(bootInformation, reinterpret_cast<uintptr_t>(allocBootInformation), sizeof *allocBootInformation, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
+    if(result == MAP_FAILED)
+      rt::panic("Failed to map boot information\n");
+
     asm volatile (
         // Load page directory
         "jmp %[entry];"
-        : : [entry]"r"(m_header->entry), "b"(&bootInformation) : "eax", "memory"
+        : : [entry]"r"(m_header->entry), "b"(result) : "eax", "memory"
         );
     __builtin_unreachable();
-  }
-
-  Kernel kernel;
-  int initKernel(const multiboot_boot_information* multiboot2BootInformation)
-  {
-    auto result = Kernel::from(multiboot2BootInformation);
-    if(!result)
-      return -1;
-
-    kernel = *result;
-
-    if(auto result = kernel.extract(0xC0000000); result != 0)
-      return result;
-
-    if(auto result = kernel.map(0xC0000000); result != 0)
-      return result;
-
-    return 0;
-  }
-
-  void updateBootInformationKernel()
-  {
-    addReservedMemoryRegion(reinterpret_cast<uintptr_t>(kernelImageStorage), reinterpret_cast<uintptr_t>(kernelImageEnd) - reinterpret_cast<uintptr_t>(kernelImageStorage), ReservedMemoryRegion::Type::KERNEL);
-  }
-
-  [[noreturn]] void runKernel(BootInformation& bootInformation)
-  {
-    kernel.run(bootInformation);
   }
 }
 

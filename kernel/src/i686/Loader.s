@@ -4,7 +4,7 @@ global kernel_stack_top
 
 extern kmain
 
-STACK_SIZE equ 4096 
+STACK_SIZE equ 4096
 
 section .bss
 align 4096
