@@ -10,7 +10,7 @@ namespace core::devices
   class Framebuffer
   {
   public:
-    static Framebuffer& instance();
+    static void initializeLog();
 
   public:
     enum class Color

@@ -1,3 +1,4 @@
+#include "generic/log/Log.hpp"
 #include "librt/Optional.hpp"
 #include <generic/devices/Framebuffer.hpp>
 
@@ -12,15 +13,13 @@ namespace core::devices
 {
   namespace
   {
-    constinit rt::Optional<Framebuffer> framebuffer;
+    rt::Global<Framebuffer> framebuffer;
   }
 
-  Framebuffer& Framebuffer::instance()
+  void Framebuffer::initializeLog()
   {
-    if(!framebuffer)
-      framebuffer = Framebuffer();
-
-    return *framebuffer;
+    framebuffer.construct();
+    log::registerLogger([](const char* str, size_t length){ framebuffer().write(str, length); });
   }
 
   namespace

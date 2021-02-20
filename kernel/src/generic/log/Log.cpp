@@ -6,12 +6,17 @@ namespace core::log
 {
   namespace
   {
-    devices::Framebuffer* framebuffer;
+    Logger logger;
   }
 
   void initialize()
   {
-    framebuffer = &devices::Framebuffer::instance();
+    devices::Framebuffer::initializeLog();
+  }
+
+  void registerLogger(Logger logger)
+  {
+    core::log::logger = logger;
   }
 }
 
@@ -19,7 +24,7 @@ namespace rt::hooks
 {
   void log(const char* str, size_t length)
   {
-    core::log::framebuffer->write(str, length);
+    core::log::logger(str, length);
   }
 }
 

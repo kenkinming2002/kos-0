@@ -16,7 +16,7 @@ namespace core::tasks
 {
   namespace
   {
-    rt::containers::List<rt::UniquePtr<Task>> tasks;
+    rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
 
     /*
      * Yield syscall
@@ -48,7 +48,7 @@ namespace core::tasks
       ASSERT(task);
 
       // FIXME: We can do better than that
-      for(auto it = tasks.begin(); it!=tasks.end(); ++it)
+      for(auto it = tasks().begin(); it!=tasks().end(); ++it)
         if(it->get() == task)
           return it;
 
@@ -58,6 +58,7 @@ namespace core::tasks
 
   void initializeScheduler()
   {
+    tasks.construct();
     syscalls::installHandler(0, &syscallYield);
     interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
     interrupts::clearMask(0);
@@ -69,29 +70,29 @@ namespace core::tasks
     if(!task)
       return nullptr;
 
-    auto it = tasks.insert(tasks.end(), rt::move(task));
+    auto it = tasks().insert(tasks().end(), rt::move(task));
     return it->get();
   }
 
   void removeTask(Task* task)
   {
     auto it = findTask(task);
-    tasks.erase(it);
+    tasks().erase(it);
   }
 
   [[noreturn]] void scheduleInitial()
   {
     rt::log("We are starting our first task\n");
-    tasks.begin()->get()->switchTo();
+    tasks().begin()->get()->switchTo();
     __builtin_unreachable();
   }
 
   void schedule()
   {
-    ASSERT(!tasks.empty());
+    ASSERT(!tasks().empty());
     auto currentTask = Task::current();
     auto it = findTask(currentTask);
-    auto nextIt = rt::next(it) != tasks.end() ? rt::next(it) : tasks.begin();
+    auto nextIt = rt::next(it) != tasks().end() ? rt::next(it) : tasks().begin();
     (*nextIt)->switchTo();
   }
 }

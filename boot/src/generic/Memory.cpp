@@ -12,8 +12,10 @@ namespace boot::memory
 
   void* allocPages(BootInformation& bootInformation, size_t count, ReservedMemoryRegion::Type type)
   {
+    struct alignas(PAGE_SIZE) Page { char data[PAGE_SIZE]; };
+
     static constexpr size_t BOOT_MEMORY_PAGES_COUNT = (BOOT_MEMORY_SIZE + (PAGE_SIZE-1)) / PAGE_SIZE;
-    static char bootMemory[BOOT_MEMORY_PAGES_COUNT][PAGE_SIZE];
+    static Page bootMemory[BOOT_MEMORY_PAGES_COUNT];
     static size_t index = 0;
 
     if(index+count>=BOOT_MEMORY_PAGES_COUNT)
