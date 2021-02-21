@@ -24,34 +24,13 @@ SECTIONS {
     *(.data .data.*)
   }
 
-  .bss (NOLOAD) : 
+  .got.plt :
+  {
+    *(.got.plt)
+  }
+
+  .bss (NOLOAD) :
   {
     *(.bss .bss.*)
   }
-
-  kernelImageBegin = .;
-  .kernelImage ALIGN(0x1000) (NOLOAD) :
-  {
-    *(.kernelImage .kernelImage.*)
-    . = ALIGN(0x1000);
-  }
-  kernelImageEnd = .;
-
-  bootInformationBegin = .;
-  .bootInformation ALIGN(0x1000) (NOLOAD) :
-  {
-    *(.bootInformation .bootInformation.*)
-    . = ALIGN(0x1000);
-  }
-  bootInformationEnd = .;
-
-  pagingBegin = .;
-  .paging ALIGN(0x1000) (NOLOAD) :
-  {
-    *(.paging .paging.*)
-    . = ALIGN(0x1000);
-  }
-  pagingEnd = .;
-
-  boot_memory_end = .;
 }

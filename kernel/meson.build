@@ -43,8 +43,10 @@ liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
 kernel = executable('kernel',
   core_src, core_asm_obj,
   include_directories : ['../common/include/', '../boot/include/', 'include/'],
-  link_args : ['-T', meson.current_source_dir()+'/link.ld'],
+  link_args : ['-T', meson.current_source_dir()+'/link.ld', '-Wl,-no-dynamic-linker'],
   link_depends : 'link.ld',
-  dependencies : [liballoc_dep, common_dep, librt_dep]
+  dependencies : [liballoc_dep, common_dep, librt_dep],
+  pie : true,
+  export_dynamic : true
 )
 

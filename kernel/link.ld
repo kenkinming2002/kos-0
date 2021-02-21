@@ -15,6 +15,29 @@ SECTIONS {
     *(.rodata .rodata.*)
   }
 
+  /* Dynamic Relocation Information */
+  .rel.dyn :
+  {
+    *(.rel.dyn)
+  }
+
+  /* Dynamic Symbols */
+  .dynsym :
+  {
+    *(.dynsym)
+  }
+
+  .dynstr :
+  {
+    *(.dynstr)
+  }
+
+  .gnu.hash :
+  {
+    *(.gnu.hash)
+  }
+
+
   /*********************
    * Read-Write Section *
    *********************/
@@ -22,6 +45,16 @@ SECTIONS {
   .data :
   {
     *(.data .data.*)
+  }
+
+  .got.plt :
+  {
+    *(.got.plt)
+  }
+
+  .dynamic :
+  {
+    *(.dynamic)
   }
 
   .bss (NOLOAD) :

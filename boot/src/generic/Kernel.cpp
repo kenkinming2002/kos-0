@@ -45,20 +45,33 @@ namespace boot
   {
     using namespace boot::memory;
     using namespace common::memory;
+    using namespace common::tasks;
 
     for(size_t i=0; i<m_programHeadersCount; ++i)
     {
       const auto& programHeader = m_programHeaders[i];
-      if(programHeader.filesz>programHeader.memsz)
-        return -1;
 
-      const char* fileSegment = m_data+programHeader.offset;
-      char* segment = static_cast<char*>(memory::alloc(bootInformation, programHeader.memsz, ReservedMemoryRegion::Type::KERNEL));
-      rt::fill(segment    , segment     + programHeader.memsz , 0);
-      rt::copy(fileSegment, fileSegment + programHeader.filesz, segment);
+      if(programHeader.type == PT_LOAD)
+      {
+        if(!checkDataRange(m_data, m_length, programHeader.offset, programHeader.filesz))
+          return -1;
 
-      if(memory::map(bootInformation, reinterpret_cast<uintptr_t>(segment), programHeader.vaddr, programHeader.memsz, Access::SUPERVISOR_ONLY, Permission::READ_WRITE) == MAP_FAILED)
-        return -1;
+        if(programHeader.filesz>programHeader.memsz)
+          return -1;
+
+        if(!(programHeader.flags & PF_R))
+          return -1; // We do not support a page that is not readable
+
+        auto pagesPermission = (programHeader.flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
+
+        const char* fileSegment = m_data+programHeader.offset;
+        char* segment = static_cast<char*>(memory::alloc(bootInformation, programHeader.memsz, ReservedMemoryRegion::Type::KERNEL));
+        rt::fill(segment    , segment     + programHeader.memsz , 0);
+        rt::copy(fileSegment, fileSegment + programHeader.filesz, segment);
+
+        if(memory::map(bootInformation, reinterpret_cast<uintptr_t>(segment), programHeader.vaddr, programHeader.memsz, Access::SUPERVISOR_ONLY, pagesPermission) == MAP_FAILED)
+          return -1;
+      }
     }
 
     return 0;

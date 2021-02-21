@@ -24,8 +24,6 @@ namespace common::tasks
   enum Elf32Type { ET_NONE = 0, ET_REL  = 1, ET_EXEC = 2, ET_DYN  = 3, ET_CORE = 4, ET_LOPROC = 0xFF00, ET_HIPROC = 0xFFFF };
   enum Elf32Machine { EM_NONE = 0, EM_M32  = 1, EM_SPARC = 2, EM_386 = 3, EM_68K = 4, EM_88K = 5, EM_860 = 7, EM_MIPS = 8 };
 
-  enum Elf32PageFlags { PF_X = 0x1, PF_W = 0x2, PF_R = 0x4, PF_MASKPROC = 0xF0000000 };
-
   struct Elf32Header
   {
     uint8_t    ident[EI_NIDENT];
@@ -53,6 +51,9 @@ namespace common::tasks
     // Section Name String Table Index
     Elf32_Half shstrndx;
   };
+
+  enum Elf32ProgramHeaderType { PT_NULL = 0, PT_LOAD = 1, PT_DYNAMIC = 2, PT_INTERP = 3, PT_NOTE = 4, PT_SHLIB = 5, PT_PHDR = 6, PT_LOPROC = 0x70000000, PT_HIPROC = 0x7FFFFFFF};
+  enum Elf32PageFlags { PF_X = 0x1, PF_W = 0x2, PF_R = 0x4, PF_MASKPROC = 0xF0000000 };
 
   struct ELF32ProgramHeader
   {

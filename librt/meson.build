@@ -5,6 +5,9 @@ librt_src = [
   'src/New.cpp',
   'src/Panic.cpp'
 ]
-librt = static_library('librt', librt_src, include_directories : 'include/', pic: false)
-librt_dep = declare_dependency(include_directories : 'include/', link_with: librt)
+
+librt_inc = include_directories('include')
+
+librt     = static_library('rt', librt_src, include_directories : librt_inc)
+librt_dep = declare_dependency(include_directories : librt_inc, link_with: librt)
 
