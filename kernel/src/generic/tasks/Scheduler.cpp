@@ -18,18 +18,9 @@ namespace core::tasks
   {
     rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
 
-    /*
-     * Yield syscall
-     *
-     * Note: We can just use cli and sti instruction instead of
-     *       saving and restoring eflags. This is based on the assumption that
-     *       syscall must come from userspace and thus, interrupt must be enabled.
-     */
     int syscallYield(int, int, int, int)
     {
-      asm volatile ("cli" : : : "memory");
       schedule();
-      asm volatile ("sti" : : : "memory");
       return 0;
     }
 
