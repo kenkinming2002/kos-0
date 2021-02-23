@@ -14,9 +14,9 @@ boot_asm_obj = asm_gen.process(
 
 boot = executable('boot',
   boot_src, boot_asm_obj,
-  include_directories : ['../common/include/', 'include/'],
+  include_directories : ['include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld'],
   link_depends : 'link.ld',
-  dependencies : [common_dep, librt_dep]
+  dependencies : [libcommon_dep, librt_dep]
 )
 
