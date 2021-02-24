@@ -2,7 +2,7 @@
 
 #include <boot/generic/BootInformation.hpp>
 #include <boot/generic/multiboot2.h>
-#include <common/generic/tasks/Elf.hpp>
+#include <libelf/libelf.hpp>
 
 #include <librt/Optional.hpp>
 
@@ -24,8 +24,8 @@ namespace boot
     [[noreturn]] void run(BootInformation& bootInformation);
 
   private:
-    const common::tasks::Elf32Header*        m_header;
-    const common::tasks::ELF32ProgramHeader* m_programHeaders;
+    const Elf32_Ehdr*        m_header;
+    const Elf32_Phdr* m_programHeaders;
     size_t                                   m_programHeadersCount;
 
   private:

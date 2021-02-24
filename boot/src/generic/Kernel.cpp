@@ -3,11 +3,12 @@
 #include <boot/generic/multiboot2-Utils.hpp>
 #include <boot/generic/Memory.hpp>
 #include <boot/i686/Paging.hpp>
-#include <librt/Panic.hpp>
 
+#include <libelf/libelf.hpp>
+
+#include <librt/Panic.hpp>
 #include <librt/Iterator.hpp>
 #include <librt/Log.hpp>
-
 #include <librt/Strings.hpp>
 #include <librt/Algorithm.hpp>
 
@@ -15,8 +16,6 @@ namespace boot
 {
   rt::Optional<Kernel> Kernel::from(const multiboot_boot_information* multiboot2BootInformation)
   {
-    using namespace common::tasks;
-
     Kernel kernel;
     for(auto* tag = multiboot2BootInformation->tags; tag->type != MULTIBOOT_TAG_TYPE_END; tag = multiboot2::next_tag(tag))
       if(tag->type == MULTIBOOT_TAG_TYPE_MODULE)
@@ -26,11 +25,11 @@ namespace boot
         {
           kernel.m_data   = reinterpret_cast<char*>(module_tag->mod_start);
           kernel.m_length = module_tag->mod_end-module_tag->mod_start;
-          kernel.m_header = getElf32Header(kernel.m_data, kernel.m_length);
+          kernel.m_header = elf32::readHeader(kernel.m_data, kernel.m_length);
           if(!kernel.m_header)
             return rt::nullOptional;
 
-          kernel.m_programHeaders = getElf32ProgramHeaders(kernel.m_data, kernel.m_length, kernel.m_header, kernel.m_programHeadersCount);
+          kernel.m_programHeaders = elf32::readProgramHeaders(kernel.m_data, kernel.m_length, kernel.m_header, kernel.m_programHeadersCount);
           if(!kernel.m_programHeaders)
             return rt::nullOptional;
 
@@ -45,31 +44,30 @@ namespace boot
   {
     using namespace boot::memory;
     using namespace common::memory;
-    using namespace common::tasks;
 
     for(size_t i=0; i<m_programHeadersCount; ++i)
     {
       const auto& programHeader = m_programHeaders[i];
 
-      if(programHeader.type == PT_LOAD)
+      if(programHeader.p_type == PT_LOAD)
       {
-        if(!checkDataRange(m_data, m_length, programHeader.offset, programHeader.filesz))
+        if(!elf32::checkDataRange(m_data, m_length, programHeader.p_offset, programHeader.p_filesz))
           return -1;
 
-        if(programHeader.filesz>programHeader.memsz)
+        if(programHeader.p_filesz>programHeader.p_memsz)
           return -1;
 
-        if(!(programHeader.flags & PF_R))
+        if(!(programHeader.p_flags & PF_R))
           return -1; // We do not support a page that is not readable
 
-        auto pagesPermission = (programHeader.flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
+        auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
 
-        const char* fileSegment = m_data+programHeader.offset;
-        char* segment = static_cast<char*>(memory::alloc(bootInformation, programHeader.memsz, ReservedMemoryRegion::Type::KERNEL));
-        rt::fill(segment    , segment     + programHeader.memsz , 0);
-        rt::copy(fileSegment, fileSegment + programHeader.filesz, segment);
+        const char* fileSegment = m_data+programHeader.p_offset;
+        char* segment = static_cast<char*>(memory::alloc(bootInformation, programHeader.p_memsz, ReservedMemoryRegion::Type::KERNEL));
+        rt::fill(segment    , segment     + programHeader.p_memsz , 0);
+        rt::copy(fileSegment, fileSegment + programHeader.p_filesz, segment);
 
-        if(memory::map(bootInformation, reinterpret_cast<uintptr_t>(segment), programHeader.vaddr, programHeader.memsz, Access::SUPERVISOR_ONLY, pagesPermission) == MAP_FAILED)
+        if(memory::map(bootInformation, reinterpret_cast<uintptr_t>(segment), programHeader.p_vaddr, programHeader.p_memsz, Access::SUPERVISOR_ONLY, pagesPermission) == MAP_FAILED)
           return -1;
       }
     }
@@ -92,7 +90,7 @@ namespace boot
     asm volatile (
         // Load page directory
         "jmp %[entry];"
-        : : [entry]"r"(m_header->entry), "b"(result) : "eax", "memory"
+        : : [entry]"r"(m_header->e_entry), "b"(result) : "eax", "memory"
         );
     __builtin_unreachable();
   }

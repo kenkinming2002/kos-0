@@ -17,6 +17,6 @@ boot = executable('boot',
   include_directories : ['include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld'],
   link_depends : 'link.ld',
-  dependencies : [libcommon_dep, librt_dep]
+  dependencies : [libcommon_dep, librt_dep, libelf_dep]
 )
 

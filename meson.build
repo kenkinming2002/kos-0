@@ -22,8 +22,9 @@ asm_gen = generator(nasm,
   arguments : ['-f', 'elf32', '-g', '-F', 'dwarf', '@INPUT@', '-o', '@OUTPUT@'],
 )
 
-subdir('libcommon')
 subdir('librt')
+subdir('libcommon')
+subdir('libelf')
 subdir('boot')
 subdir('kernel')
 subdir('userspace')

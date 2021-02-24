@@ -1,19 +1,18 @@
 #include <generic/tasks/Elf.hpp>
 
-#include <common/generic/tasks/Elf.hpp>
 #include <common/i686/memory/Paging.hpp>
 
 #include <generic/memory/Pages.hpp>
 
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <libelf/libelf.hpp>
+
 #include <librt/Optional.hpp>
 #include <librt/Algorithm.hpp>
 
 namespace core::tasks
 {
-  using namespace common::tasks;
-
   static bool checkVirtualRange(Elf32_Off off, Elf32_Word size)
   {
     Elf32_Addr result;
@@ -22,33 +21,33 @@ namespace core::tasks
     return result<=0xC0000000;
   }
 
-  static int loadProgramHeader(const char* data, size_t length, Task& task, const ELF32ProgramHeader& programHeader)
+  static int loadProgramHeader(const char* data, size_t length, Task& task, const Elf32_Phdr& programHeader)
   {
     using namespace core::memory;
     using namespace common::memory;
 
-    if(programHeader.type == PT_LOAD)
+    if(programHeader.p_type == PT_LOAD)
     {
-      if(!checkDataRange(data, length, programHeader.offset, programHeader.filesz))
+      if(!elf32::checkDataRange(data, length, programHeader.p_offset, programHeader.p_filesz))
         return -1;
 
-      if(!checkVirtualRange(programHeader.vaddr, programHeader.memsz))
+      if(!checkVirtualRange(programHeader.p_vaddr, programHeader.p_memsz))
         return -1;
 
-      if(programHeader.filesz>programHeader.memsz)
+      if(programHeader.p_filesz>programHeader.p_memsz)
         return -1; // It is better to be more pedantic in OS code
 
       // TODO: Gracefully handle any error
-      if(!(programHeader.flags & PF_R))
+      if(!(programHeader.p_flags & PF_R))
         return -1; // We do not support a page that is not readable
 
-      auto pagesPermission = (programHeader.flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
-      task.memoryMapping()->map(Pages::fromAggressive(programHeader.vaddr, programHeader.vaddr+programHeader.memsz), Access::ALL, pagesPermission);
+      auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
+      task.memoryMapping()->map(Pages::fromAggressive(programHeader.p_vaddr, programHeader.p_vaddr+programHeader.p_memsz), Access::ALL, pagesPermission);
 
-      auto fileSegmentBegin    = reinterpret_cast<const char*>(data+programHeader.offset);
-      auto fileSegmentEnd      = reinterpret_cast<const char*>(data+programHeader.offset+programHeader.filesz);
-      auto virtualSegmentBegin = reinterpret_cast<char*>(programHeader.vaddr);
-      auto virtualSegmentEnd   = reinterpret_cast<char*>(programHeader.vaddr+programHeader.memsz);
+      auto fileSegmentBegin    = reinterpret_cast<const char*>(data+programHeader.p_offset);
+      auto fileSegmentEnd      = reinterpret_cast<const char*>(data+programHeader.p_offset+programHeader.p_filesz);
+      auto virtualSegmentBegin = reinterpret_cast<char*>(programHeader.p_vaddr);
+      auto virtualSegmentEnd   = reinterpret_cast<char*>(programHeader.p_vaddr+programHeader.p_memsz);
 
       rt::fill(virtualSegmentBegin, virtualSegmentEnd, '\0');
       rt::copy(fileSegmentBegin, fileSegmentEnd, virtualSegmentBegin);
@@ -59,15 +58,15 @@ namespace core::tasks
 
   int loadElf(Task& task, char* data, size_t length)
   {
-    if(length<sizeof(Elf32Header))
+    if(length<sizeof(Elf32_Ehdr))
       return -1;
 
-    const auto* header = getElf32Header(data, length);
+    const auto* header = elf32::readHeader(data, length);
     if(!header)
       return -1;
 
     size_t count;
-    const auto* programHeaders = getElf32ProgramHeaders(data, length, header, count);
+    const auto* programHeaders = elf32::readProgramHeaders(data, length, header, count);
     if(!programHeaders)
       return -1;
 
@@ -77,7 +76,7 @@ namespace core::tasks
       if(loadProgramHeader(data, length, task, programHeaders[i]) != 0)
         return -1;
 
-    task.asUserspaceTask(header->entry);
+    task.asUserspaceTask(header->e_entry);
     oldMemoryMapping.makeCurrent();
 
     return 0;
