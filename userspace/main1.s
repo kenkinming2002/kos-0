@@ -10,7 +10,7 @@ mov eax, 0x100
 
   dec eax
   test eax, eax
-  jmp .L0
+  jnz .L0
 
 .L2:
   jmp .L2

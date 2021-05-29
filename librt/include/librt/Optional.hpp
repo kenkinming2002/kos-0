@@ -1,6 +1,7 @@
 #pragma once
 
 #include <librt/Utility.hpp>
+#include <librt/Variant.hpp>
 
 #include <new>
 #include <type_traits>
@@ -14,32 +15,10 @@ namespace rt
   struct Optional
   {
   public:
-    bool hasValue () const { return m_initialized; }
-    T& get() { return value; }
-    const T& get() const { return value; }
-
-  public:
-    void reset()
-    {
-      if(m_initialized)
-        value.~T();
-
-      dummy = {};
-      m_initialized = false;
-    }
-
-  public:
-    operator bool() const { return m_initialized; }
-    T& operator*() { return get(); }
-    const T& operator*() const { get(); }
-    T* operator->() { return &get(); }
-    const T* operator->() const { return &get(); }
-
-  public:
-    constexpr Optional()             : dummy{}, m_initialized(false) {}
-    constexpr Optional(NullOptional) : dummy{}, m_initialized(false) {}
-    Optional(T&& t) : value(move(t)), m_initialized(true)  {}
-    Optional(const T& t) : value(t), m_initialized(true)  {}
+    Optional()             : m_dummy{}, m_initialized(false) {}
+    Optional(NullOptional) : m_dummy{}, m_initialized(false) {}
+    Optional(T&& t) : m_value(move(t)), m_initialized(true)  {}
+    Optional(const T& t) : m_value(t), m_initialized(true)  {}
     ~Optional() { reset(); }
 
   public:
@@ -48,11 +27,9 @@ namespace rt
       reset();
       if(other.m_initialized)
       {
-        m_initialized = other.m_initialized;
-        new(&value) T(move(other.value));
-        other.reset();
+        new(&m_value) T(move(other.m_value));
+        m_initialized = true;
       }
-
       return *this;
     }
 
@@ -61,8 +38,8 @@ namespace rt
       reset();
       if(other.m_initialized)
       {
-        m_initialized = other.m_initialized;
-        new(&value) T(other.value);
+        new(&m_value) T(other.m_value);
+        m_initialized = true;
       }
 
       return *this;
@@ -71,11 +48,46 @@ namespace rt
     Optional(Optional&& other) : Optional(nullOptional) { *this = move(other); }
     Optional(const Optional& other) : Optional(nullOptional) { *this = other; }
 
+  public:
+    [[gnu::always_inline]] void reset()
+    {
+      if(m_initialized)
+        m_value.~T();
+
+      m_dummy = {};
+      m_initialized = false;
+    }
+
+  public:
+    T& get() { return m_value; }
+    const T& get() const { return m_value; }
+
+  public:
+    bool hasValue () const { return m_initialized; }
+
+  public:
+    operator bool() const { return m_initialized; }
+    T& operator*() { return get(); }
+    const T& operator*() const { return get(); }
+    T* operator->() { return &get(); }
+    const T* operator->() const { return &get(); }
+
+  public:
+    template<typename... Args>
+    void emplace(Args&&... args) { *this = Optional(T(forward<Args>()...)); }
+
+  public:
+    template<typename Func> auto map(Func func) const & { return hasValue() ? Optional<std::invoke_result_t<Func, const T&>>(func(m_value))       : nullOptional; }
+    template<typename Func> auto map(Func func) &&      { return hasValue() ? Optional<std::invoke_result_t<Func, T&&>>(func(move(m_value))) : nullOptional; }
+
+    template<typename U> T valueOr(U&& value) const & { return hasValue() ? m_value       : T(forward<U>(value)); }
+    template<typename U> T valueOr(U&& value) &&      { return hasValue() ? move(m_value) : T(forward<U>(value)); }
+
   private:
     union
     {
-      T value;
-      char dummy;
+      T m_value;
+      char m_dummy;
     };
     bool m_initialized;
   };

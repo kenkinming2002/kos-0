@@ -1,14 +1,16 @@
 #include <librt/Log.hpp>
 #include <librt/Hooks.hpp>
+#include <librt/Trace.hpp>
 
 namespace rt::internals
 {
-  void assertFunc(const char* file, int line, const char* func, const char* expr)
+  [[noreturn]] void assertFunc(const char* file, int line, const char* func, const char* expr)
   {
-    rt::logf("Assertion Failure:\n");
-    rt::logf("  line: %d\n", line);
-    rt::logf("  function: %s\n", func);
-    rt::logf("  expr: %s\n", expr);
-    rt::hooks::abort();
+    logf("Assertion Failure:\n");
+    logf("  line: %d\n", line);
+    logf("  function: %s\n", func);
+    logf("  expr: %s\n", expr);
+    traceStackFrame();
+    hooks::abort();
   }
 }

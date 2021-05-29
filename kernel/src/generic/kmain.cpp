@@ -1,10 +1,20 @@
+#include <generic/vfs/Mountable.hpp>
+#include <generic/vfs/Path.hpp>
+#include <generic/vfs/Inode.hpp>
+#include <generic/vfs/Vnode.hpp>
+#include <generic/vfs/VFS.hpp>
+
 #include <generic/log/Log.hpp>
+
 #include <generic/tasks/Elf.hpp>
-#include <generic/devices/Framebuffer.hpp>
 #include <generic/tasks/Scheduler.hpp>
+
+#include <generic/devices/Framebuffer.hpp>
+
 #include <generic/memory/Memory.hpp>
 #include <generic/memory/Physical.hpp>
 #include <generic/memory/Virtual.hpp>
+
 #include <generic/BootInformation.hpp>
 
 #include <i686/internals/Internals.hpp>
@@ -13,48 +23,17 @@
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 
+#include <librt/Strings.hpp>
+#include <librt/StringRef.hpp>
+#include <librt/UniquePtr.hpp>
 #include <librt/Optional.hpp>
 #include <librt/Log.hpp>
 #include <librt/Panic.hpp>
 #include <librt/Assert.hpp>
+#include <librt/containers/Map.hpp>
+#include <librt/String.hpp>
 
-static void testMemory()
-{
-  rt::log("Testing memory allocation and deallocation...\n");
-
-  for(size_t j=0; j<128;++j)
-  {
-    rt::logf("Iteration %lu\n", j);
-    char* memorys[200] = {};
-
-    for(size_t i=0; i<200; ++i)
-    {
-      memorys[i] = static_cast<char*>(core::memory::malloc(0x1000));
-
-      /* Note: Don't be stupid like me and try to use break to break out of
-       * nested loop and be puzzled as to why the loop does not end */
-      if(memorys[i] == nullptr)
-        goto end;
-
-      const char* str = "deadbeef";
-      for(size_t k=0; k<0x100; ++k)
-      {
-        static_cast<volatile char*>(memorys[i])[k]=str[k%8];
-        ASSERT(static_cast<volatile char*>(memorys[i])[k]==str[k%8]);
-      }
-    }
-
-    for(size_t i=0; i<200; ++i)
-    {
-      if(memorys[i] == nullptr)
-        break;
-      core::memory::free(static_cast<void*>(memorys[i]));
-    }
-  }
-end:
-
-  rt::log("Done\n");
-}
+#include <type_traits>
 
 static void kmainInitialize(BootInformation* bootInformation)
 {
@@ -66,6 +45,7 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::memory::initialize();
   core::syscalls::initialize();
   core::tasks::initializeScheduler();
+  core::vfs::initialize();
 }
 
 [[noreturn]] static void kmainLoadAndRunUserspaceTask()
@@ -75,8 +55,10 @@ static void kmainInitialize(BootInformation* bootInformation)
 
   for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
   {
-    // TODO: Parse elf
     const auto& module = bootInformation->moduleEntries[i];
+    if(module.cmdline == rt::StringRef("kernel", 6) || module.cmdline == rt::StringRef("initrd", 6))
+      continue;
+
     auto pages = core::memory::mapPages(core::memory::Pages::fromAggressive(module.addr, module.len));
     if(!pages)
       continue;
@@ -96,9 +78,8 @@ static void kmainInitialize(BootInformation* bootInformation)
 extern "C" void kmain(BootInformation* bootInformation)
 {
   kmainInitialize(bootInformation);
-  testMemory();
 
-  core::syscalls::installHandler(1, [](int, int, int, int){ rt::log("Hello from kernel\n"); return 0;});
+  core::syscalls::installHandler(1, [](int, int, int, int, int, int, int){ rt::log("Hello from kernel\n"); return 0;});
   core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
   kmainLoadAndRunUserspaceTask();

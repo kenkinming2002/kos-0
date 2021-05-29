@@ -16,6 +16,8 @@
 
 namespace core::memory
 {
+  static constexpr size_t MAX_MEMORY_REGIONS_COUNT = 32;
+
   namespace
   {
     struct MemoryRegion
@@ -53,10 +55,10 @@ namespace core::memory
       }
     };
 
-    void add(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion) { memoryRegions.pushBack(memoryRegion); }
-    void remove(rt::StaticVector<MemoryRegion, 32>& memoryRegions, MemoryRegion memoryRegion)
+    void add(rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT>& memoryRegions, MemoryRegion memoryRegion) { memoryRegions.pushBack(memoryRegion); }
+    void remove(rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT>& memoryRegions, MemoryRegion memoryRegion)
     {
-      rt::StaticVector<MemoryRegion, 32> newMemoryRegions; // We need to be careful of stack usage
+      rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT> newMemoryRegions; // We need to be careful of stack usage
       for(const auto& existingMemoryRegion : memoryRegions)
         if(MemoryRegion::overlap(existingMemoryRegion, memoryRegion))
         {
@@ -75,7 +77,7 @@ namespace core::memory
       memoryRegions = rt::move(newMemoryRegions);
     }
 
-    void sanitize(rt::StaticVector<MemoryRegion, 32>& memoryRegions)
+    void sanitize(rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT>& memoryRegions)
     {
       rt::sort(memoryRegions.begin(), memoryRegions.end(), [](const MemoryRegion& lhs, const MemoryRegion& rhs) { return lhs.addr<=rhs.addr; });
 
@@ -84,9 +86,9 @@ namespace core::memory
       memoryRegions.erase(rt::adjacentMerge(memoryRegions.begin(), memoryRegions.end(), &MemoryRegion::overlap, &MemoryRegion::merge), memoryRegions.end());
     }
 
-    rt::StaticVector<MemoryRegion, 32> prepare()
+    rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT> prepare()
     {
-      rt::StaticVector<MemoryRegion, 32> memoryRegions;
+      rt::StaticVector<MemoryRegion, MAX_MEMORY_REGIONS_COUNT> memoryRegions;
       for(size_t i=0; i<bootInformation->memoryMapEntriesCount; ++i)
         if(bootInformation->memoryMapEntries[i].type == MemoryMapEntry::Type::AVAILABLE)
         {

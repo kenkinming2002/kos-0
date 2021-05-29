@@ -4,6 +4,7 @@
 
 #include <x86/assembly/msr.hpp>
 
+#include <librt/Algorithm.hpp>
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
 
@@ -41,7 +42,31 @@ namespace core::syscalls
     handlers[syscallNumber] = nullptr;
   }
 
-  extern "C" int core_syscalls_dispatch(int syscallNumber, int a1, int a2, int a3)
+  namespace
+  {
+    bool verifyUserBuffer(const char* buffer, size_t length)
+    {
+      /* We only do prelimary check, and leave the rest to be handled via page
+       * fault */
+      return reinterpret_cast<uintptr_t>(buffer) < std::numeric_limits<uintptr_t>::max()-length &&
+             reinterpret_cast<uintptr_t>(buffer)+length<0xC0000000;
+    }
+
+    bool copyFromUser(const char* userBuffer, char* kernelBuffer, size_t length)
+    {
+      if(!verifyUserBuffer(userBuffer, length))
+        return false;
+
+      /* TODO: Gracefully handle page fault. In linux, this is handled by the
+       * __might_fault() function, which save the address after the instruction
+       * that might fault in a lookup table and allow the page fault handler to
+       * resume execution. */
+      rt::copy(userBuffer, userBuffer+length, kernelBuffer);
+      return true;
+    }
+  }
+
+  extern "C" int core_syscalls_dispatch(int syscallNumber, int a1, int a2, int a3, int espUser)
   {
     if(syscallNumber<0 || syscallNumber>=MAX_SYSCALL_COUNT)
     {
@@ -55,6 +80,11 @@ namespace core::syscalls
       return -1; // TODO: Error code
     }
 
-    return handlers[syscallNumber](syscallNumber, a1, a2, a3);
+    // Retrieve the arguments
+    int stackArgs[3] = {};
+    if(!copyFromUser(reinterpret_cast<const char*>(espUser), reinterpret_cast<char*>(stackArgs), sizeof stackArgs))
+      return -1; // TODO: Error code
+
+    return handlers[syscallNumber](syscallNumber, a1, a2, a3, stackArgs[0], stackArgs[1], stackArgs[2]);
   }
 }

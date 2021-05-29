@@ -16,18 +16,16 @@ namespace core::tasks
 {
   namespace
   {
-    rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
+    constinit rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
 
-    int syscallYield(int, int, int, int)
+    int syscallYield(int, int, int, int, int, int, int)
     {
       schedule();
       return 0;
     }
 
-    /*
-     * Note: We have to disable interrupt, however, locking would not be
-     *       necessary, since we would or *WILL* have a per-cpu task queue.
-     */
+    /* Note: We have to disable interrupt, however, locking would not be
+     *       necessary, since we would or *WILL* have a per-cpu task queue.  */
     void timerHandler(uint8_t, uint32_t, uintptr_t)
     {
       interrupts::acknowledge(0);

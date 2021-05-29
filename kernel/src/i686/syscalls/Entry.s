@@ -13,6 +13,10 @@ core_syscalls_entry:
   push ecx
   push edx
 
+  push ebp
+  xor ebp, ebp ; Clear the base pointer to make stack tracing works
+
+  push ecx
   push edi
   push esi
   push ebx
@@ -32,8 +36,9 @@ core_syscalls_entry:
   mov fs, bx
   mov gs, bx
 
-  add esp, 0x10
+  add esp, 0x14
 
+  pop ebp
   pop edx
   pop ecx
 

@@ -6,7 +6,7 @@
 namespace rt
 {
   template<typename InputIterator, typename OutputIterator>
-  OutputIterator copy(InputIterator first, InputIterator last, OutputIterator dest)
+  constexpr OutputIterator copy(InputIterator first, InputIterator last, OutputIterator dest)
   {
     while(first != last)
       *dest++ = *first++;
@@ -15,7 +15,16 @@ namespace rt
   }
 
   template<typename InputIterator, typename OutputIterator>
-  OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest)
+  constexpr OutputIterator copy_n(InputIterator first, OutputIterator dest, size_t n)
+  {
+    for(size_t i=0; i<n; ++i)
+      *dest++ = *first++;
+
+    return dest;
+  }
+
+  template<typename InputIterator, typename OutputIterator>
+  constexpr OutputIterator move(InputIterator first, InputIterator last, OutputIterator dest)
   {
     while(first != last)
       *dest++ = move(*first++);
@@ -24,14 +33,24 @@ namespace rt
   }
 
   template<typename ForwardIterator, typename T>
-  void fill(ForwardIterator first, ForwardIterator last, const T& value)
+  constexpr void fill(ForwardIterator first, ForwardIterator last, const T& value)
   {
     while(first != last)
       *first++ = value;
   }
 
+  template<typename InputIterator, typename T >
+  constexpr InputIterator find(InputIterator first, InputIterator last, const T& value)
+  {
+    for(; first != last; ++first)
+      if(*first == value)
+        return first;
+
+    return last;
+  }
+
   template<typename InputIterator, typename UnaryPredicate >
-  InputIterator find_if(InputIterator first, InputIterator last, UnaryPredicate p)
+  constexpr InputIterator find_if(InputIterator first, InputIterator last, UnaryPredicate p)
   {
     for(; first != last; ++first)
       if(p(*first))
@@ -41,7 +60,7 @@ namespace rt
   }
 
   template<typename RandomAccessIterator, typename Compare>
-  void sort(RandomAccessIterator first, RandomAccessIterator last, Compare compare)
+  constexpr void sort(RandomAccessIterator first, RandomAccessIterator last, Compare compare)
   {
     if(first == last)
       return;
@@ -56,7 +75,7 @@ namespace rt
   }
 
   template<typename ForwardIterator, typename Compare, typename Merge>
-  ForwardIterator adjacentMerge(ForwardIterator first, ForwardIterator last, Compare compare, Merge merge)
+  constexpr ForwardIterator adjacentMerge(ForwardIterator first, ForwardIterator last, Compare compare, Merge merge)
   {
     if(first == last)
       return last;
@@ -75,5 +94,52 @@ namespace rt
 
     ++output;
     return output;
+  }
+
+  template<typename InputIterator1, typename InputIterator2>
+  constexpr int lexicographicalCompare(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, InputIterator2 last2)
+  {
+    for(;first1 != last1 && first2 != last2; ++first1, ++first2)
+    {
+      if(*first1 != *first2)
+        return *first1 < *first2 ? -1 : 1;
+    }
+    if(first1 != last1)
+      return 1;
+
+    if(first2 != last2)
+      return -1;
+
+    return 0;
+  }
+
+  template<typename inputiterator, typename unarypredicate>
+  constexpr bool all(inputiterator first, inputiterator last, unarypredicate p)
+  {
+    for(auto it = first; it!=last; ++it)
+      if(!p(*it))
+        return false;
+
+    return true;
+  }
+
+  template<typename inputiterator, typename unarypredicate>
+  constexpr bool any(inputiterator first, inputiterator last, unarypredicate p)
+  {
+    for(auto it = first; it!=last; ++it)
+      if(p(*it))
+        return true;
+
+    return false;
+  }
+
+  template<typename inputiterator, typename unarypredicate>
+  constexpr bool none(inputiterator first, inputiterator last, unarypredicate p)
+  {
+    for(auto it = first; it!=last; ++it)
+      if(p(*it))
+        return false;
+
+    return true;
   }
 }

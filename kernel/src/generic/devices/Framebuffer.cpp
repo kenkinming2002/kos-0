@@ -13,7 +13,7 @@ namespace core::devices
 {
   namespace
   {
-    rt::Global<Framebuffer> framebuffer;
+    constinit rt::Global<Framebuffer> framebuffer;
   }
 
   void Framebuffer::initializeLog()

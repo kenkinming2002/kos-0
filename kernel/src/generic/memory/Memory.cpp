@@ -6,33 +6,54 @@
 
 namespace core::memory
 {
-  /*
-   * We are using preallocated buffer for boot time pages allocation now.
-   *
-   * Alternatively, we can search for physical memory directly from
-   * bootInformation->and map it in ourselves(Currently, we do not have to do
-   * the mapping ourselves here since early_heap in the .bss section and will
-   * be mapped in for at boot time). This would be useful, if we were to use a
-   * BuddyAllocator in the future due to the its larger initial memory
-   * consumption and the possibility that early_heap, which is statically
-   * allocated, is too small. However, it should be fine for
-   * LinkedListPagesAllocator, which has minimal memory consumption.
-   *
-   * The reason we use the size of 16 pages is due to a config option in
-   * liballoc - l_pageCount - set to 16, which implies that a minimum of 16
-   * pages would be requested each time in advance even if only a few bytes
-   * were to be allocated as in the case of LinkedListPagesAllocator for
-   * book-keeping purposes. That is not to say that it is not possible for
-   * count to exceed 16 or for liballoc_alloc to be called multiple time
-   * before our real allocator is initialized, but that should not happen in
-   * the case of LinkedListPagesAllocator with low memory overhead.
-   */
+  namespace
+  {
+    void test()
+    {
+      rt::log("Testing memory allocation and deallocation...\n");
+
+      for(size_t j=0; j<128;++j)
+      {
+        rt::logf("Iteration %lu\n", j);
+        char* memorys[200] = {};
+
+        for(size_t i=0; i<200; ++i)
+        {
+          memorys[i] = static_cast<char*>(core::memory::malloc(0x1000));
+
+          /* Note: Don't be stupid like me and try to use break to break out of
+           * nested loop and be puzzled as to why the loop does not end */
+          if(memorys[i] == nullptr)
+            goto end;
+
+          const char* str = "deadbeef";
+          for(size_t k=0; k<0x100; ++k)
+          {
+            static_cast<volatile char*>(memorys[i])[k]=str[k%8];
+            ASSERT(static_cast<volatile char*>(memorys[i])[k]==str[k%8]);
+          }
+        }
+
+        for(size_t i=0; i<200; ++i)
+        {
+          if(memorys[i] == nullptr)
+            break;
+          core::memory::free(static_cast<void*>(memorys[i]));
+        }
+      }
+  end:
+
+      rt::log("Done\n");
+    }
+  }
 
   void initialize()
   {
     MemoryMapping::initialize();
     initializePhysical();
     initializeVirtual();
+
+    test();
   }
 
   rt::Optional<Pages> mapPages(Pages physicalPages)

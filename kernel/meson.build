@@ -4,6 +4,15 @@ core_src = files(
   'src/generic/librt/Hooks.cpp',
 
   'src/generic/log/Log.cpp',
+
+  'src/generic/vfs/VFS.cpp',
+  'src/generic/vfs/Initrd.cpp',
+  'src/generic/vfs/Tar.cpp',
+  'src/generic/vfs/Vnode.cpp',
+  'src/generic/vfs/File.cpp',
+  'src/generic/vfs/Mountable.cpp',
+  'src/generic/vfs/mountables/filesystems/Tmpfs.cpp',
+
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/Memory.cpp',
@@ -47,6 +56,7 @@ kernel = executable('kernel',
   link_depends : 'link.ld',
   dependencies : [liballoc_dep, libcommon_dep, librt_dep, libelf_dep],
   pie : true,
+  gnu_symbol_visibility : 'hidden',
   export_dynamic : true
 )
 

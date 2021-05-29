@@ -1,13 +1,11 @@
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
-
-#include <span>
-
 #include <boot/generic/multiboot2.h>
 #include <boot/generic/Config.h>
 #include <common/i686/memory/Paging.hpp>
+
+#include <stdint.h>
+#include <stddef.h>
 
 struct MemoryMapEntry
 {

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+usage()
+{
+  echo "Error"
+  exit -1
+}
+
+OUTPUT=$(realpath $1)
+INPUT_DIR=$(realpath $2)
+
+tar --format=posix -c -f $OUTPUT -C $INPUT_DIR $(find $INPUT_DIR -mindepth 1 -maxdepth 1 | xargs -L1 basename)

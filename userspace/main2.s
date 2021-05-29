@@ -1,19 +1,21 @@
 global _start
 
 section .text
-
 ; Loop 1
 _start:
+  mov esp, stack_top
   mov eax, 0x100
 .L0:
-  mov [stack], eax
+  push eax
 
   mov eax, 1
+
+  mov ecx, esp
   mov edx, .L1
   sysenter
   .L1:
 
-  mov eax, [stack]
+  pop eax
 
   dec eax
   test eax, eax
@@ -24,5 +26,6 @@ _start:
 
 section .bss
 stack:
-  resb 1
+  resb 512
+stack_top:
 
