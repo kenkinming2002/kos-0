@@ -18,11 +18,12 @@ namespace core::tasks
   {
     constinit rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
 
-    int syscallYield(int, int, int, int, int, int, int)
+    static uword_t _sys_yield()
     {
       schedule();
       return 0;
     }
+    WRAP_SYSCALL0(sys_yield, _sys_yield)
 
     /* Note: We have to disable interrupt, however, locking would not be
      *       necessary, since we would or *WILL* have a per-cpu task queue.  */
@@ -48,7 +49,9 @@ namespace core::tasks
   void initializeScheduler()
   {
     tasks.construct();
-    syscalls::installHandler(0, &syscallYield);
+
+    syscalls::installHandler(syscalls::SYS_YIELD, &sys_yield);
+
     interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
     interrupts::clearMask(0);
   }

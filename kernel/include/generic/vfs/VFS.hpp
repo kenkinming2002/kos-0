@@ -3,7 +3,7 @@
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Vnode.hpp>
 #include <generic/vfs/File.hpp>
-#include <generic/vfs/Error.hpp>
+#include <generic/Error.hpp>
 
 #include <librt/Result.hpp>
 #include <librt/SharedPtr.hpp>
@@ -22,7 +22,8 @@ namespace core::vfs
 
   File root();
 
-  Result<void> mountAt(File& at, rt::StringRef mountpoint, Mountable& mountable, rt::Span<rt::StringRef> args);
+  Result<void> mountAt(File& at, rt::StringRef mountpoint, rt::StringRef mountableName, rt::StringRef arg);
+  Result<void> mountAt(File& at, rt::StringRef mountpoint, Mountable& mountable, rt::StringRef arg);
   Result<void> umountAt(File& at, rt::StringRef mountpoint);
 
   Result<File> openAt(File& at, rt::StringRef path);

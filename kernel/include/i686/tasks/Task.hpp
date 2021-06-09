@@ -1,7 +1,10 @@
 #pragma once
 
+#include <generic/vfs/FileDescriptors.hpp>
+
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <librt/containers/Map.hpp>
 #include <librt/Optional.hpp>
 #include <librt/UniquePtr.hpp>
 #include <librt/NonCopyable.hpp>
@@ -53,5 +56,11 @@ namespace core::tasks
   private:
     Stack m_kernelStack;
     rt::UniquePtr<memory::MemoryMapping> m_memoryMapping; // FIXME: Do reference counting
+
+  public:
+    vfs::FileDescriptors& fileDescriptors() { return m_fileDescriptors; }
+
+  private:
+    vfs::FileDescriptors m_fileDescriptors;
   };
 }

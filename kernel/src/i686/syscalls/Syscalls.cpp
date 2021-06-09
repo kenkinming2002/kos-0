@@ -1,15 +1,23 @@
 #include <i686/syscalls/Syscalls.hpp>
 
 #include <i686/syscalls/Entry.hpp>
+#include <i686/syscalls/Access.hpp>
 
 #include <x86/assembly/msr.hpp>
 
+#include <librt/Optional.hpp>
 #include <librt/Algorithm.hpp>
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
 
 namespace core::syscalls
 {
+  inline word_t _sys_test(const char*, const char*, void*, size_t, size_t, intptr_t)
+  {
+    return -1;
+  }
+  WRAP_SYSCALL6(sys_test, _sys_test)
+
   constexpr uint32_t IA32_SYSENTER_CS = 0x174;
   constexpr uint32_t IA32_SYSENTER_ESP = 0x175;
   constexpr uint32_t IA32_SYSENTER_EIP = 0x176;
@@ -42,31 +50,8 @@ namespace core::syscalls
     handlers[syscallNumber] = nullptr;
   }
 
-  namespace
-  {
-    bool verifyUserBuffer(const char* buffer, size_t length)
-    {
-      /* We only do prelimary check, and leave the rest to be handled via page
-       * fault */
-      return reinterpret_cast<uintptr_t>(buffer) < std::numeric_limits<uintptr_t>::max()-length &&
-             reinterpret_cast<uintptr_t>(buffer)+length<0xC0000000;
-    }
-
-    bool copyFromUser(const char* userBuffer, char* kernelBuffer, size_t length)
-    {
-      if(!verifyUserBuffer(userBuffer, length))
-        return false;
-
-      /* TODO: Gracefully handle page fault. In linux, this is handled by the
-       * __might_fault() function, which save the address after the instruction
-       * that might fault in a lookup table and allow the page fault handler to
-       * resume execution. */
-      rt::copy(userBuffer, userBuffer+length, kernelBuffer);
-      return true;
-    }
-  }
-
-  extern "C" int core_syscalls_dispatch(int syscallNumber, int a1, int a2, int a3, int espUser)
+  using result_t = word_t;
+  extern "C" result_t core_syscalls_dispatch(uword_t syscallNumber, uword_t a1, uword_t a2, uword_t a3, uword_t espUser)
   {
     if(syscallNumber<0 || syscallNumber>=MAX_SYSCALL_COUNT)
     {
@@ -80,11 +65,19 @@ namespace core::syscalls
       return -1; // TODO: Error code
     }
 
-    // Retrieve the arguments
-    int stackArgs[3] = {};
-    if(!copyFromUser(reinterpret_cast<const char*>(espUser), reinterpret_cast<char*>(stackArgs), sizeof stackArgs))
-      return -1; // TODO: Error code
+    // Retrieve stack arguments
+    uword_t a4, a5, a6;
+    {
+      int stackArgs[3] = {};
+      auto buffer = InputUserBuffer(reinterpret_cast<const char*>(espUser), sizeof stackArgs);
+      if(auto result = buffer.read(reinterpret_cast<char*>(stackArgs), sizeof stackArgs); !result)
+        return -static_cast<result_t>(result.error());
 
-    return handlers[syscallNumber](syscallNumber, a1, a2, a3, stackArgs[0], stackArgs[1], stackArgs[2]);
+      a4 = stackArgs[0];
+      a5 = stackArgs[1];
+      a6 = stackArgs[2];
+    }
+
+    return handlers[syscallNumber](a1, a2, a3, a4, a5, a6);
   }
 }

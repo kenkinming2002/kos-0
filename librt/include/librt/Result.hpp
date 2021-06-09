@@ -9,11 +9,11 @@ namespace rt
   struct Result
   {
   public:
-    constexpr Result(T value)     : m_data(type_constant<T>, value) {}
-    constexpr Result(Error error) : m_data(type_constant<Error>, error) {}
+    constexpr Result(T value)     : m_data(type_constant<T>, rt::move(value)) {}
+    constexpr Result(Error error) : m_data(type_constant<Error>, rt::move(error)) {}
 
   public:
-    operator bool() const { return m_data.template holds<T>(); }
+    explicit operator bool() const { return m_data.template holds<T>(); }
 
   public:
     Error error() const         { return m_data.template get<Error>(); }
@@ -36,7 +36,7 @@ namespace rt
     constexpr Result(Error error) : m_data(error) {}
 
   public:
-    operator bool() const { return !m_data; }
+    explicit operator bool() const { return !m_data; }
 
   public:
     Error error() const         { return *m_data; }

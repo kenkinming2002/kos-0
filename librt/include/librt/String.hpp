@@ -18,7 +18,8 @@ namespace rt
     StringRefBase<Char> ref() const & { return StringRefBase<Char>(data(), length()); }
 
   public:
-    StringBase(const Char* str, size_t length) : m_buf(makeUnique<Char[]>(length)), m_length(length), m_capacity(length) { copy(str, str+m_length, m_buf.get()); }
+    StringBase(size_t length, char c)          : m_buf(makeUnique<Char[]>(length)), m_length(length), m_capacity(length) { fill(begin(), end(), c); }
+    StringBase(const Char* str, size_t length) : m_buf(makeUnique<Char[]>(length)), m_length(length), m_capacity(length) { copy(str, str+m_length, begin()); }
     StringBase(const Char* str) : StringBase(str, strlen(str)) { }
     StringBase(const Char* begin, const Char* end) : StringBase(begin, end-begin) {}
 

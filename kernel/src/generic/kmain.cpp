@@ -1,3 +1,5 @@
+#include "generic/Types.hpp"
+#include "i686/syscalls/Access.hpp"
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Inode.hpp>
@@ -75,11 +77,37 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::tasks::scheduleInitial();
 }
 
+#define UNWRAP(v, expr) auto v = expr; if(!(v)) return -static_cast<result_t>(v.error())
+
+using result_t = core::word_t;
+
+static result_t _sys_test()
+{
+  rt::log("Hello from kernel\n");
+  return 0;
+}
+WRAP_SYSCALL0(sys_test, _sys_test)
+
+static result_t _sys_log(const char* msg, size_t length)
+{
+  char buf[length+1];
+  UNWRAP(_, core::syscalls::InputUserBuffer(msg, length).read(buf, length));
+  buf[length] = '\0';
+
+  rt::logf("%s", buf);
+  return length;
+}
+WRAP_SYSCALL2(sys_log, _sys_log)
+
+#undef UNWRAP
+
 extern "C" void kmain(BootInformation* bootInformation)
 {
   kmainInitialize(bootInformation);
 
-  core::syscalls::installHandler(1, [](int, int, int, int, int, int, int){ rt::log("Hello from kernel\n"); return 0;});
+  using core::uword_t;
+  core::syscalls::installHandler(core::syscalls::SYS_TEST, &sys_test);
+  core::syscalls::installHandler(core::syscalls::SYS_LOG,  &sys_log);
   core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
   kmainLoadAndRunUserspaceTask();

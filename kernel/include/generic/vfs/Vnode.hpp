@@ -2,7 +2,7 @@
 
 #include <generic/vfs/Inode.hpp>
 #include <generic/vfs/Mountable.hpp>
-#include <generic/vfs/Error.hpp>
+#include <generic/Error.hpp>
 
 #include <librt/Optional.hpp>
 #include <librt/String.hpp>
@@ -32,7 +32,7 @@ namespace core::vfs
     bool negative() const { ASSERT(m_state == State::NORMAL || m_state == State::MOUNTED); return !m_inode; }
 
   public:
-    Result<void> mount(Mountable& mountable, rt::Span<rt::StringRef> args);
+    Result<void> mount(Mountable& mountable, rt::StringRef arg);
     Result<void> umount();
 
   public:

@@ -39,10 +39,13 @@ namespace core::vfs
     if(vnode->negative())
       return ErrorCode::NOT_EXIST;
 
+    ASSERT(vnode.get() != this);
+    ASSERT(&vnode->inode() != m_inode.get());
+
     return vnode;
   }
 
-  Result<void> Vnode::mount(Mountable& mountable, rt::Span<rt::StringRef> args)
+  Result<void> Vnode::mount(Mountable& mountable, rt::StringRef arg)
   {
     if(m_state == State::NORMAL && !m_inode)
       return ErrorCode::NOT_EXIST;
@@ -50,7 +53,7 @@ namespace core::vfs
     if(m_state == State::MOUNTED)
       return ErrorCode::EXIST;
 
-    auto inode = mountable.mount(args);
+    auto inode = mountable.mount(arg);
     if(!inode)
       return inode.error();
 

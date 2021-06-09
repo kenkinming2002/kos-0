@@ -2,22 +2,101 @@
 
 namespace core::vfs
 {
-  File::File(rt::SharedPtr<Vnode> vnode) : m_vnode(rt::move(vnode))
+  void File::close()
   {
-    ASSERT(m_vnode);
-    ASSERT(!m_vnode->negative());
+    m_vnode.reset();
   }
 
   Result<File::Stat> File::stat() { return m_vnode->inode().stat(); }
-  Result<size_t> File::read(char* buf, size_t length, addr_t off)        { return m_vnode->inode().read(buf, length, off); }
-  Result<size_t> File::write(const char* buf, size_t length, addr_t off) { return m_vnode->inode().write(buf, length, off); };
-  Result<void>   File::resize(size_t size)                               { return m_vnode->inode().resize(size); }
 
-  Result<void> File::iterate(iterate_callback_t cb, void* data) { return m_vnode->inode().iterate(cb, data); }
-
-  Result<void> File::mount(Mountable& mountable, rt::Span<rt::StringRef> args)
+  Result<ssize_t> File::seek(Anchor anchor, off_t offset)
   {
-    return m_vnode->mount(mountable, args);
+    size_t newPos;
+    switch(anchor)
+    {
+    case Anchor::BEGIN:
+      newPos = 0;
+      break;
+    case Anchor::CURRENT:
+      newPos = m_pos;
+      break;
+    case Anchor::END:
+    {
+      auto stat = this->stat();
+      if(!stat)
+        return stat.error();
+      newPos = stat->size;
+      break;
+    }
+    default:
+      return ErrorCode::INVALID;
+    }
+    if(__builtin_add_overflow(newPos, offset, &newPos))
+      return ErrorCode::OVERFLOW;
+
+    /* Even though it is possible to have a file the size of
+     * std::numeric_limits<size_t>::max(), possibly from lazy allocation
+     * it is impossible to seek normally on such a file since return value of
+     * seek is ssize_t, which has a smaller maximum value
+     */
+    if(newPos>std::numeric_limits<ssize_t>::max())
+      return ErrorCode::INVALID;
+
+    m_pos = newPos;
+    return newPos;
+  }
+
+  Result<ssize_t> File::read(char* buf, size_t length)
+  {
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    if(length>std::numeric_limits<ssize_t>::max())
+      return ErrorCode::INVALID;
+
+    auto result = m_vnode->inode().read(buf, length, m_pos);
+    if(!result)
+      return result.error();
+
+    seek(Anchor::CURRENT, length);
+    return *result;
+  }
+
+  Result<ssize_t> File::write(const char* buf, size_t length)
+  {
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    auto result = m_vnode->inode().write(buf, length, m_pos);
+    if(!result)
+      return result.error();
+
+    seek(Anchor::CURRENT, length);
+    return *result;
+  };
+
+  Result<void> File::resize(size_t size)
+  {
+    return m_vnode->inode().resize(size);
+  }
+
+  Result<ssize_t> File::readdir(char* buf, size_t length)
+  {
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    return m_vnode->inode().readdir(buf, length);
+  }
+
+  Result<void> File::mount(Mountable& mountable, rt::StringRef arg)
+  {
+    return m_vnode->mount(mountable, arg);
   }
 
   Result<void> File::umount()
@@ -29,7 +108,7 @@ namespace core::vfs
   {
     auto vnode = m_vnode->lookup(name);
     if(!vnode)
-      return ErrorCode::NOT_EXIST;
+      return vnode.error();
 
     return File(rt::move(*vnode));
   }

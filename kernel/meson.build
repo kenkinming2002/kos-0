@@ -10,6 +10,8 @@ core_src = files(
   'src/generic/vfs/Tar.cpp',
   'src/generic/vfs/Vnode.cpp',
   'src/generic/vfs/File.cpp',
+  'src/generic/vfs/FileDescriptors.cpp',
+  'src/generic/vfs/Syscalls.cpp',
   'src/generic/vfs/Mountable.cpp',
   'src/generic/vfs/mountables/filesystems/Tmpfs.cpp',
 
@@ -28,6 +30,7 @@ core_src = files(
   'src/i686/internals/Segmentation.cpp',
 
   'src/i686/syscalls/Syscalls.cpp',
+  'src/i686/syscalls/Access.cpp',
 
   'src/generic/tasks/Scheduler.cpp',
   'src/generic/tasks/Elf.cpp',

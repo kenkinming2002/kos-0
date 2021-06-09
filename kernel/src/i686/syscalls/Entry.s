@@ -9,6 +9,8 @@ extern core_syscalls_dispatch
 ; edi - arg 3
 ; ebp - user stack
 
+; TODO: Sanitize kernel registers
+
 core_syscalls_entry:
   push ecx
   push edx

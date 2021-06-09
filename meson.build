@@ -14,9 +14,9 @@ add_global_link_arguments('-nostdlib',  language: ['c', 'cpp'])
 add_global_arguments('-masm=intel', language : ['c', 'cpp'])
 
 # Strip unused functions
-# add_global_arguments(['-fdata-sections', '-ffunction-sections'], language : ['c', 'cpp'])
-# add_global_link_arguments(['-Wl,--gc-sections'], language : ['c', 'cpp'])
-# add_global_link_arguments(['-Wl,--sort-section,alignment'], language : ['c', 'cpp'])
+add_global_arguments(['-fdata-sections', '-ffunction-sections'], language : ['c', 'cpp'])
+add_global_link_arguments(['-Wl,--gc-sections'], language : ['c', 'cpp'])
+add_global_link_arguments(['-Wl,--sort-section,alignment'], language : ['c', 'cpp'])
 
 nasm = find_program('nasm', required : true)
 asm_gen = generator(nasm,

@@ -10,30 +10,40 @@ namespace core::vfs
   class File
   {
   public:
-    File(rt::SharedPtr<Vnode> vnode);
+    using Stat = Inode::Stat;
 
   public:
-    using Stat = Inode::Stat;
+    constexpr File() = default;
+    constexpr File(rt::SharedPtr<Vnode> vnode) : m_vnode(rt::move(vnode)) {}
+
+  public:
+    bool isOpen() const { return m_vnode; }
+    void close();
+
+  public:
     Result<Stat> stat();
 
   /******************
    * File interface *
    ******************/
   public:
-    Result<size_t> read(char* buf, size_t length, addr_t off);
-    Result<size_t> write(const char* buf, size_t length, addr_t off);
+    /* We use ssize_t instead of size_t as this allow us to use negative number
+     * to return error code to user space */
+    Result<ssize_t> seek(Anchor anchor, off_t offset);
+
+  public:
+    Result<ssize_t> read(char* buf, size_t length);
+    Result<ssize_t> write(const char* buf, size_t length);
     Result<void>   resize(size_t size);
 
   public:
-    using DirectoryEntry     = Inode::DirectoryEntry;
-    using iterate_callback_t = Inode::iterate_callback_t;
-    Result<void> iterate(iterate_callback_t cb, void* data);
+    Result<ssize_t> readdir(char* buf, size_t length);
 
   /*******************
    * Vnode interface *
    *******************/
   public:
-    Result<void> mount(Mountable& mountable, rt::Span<rt::StringRef> args);
+    Result<void> mount(Mountable& mountable, rt::StringRef arg);
     Result<void> umount();
 
   public:
@@ -44,5 +54,6 @@ namespace core::vfs
 
   private:
     rt::SharedPtr<Vnode> m_vnode; // Keep track of path information
+    size_t m_pos = 0;
   };
 }

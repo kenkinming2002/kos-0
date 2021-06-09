@@ -1,6 +1,6 @@
 #pragma once
 
-#include <generic/vfs/Error.hpp>
+#include <generic/Error.hpp>
 
 #include <librt/SharedPtr.hpp>
 

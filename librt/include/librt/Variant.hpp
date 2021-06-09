@@ -115,6 +115,8 @@ namespace rt
     Variant(Variant&& other) : Variant() { *this = move(other); }
     Variant(const Variant& other) : Variant() { *this = other; }
 
+    ~Variant() { reset(); }
+
   private:
     size_t m_index;
     std::aligned_storage_t<max(sizeof(Ts)...), max(alignof(Ts)...)> m_storage;

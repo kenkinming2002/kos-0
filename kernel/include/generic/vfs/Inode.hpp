@@ -1,7 +1,7 @@
 #pragma once
 
 #include <generic/vfs/Types.hpp>
-#include <generic/vfs/Error.hpp>
+#include <generic/Error.hpp>
 #include <generic/vfs/SuperBlock.hpp>
 
 #include <librt/Utility.hpp>
@@ -20,6 +20,15 @@
 
 namespace core::vfs
 {
+  struct Dirent
+  {
+    uword_t length; // This is needed to maintain forward compatiblility - length of the entire structure
+    uword_t ino;
+    uword_t type;
+
+    char name[];
+  };
+
   /*
    * Inode is not always associated with a unique Vnode, but that must be the
    * case for a directory inode, since there is no directory hardlink.
@@ -56,20 +65,12 @@ namespace core::vfs
    * File interface *
    ******************/
   public:
-    virtual Result<size_t> read(char* buf, size_t length, addr_t off)        { return ErrorCode::UNSUPPORTED; }
-    virtual Result<size_t> write(const char* buf, size_t length, addr_t off) { return ErrorCode::UNSUPPORTED; }
-    virtual Result<void>   resize(size_t size)                               { return ErrorCode::UNSUPPORTED; }
+    virtual Result<ssize_t> read(char* buf, size_t length, size_t pos)        { return ErrorCode::UNSUPPORTED; }
+    virtual Result<ssize_t> write(const char* buf, size_t length, size_t pos) { return ErrorCode::UNSUPPORTED; }
+    virtual Result<void>   resize(size_t size)                                { return ErrorCode::UNSUPPORTED; }
 
   public:
-    struct DirectoryEntry
-    {
-      rt::StringRef      name;
-      ino_t              ino;
-
-      Type type; /* This may not be provided */
-    };
-    using iterate_callback_t = void(*)(DirectoryEntry, void*);
-    virtual Result<void> iterate(iterate_callback_t cb, void* data) { return ErrorCode::UNSUPPORTED; }
+    virtual Result<ssize_t> readdir(char* buf, size_t length) { return ErrorCode::UNSUPPORTED; }
 
   /*******************
    * Vnode interface *

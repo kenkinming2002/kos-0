@@ -42,13 +42,17 @@ namespace core::vfs
 
         if(tarHeaderBlock->isRegularFile())
         {
-          auto file = createAt(rootVnode, tarHeaderBlock->fileName(), Type::REGULAR_FILE);
-          if(!file)
+          auto result = createAt(rootVnode, tarHeaderBlock->fileName(), Type::REGULAR_FILE);
+          if(!result)
             rt::panic("Failed to create file from initrd\n");
+
+          auto file = openAt(rootVnode, tarHeaderBlock->fileName());
+          if(!file)
+            rt::panic("Failed to open file after creation\n");
 
           // TODO: Check if data is in range
           file->resize(tarHeaderBlock->fileSize());
-          file->write(tarHeaderBlock->fileData(), tarHeaderBlock->fileSize(), 0);
+          file->write(tarHeaderBlock->fileData(), tarHeaderBlock->fileSize());
         }
         else if(tarHeaderBlock->isDirectory())
         {

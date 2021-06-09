@@ -1,6 +1,6 @@
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Inode.hpp>
-#include <generic/vfs/Error.hpp>
+#include <generic/Error.hpp>
 
 #include <librt/StringRef.hpp>
 #include <librt/SharedPtr.hpp>
@@ -15,7 +15,7 @@ namespace core::vfs
   class Tmpfs final : public Mountable
   {
   public:
-    rt::Result<rt::SharedPtr<Inode>, ErrorCode> mount(rt::Span<rt::StringRef> args) override;
+    rt::Result<rt::SharedPtr<Inode>, ErrorCode> mount(rt::StringRef arg) override;
     rt::StringRef name() override;
   };
 
@@ -59,7 +59,7 @@ namespace core::vfs
     Result<Stat> stat() override;
 
   public:
-    Result<void> iterate(iterate_callback_t cb, void* data) override;
+    Result<ssize_t> readdir(char* buf, size_t length) override;
 
   public:
     Result<rt::SharedPtr<Inode>> lookup(rt::StringRef name) override;
@@ -80,13 +80,14 @@ namespace core::vfs
     Result<Stat> stat() override;
 
   public:
-    Result<size_t> read(char* buf, size_t length, addr_t off) override;
-    Result<size_t> write(const char* buf, size_t length, addr_t off) override;
+    Result<ssize_t> read(char* buf, size_t length, size_t pos) override;
+    Result<ssize_t> write(const char* buf, size_t length, size_t pos) override;
     Result<void> resize(size_t size) override;
 
   private:
     /* Replace with rt::Vector, which we should implement soon */
-    size_t m_size;
-    rt::UniquePtr<char[]> m_data;
+    size_t m_size = 0;
+    rt::UniquePtr<char[]> m_data = nullptr;
+
   };
 }

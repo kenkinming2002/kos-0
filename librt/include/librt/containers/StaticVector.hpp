@@ -8,7 +8,7 @@
 #include <stddef.h>
 #include <type_traits>
 
-namespace rt
+namespace rt::containers
 {
   template<typename T, size_t N>
   struct StaticVector
@@ -21,6 +21,7 @@ namespace rt
     using const_pointer   = const T*;
     using iterator        = pointer;
     using const_iterator  = const_pointer;
+    using size_type       = size_t;
 
   public:
     constexpr StaticVector() = default;
@@ -76,6 +77,10 @@ namespace rt
         while(m_size != size) popBack();
     }
     constexpr void clear() { resize(0); }
+
+  public:
+    reference       operator[](size_type i)       { ASSERT(i<m_size); return reinterpret_cast<reference>(m_storage[i]); }
+    const_reference operator[](size_type i) const { ASSERT(i<m_size); return reinterpret_cast<const_reference>(m_storage[i]); }
 
   public:
     iterator erase(const_iterator it)
