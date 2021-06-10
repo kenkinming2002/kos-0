@@ -8,6 +8,8 @@
 
 namespace core::vfs
 {
+  void initializeTmpfs();
+
   class Tmpfs;
   class TmpfsSuperBlock;
   class TmpfsInode;

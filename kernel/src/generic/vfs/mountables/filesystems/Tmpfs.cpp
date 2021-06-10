@@ -3,12 +3,24 @@
 #include <i686/syscalls/Access.hpp>
 
 #include <librt/SharedPtr.hpp>
+#include <librt/Global.hpp>
 
 #include <limits>
 #include <type_traits>
 
 namespace core::vfs
 {
+  namespace
+  {
+    constinit rt::Global<Tmpfs> tmpfs; // Tmpfs is always available because that is the default root mountable
+  }
+
+  void initializeTmpfs()
+  {
+    tmpfs.construct();
+    registerMountable(tmpfs());
+  }
+
   rt::Result<rt::SharedPtr<Inode>, ErrorCode> Tmpfs::mount(rt::StringRef arg)
   {
     auto superBlock = rt::makeShared<TmpfsSuperBlock>();

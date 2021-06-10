@@ -1,5 +1,6 @@
 #include <generic/vfs/Mountable.hpp>
 
+#include <generic/vfs/mountables/devices/Serial.hpp>
 #include <generic/vfs/mountables/filesystems/Tmpfs.hpp>
 
 #include <librt/Algorithm.hpp>
@@ -12,14 +13,13 @@ namespace core::vfs
   {
     // TODO: Maybe someform of reference wrappers or intrusive list?
     constinit rt::Global<rt::containers::List<Mountable*>> mountables;
-    constinit rt::Global<Tmpfs> tmpfs; // Tmpfs is always available because that is the default root mountable
   }
 
   void initializeMountables()
   {
     mountables.construct();
-    tmpfs.construct();
-    registerMountable(tmpfs());
+    initializeTmpfs();
+    initializeSerial();
   }
 
   void registerMountable(Mountable& mountable)

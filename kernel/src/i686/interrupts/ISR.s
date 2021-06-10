@@ -31,9 +31,9 @@ isr_common:
   mov fs, ax
   mov gs, ax
 
-  push edx
-  push ecx
-  push eax
+  pop edx
+  pop ecx
+  pop eax
 
   mov esp, ebp
   pop ebp

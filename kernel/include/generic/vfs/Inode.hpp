@@ -41,9 +41,12 @@ namespace core::vfs
   /*********************
    * General interface *
    *********************/
+  private:
+    static inline constinit SuperBlock m_superBlock;
+
   public:
-    virtual const SuperBlock& superBlock() const = 0;
-    virtual SuperBlock& superBlock()             = 0;
+    virtual const SuperBlock& superBlock() const { return m_superBlock; }
+    virtual SuperBlock& superBlock()             { return m_superBlock; }
 
   public:
     struct Stat

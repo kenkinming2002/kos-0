@@ -23,9 +23,10 @@ syscall:
   mov esi, [ebp+0x10]
   mov edi, [ebp+0x14]
 
-  push DWORD [ebp+0x18]
-  push DWORD [ebp+0x1C]
+; Push in reverse order
   push DWORD [ebp+0x20]
+  push DWORD [ebp+0x1C]
+  push DWORD [ebp+0x18]
 
   mov ecx, esp
   mov edx, .L1

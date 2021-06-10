@@ -80,6 +80,25 @@ void test()
     rt::log(readBuf, 5);
     rt::log("\n");
   }
+
+  {
+    auto serial1fd = sys_createAt(rootfd, "serial1", Type::REGULAR_FILE);
+    ASSERT_ALWAYS(serial1fd >= 0);
+    ASSERT_ALWAYS(sys_mountAt(serial1fd, "", "serial", "1") == 0);
+
+    for(;;)
+    {
+      size_t result;
+      char buf[1];
+
+      result = sys_read(serial1fd, buf, sizeof buf);
+
+      rt::log(buf, result);
+      result = sys_write(serial1fd, buf, sizeof buf);
+      if(result<0)
+        rt::log("Error occured\n");
+    }
+  }
 }
 
 extern "C" void main()

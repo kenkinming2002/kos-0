@@ -4,8 +4,6 @@
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Initrd.hpp>
 
-#include <generic/vfs/mountables/Null.hpp>
-
 #include <librt/SharedPtr.hpp>
 #include <librt/Result.hpp>
 #include <librt/Global.hpp>
@@ -22,7 +20,7 @@ namespace core::vfs
     void initializeRoot()
     {
       rootVnode.construct(rt::makeShared<Vnode>(nullptr));
-      rootVnode()->associate(rt::makeShared<NullInode>());
+      rootVnode()->associate(rt::makeShared<Inode>());
 
       auto* tmpfs = lookupMountable("tmpfs");
       auto rootFile = root();

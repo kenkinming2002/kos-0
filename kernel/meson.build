@@ -14,6 +14,7 @@ core_src = files(
   'src/generic/vfs/Syscalls.cpp',
   'src/generic/vfs/Mountable.cpp',
   'src/generic/vfs/mountables/filesystems/Tmpfs.cpp',
+  'src/generic/vfs/mountables/devices/Serial.cpp',
 
   'src/generic/devices/Framebuffer.cpp',
 

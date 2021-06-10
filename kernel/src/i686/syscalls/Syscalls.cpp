@@ -51,7 +51,7 @@ namespace core::syscalls
   }
 
   using result_t = word_t;
-  extern "C" result_t core_syscalls_dispatch(uword_t syscallNumber, uword_t a1, uword_t a2, uword_t a3, uword_t espUser)
+  extern "C" uword_t core_syscalls_dispatch(uword_t syscallNumber, uword_t a1, uword_t a2, uword_t a3, uword_t espUser)
   {
     if(syscallNumber<0 || syscallNumber>=MAX_SYSCALL_COUNT)
     {
