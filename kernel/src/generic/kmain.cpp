@@ -1,5 +1,3 @@
-#include "generic/Types.hpp"
-#include "i686/syscalls/Access.hpp"
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Inode.hpp>
@@ -19,6 +17,7 @@
 
 #include <generic/BootInformation.hpp>
 
+#include <i686/syscalls/Access.hpp>
 #include <i686/internals/Internals.hpp>
 #include <i686/interrupts/Interrupts.hpp>
 #include <i686/memory/MemoryMapping.hpp>
@@ -79,8 +78,6 @@ static void kmainInitialize(BootInformation* bootInformation)
 
 #define UNWRAP(v, expr) auto v = expr; if(!(v)) return -static_cast<result_t>(v.error())
 
-using result_t = core::word_t;
-
 static result_t _sys_test()
 {
   rt::log("Hello from kernel\n");
@@ -105,7 +102,6 @@ extern "C" void kmain(BootInformation* bootInformation)
 {
   kmainInitialize(bootInformation);
 
-  using core::uword_t;
   core::syscalls::installHandler(core::syscalls::SYS_TEST, &sys_test);
   core::syscalls::installHandler(core::syscalls::SYS_LOG,  &sys_log);
   core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);

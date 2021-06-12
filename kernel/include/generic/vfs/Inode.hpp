@@ -1,6 +1,7 @@
 #pragma once
 
-#include <generic/vfs/Types.hpp>
+#include <sys/Types.hpp>
+
 #include <generic/Error.hpp>
 #include <generic/vfs/SuperBlock.hpp>
 
@@ -51,8 +52,8 @@ namespace core::vfs
   public:
     struct Stat
     {
-      dev_t dev = UNKNWON_DEV; /* device number */
-      ino_t ino = UNKNWON_INO; /* Inode number */
+      device_t dev = UNKNWON_DEV; /* device number */
+      inode_t ino = UNKNWON_INO; /* Inode number */
 
       Type   type;
       size_t blockSize; /* This must be a power of 2 */

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "librt/Utility.hpp"
+#include <sys/Types.hpp>
+
 #include <generic/Error.hpp>
 
+#include <librt/Utility.hpp>
 #include <librt/StringRef.hpp>
 #include <librt/String.hpp>
 
@@ -108,5 +110,32 @@ namespace core::syscalls
       return result.error();
 
     return rt::move(string);
+  }
+
+  inline Result<Type> typeFromUser(uword_t type)
+  {
+    switch(static_cast<Type>(type))
+    {
+    case Type::REGULAR_FILE:
+    case Type::DIRECTORY:
+    case Type::SYMBOLIC_LINK:
+    case Type::OTHER:
+      return static_cast<Type>(type);
+    default:
+      return ErrorCode::INVALID;
+    }
+  }
+
+  inline Result<Anchor> anchorFromUser(uword_t type)
+  {
+    switch(static_cast<Anchor>(type))
+    {
+    case Anchor::BEGIN:
+    case Anchor::CURRENT:
+    case Anchor::END:
+      return static_cast<Anchor>(type);
+    default:
+      return ErrorCode::INVALID;
+    }
   }
 }

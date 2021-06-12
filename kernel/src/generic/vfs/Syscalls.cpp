@@ -58,7 +58,7 @@ namespace core::vfs
   {
     UNWRAP(at,   tasks::Task::current()->fileDescriptors().getFile(atfd));
     UNWRAP(path, syscalls::stringFromUser(_path));
-    UNWRAP(type, typeFromUser(_type));
+    UNWRAP(type, syscalls::typeFromUser(_type));
 
     UNWRAP(file, createAt(*at, *path, *type));
     UNWRAP(result, tasks::Task::current()->fileDescriptors().addFile(*file));
@@ -108,7 +108,7 @@ namespace core::vfs
   static ssize_t _sys_seek(fd_t fd, uword_t _anchor, off_t offset)
   {
     UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(anchor, anchorFromUser(_anchor));
+    UNWRAP(anchor, syscalls::anchorFromUser(_anchor));
     UNWRAP(result, file->seek(*anchor, offset));
     return *result;
   }

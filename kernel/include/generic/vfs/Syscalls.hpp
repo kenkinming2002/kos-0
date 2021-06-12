@@ -1,6 +1,6 @@
 #pragma once
 
-#include <generic/Types.hpp>
+#include <sys/Types.hpp>
 
 namespace core::vfs
 {

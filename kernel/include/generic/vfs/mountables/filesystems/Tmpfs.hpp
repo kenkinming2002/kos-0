@@ -30,13 +30,13 @@ namespace core::vfs
     rt::SharedPtr<TmpfsInode> allocate(rt::SharedPtr<TmpfsSuperBlock> self, Type type);
 
   private:
-    ino_t m_next = 0;
+    inode_t m_next = 0;
   };
 
   class TmpfsInode : public Inode
   {
   public:
-    TmpfsInode(rt::SharedPtr<TmpfsSuperBlock> superBlock, ino_t ino);
+    TmpfsInode(rt::SharedPtr<TmpfsSuperBlock> superBlock, inode_t ino);
 
   public:
     const TmpfsSuperBlock& superBlock() const override final;
@@ -48,7 +48,7 @@ namespace core::vfs
 
   private:
     rt::SharedPtr<TmpfsSuperBlock> m_superBlock;
-    ino_t m_ino;
+    inode_t m_ino;
   };
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <generic/Types.hpp>
+#include <sys/Types.hpp>
+
 #include <generic/Error.hpp>
 
 #include <librt/Algorithm.hpp>
@@ -53,33 +54,33 @@ namespace core::syscalls
 }
 
 #define WRAP_SYSCALL0(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
     )); \
   }
 
 #define WRAP_SYSCALL1(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1) \
     )); \
   }
 
 #define WRAP_SYSCALL2(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1), \
       rt::autoBitCast(a2) \
     )); \
   }
 
 #define WRAP_SYSCALL3(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1), \
       rt::autoBitCast(a2), \
       rt::autoBitCast(a3) \
@@ -87,9 +88,9 @@ namespace core::syscalls
   }
 
 #define WRAP_SYSCALL4(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1), \
       rt::autoBitCast(a2), \
       rt::autoBitCast(a3), \
@@ -98,9 +99,9 @@ namespace core::syscalls
   }
 
 #define WRAP_SYSCALL5(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1), \
       rt::autoBitCast(a2), \
       rt::autoBitCast(a3), \
@@ -110,9 +111,9 @@ namespace core::syscalls
   }
 
 #define WRAP_SYSCALL6(name, realName) \
-  core::uword_t name(core::uword_t a1, core::uword_t a2, core::uword_t a3, core::uword_t a4, core::uword_t a5, core::uword_t a6) \
+  uword_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    return rt::bitCast<core::uword_t>(realName( \
+    return rt::bitCast<uword_t>(realName( \
       rt::autoBitCast(a1), \
       rt::autoBitCast(a2), \
       rt::autoBitCast(a3), \

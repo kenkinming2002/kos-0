@@ -1,53 +1,10 @@
 #pragma once
 
-#include <stdint.h>
-#include <stddef.h>
-
-#include <limits>
+#include <sys/Types.hpp>
+#include <sys/Syscalls.hpp>
 
 #include <librt/Cast.hpp>
 #include <librt/Utility.hpp>
-
-// Ideally, this part would be found in kernel header
-using word_t  = intptr_t;
-using uword_t = uintptr_t;
-
-using size_t  = uword_t;
-using ssize_t = word_t;
-using off_t   = word_t;
-
-using dev_t = uword_t;
-using ino_t = uword_t;
-
-using result_t = word_t;
-using fd_t     = word_t;
-
-static constexpr dev_t UNKNWON_DEV = std::numeric_limits<dev_t>::max();
-static constexpr ino_t UNKNWON_INO = std::numeric_limits<ino_t>::max();
-
-enum class Type   : uword_t { REGULAR_FILE, DIRECTORY, SYMBOLIC_LINK, OTHER };
-enum class Anchor : uword_t { BEGIN, CURRENT , END };
-
-enum Syscalls : uword_t
-{
-  SYS_YIELD    = 0,
-  SYS_ROOT     = 1,
-  SYS_MOUNTAT  = 2,
-  SYS_UMOUNTAT = 3,
-  SYS_OPENAT   = 4,
-  SYS_CREATEAT = 5,
-  SYS_LINKAT   = 6,
-  SYS_UNLINKAT = 7,
-  SYS_READDIR  = 8,
-  SYS_SEEK     = 9,
-  SYS_READ     = 10,
-  SYS_WRITE    = 11,
-  SYS_RESIZE   = 12,
-  SYS_CLOSE    = 13,
-
-  SYS_TEST     = 14,
-  SYS_LOG      = 15
-};
 
 extern "C" uword_t syscall(uword_t syscallNumber, uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6);
 
