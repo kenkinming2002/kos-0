@@ -8,7 +8,7 @@ extern "C" int liballoc_unlock() { return 0; }
 
 extern "C" void* liballoc_alloc(size_t count)
 {
-  auto pages = core::memory::allocMappedPages(count);
+  auto pages = core::memory::allocPages(count);
   if(!pages)
     return nullptr;
 
@@ -18,7 +18,7 @@ extern "C" void* liballoc_alloc(size_t count)
 extern "C" int liballoc_free(void* ptr, size_t count)
 {
   auto pages = core::memory::Pages{reinterpret_cast<uintptr_t>(ptr) / core::memory::PAGE_SIZE, count};
-  core::memory::freeMappedPages(pages);
+  core::memory::freePages(pages);
   return 0;
 }
 

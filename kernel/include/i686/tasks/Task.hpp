@@ -37,7 +37,7 @@ namespace core::tasks
     static rt::UniquePtr<Task> allocate();
 
   public:
-    Task(Stack kernelStack, rt::UniquePtr<memory::MemoryMapping> memoryMapping);
+    Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping);
     ~Task();
 
   public:
@@ -55,7 +55,7 @@ namespace core::tasks
 
   private:
     Stack m_kernelStack;
-    rt::UniquePtr<memory::MemoryMapping> m_memoryMapping; // FIXME: Do reference counting
+    rt::SharedPtr<memory::MemoryMapping> m_memoryMapping;
 
   public:
     vfs::FileDescriptors& fileDescriptors() { return m_fileDescriptors; }

@@ -3,7 +3,7 @@
 #include <common/i686/memory/Paging.hpp>
 #include <generic/memory/Memory.hpp>
 
-#include <librt/UniquePtr.hpp>
+#include <librt/SharedPtr.hpp>
 #include <librt/NonCopyable.hpp>
 
 namespace core::memory
@@ -22,34 +22,25 @@ namespace core::memory
    * mitigation for meltdown or spectre so the entirety of kernel and kernel
    * heap is always mapped in.
    */
-  class MemoryMapping : public rt::NonCopyable
+  class MemoryMapping : public rt::SharedPtrHook
   {
   public:
     static void initialize();
 
   public:
-    static MemoryMapping& current();
+    static rt::SharedPtr<MemoryMapping> current();
+    static void makeCurrent(rt::SharedPtr<MemoryMapping> memoryMapping);
 
   public:
-    static rt::UniquePtr<MemoryMapping> allocate();
+    static rt::SharedPtr<MemoryMapping> allocate();
 
   public:
-    constexpr MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
+    MemoryMapping(common::memory::PageDirectory* pageDirectory);
     ~MemoryMapping();
-
-  public:
-    static uintptr_t doFractalMapping(uintptr_t phyaddr, size_t length);
-
-  public:
-    void synchronize();
-    void makeCurrent();
 
   public:
     void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages = rt::nullOptional);
     void unmap(Pages virtualPages);
-
-  public:
-    uintptr_t virtualToPhysical(uintptr_t virtaddr);
 
   private:
     common::memory::PageDirectoryEntry& pageDirectoryEntry(size_t virtualIndex, bool allocate);

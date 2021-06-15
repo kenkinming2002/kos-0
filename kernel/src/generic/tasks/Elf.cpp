@@ -70,14 +70,14 @@ namespace core::tasks
     if(!programHeaders)
       return -1;
 
-    auto& oldMemoryMapping = memory::MemoryMapping::current();
-    task.memoryMapping()->makeCurrent();
+    auto oldMemoryMapping = memory::MemoryMapping::current();
+    memory::MemoryMapping::makeCurrent(task.memoryMapping());
     for(size_t i=0; i<count; ++i)
       if(loadProgramHeader(data, length, task, programHeaders[i]) != 0)
         return -1;
 
     task.asUserspaceTask(header->e_entry);
-    oldMemoryMapping.makeCurrent();
+    memory::MemoryMapping::makeCurrent(rt::move(oldMemoryMapping));
 
     return 0;
   }

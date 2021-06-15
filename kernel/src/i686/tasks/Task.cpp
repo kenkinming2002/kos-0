@@ -1,13 +1,15 @@
-#include "librt/UniquePtr.hpp"
-#include <i686/tasks/Switch.hpp>
+#include <i686/tasks/Task.hpp>
 
 #include <generic/memory/Memory.hpp>
+#include <i686/memory/MemoryMapping.hpp>
 
-#include <i686/tasks/Task.hpp>
+#include <i686/tasks/Switch.hpp>
 #include <i686/interrupts/Interrupts.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/tasks/Entry.hpp>
 
+#include "librt/SharedPtr.hpp"
+#include "librt/UniquePtr.hpp"
 #include <librt/Panic.hpp>
 
 extern "C"
@@ -39,7 +41,7 @@ namespace core::tasks
     if(!memoryMapping)
       return nullptr;
 
-    auto kernelStackPage = memory::allocMappedPages(1);
+    auto kernelStackPage = memory::allocPages(1);
     if(!kernelStackPage)
       return nullptr;
 
@@ -52,13 +54,13 @@ namespace core::tasks
     return rt::makeUnique<Task>(stack, rt::move(memoryMapping));
   }
 
-  Task::Task(Stack kernelStack, rt::UniquePtr<memory::MemoryMapping> memoryMapping)
+  Task::Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping)
     : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
 
   Task::~Task()
   {
     auto kernelStackPage = memory::Pages::from(m_kernelStack.ptr, m_kernelStack.size);
-    memory::freeMappedPages(kernelStackPage);
+    memory::freePages(kernelStackPage);
   }
 
 
@@ -67,7 +69,7 @@ namespace core::tasks
     currentTask = this;
     interrupts::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
     syscalls::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
-    m_memoryMapping->makeCurrent();
+    memory::MemoryMapping::makeCurrent(m_memoryMapping);
   }
 
   void Task::switchTo()

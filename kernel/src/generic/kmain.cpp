@@ -12,8 +12,6 @@
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/memory/Memory.hpp>
-#include <generic/memory/Physical.hpp>
-#include <generic/memory/Virtual.hpp>
 
 #include <generic/BootInformation.hpp>
 
@@ -60,17 +58,15 @@ static void kmainInitialize(BootInformation* bootInformation)
     if(module.cmdline == rt::StringRef("kernel", 6) || module.cmdline == rt::StringRef("initrd", 6))
       continue;
 
-    auto pages = core::memory::mapPages(core::memory::Pages::fromAggressive(module.addr, module.len));
-    if(!pages)
-      continue;
-
     auto task = core::tasks::addTask();
     if(!task)
       rt::panic("Failed to create task\n");
-    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(pages->address()), pages->length()) != 0)
+
+    auto pages = core::memory::Pages::fromAggressive(core::memory::physToVirt(module.addr), module.len);
+    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(pages.address()), pages.length()) != 0)
       rt::panic("Failed to load ELF\n");
 
-    core::memory::freeMappedPages(*pages);
+    core::memory::freePages(pages);
   }
   rt::log("Done\n");
   core::tasks::scheduleInitial();

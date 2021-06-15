@@ -72,11 +72,8 @@ namespace core::vfs
     if(!initrdModule)
       rt::panic("Failed to find initrd\n");
 
-    auto pages = memory::mapPages(core::memory::Pages::fromAggressive(initrdModule->addr, initrdModule->len));
-    if(!pages)
-      rt::panic("Failed to map initrd\n");
-
-    loadInitrd(reinterpret_cast<const char*>(pages->address()), pages->length());
-    memory::freeMappedPages(*pages);
+    auto pages = core::memory::Pages::fromAggressive(core::memory::physToVirt(initrdModule->addr), initrdModule->len);
+    loadInitrd(reinterpret_cast<const char*>(pages.address()), pages.length());
+    memory::freePages(pages);
   }
 }

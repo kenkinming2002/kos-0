@@ -20,8 +20,6 @@ core_src = files(
 
   'src/generic/memory/Memory.cpp',
   'src/generic/memory/liballocImpl.cpp',
-  'src/generic/memory/Physical.cpp',
-  'src/generic/memory/Virtual.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/8259.cpp',

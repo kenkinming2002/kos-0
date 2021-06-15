@@ -11,7 +11,7 @@
 
 namespace rt
 {
-  class SharedPtrHook
+  class SharedPtrHook : public rt::NonCopyable
   {
     template<typename> friend class SharedPtr;
 
@@ -40,7 +40,10 @@ namespace rt
     friend class SharedPtr;
 
   public:
-    constexpr SharedPtr(T* ptr = nullptr) { reset(ptr); }
+    explicit constexpr SharedPtr(T* ptr) { reset(ptr); }
+
+    constexpr SharedPtr()               : SharedPtr(nullptr) {}
+    constexpr SharedPtr(std::nullptr_t) : SharedPtr(static_cast<T*>(nullptr)) {}
     constexpr ~SharedPtr()                { reset(); }
 
   public:
@@ -76,7 +79,7 @@ namespace rt
         delete m_ptr;
 
       m_ptr = ptr;
-      ASSERT(static_cast<SharedPtrHook*>(m_ptr)->count != 0);
+      ASSERT(!m_ptr || static_cast<SharedPtrHook*>(m_ptr)->count != 0);
     }
 
   public:

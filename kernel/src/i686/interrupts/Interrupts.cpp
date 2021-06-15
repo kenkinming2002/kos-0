@@ -43,7 +43,7 @@ namespace core::interrupts
   {
     uint32_t address;
     asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
-    rt::logf("\nPage Fault at %lx with error code %lx and old eip %lx\n", address, errorCode, oldEip);
+    rt::logf("\nPage Fault at 0x%lx with error code 0x%lx and old eip 0x%lx\n", address, errorCode, oldEip);
     rt::panic("Page Fault\n");
   }
 

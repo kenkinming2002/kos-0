@@ -17,7 +17,7 @@ namespace rt::internals
 #ifndef NDEBUG
 #define ASSERT_ALWAYS(expr) _ASSERT(expr)
 #else
-#define ASSERT_ALWAYS(expr) expr
+#define ASSERT_ALWAYS(expr) (void)(expr)
 #endif
 
 #ifndef NDEBUG

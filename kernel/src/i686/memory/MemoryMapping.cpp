@@ -1,3 +1,4 @@
+#include "librt/SharedPtr.hpp"
 #include "librt/UniquePtr.hpp"
 #include <i686/memory/MemoryMapping.hpp>
 
@@ -15,81 +16,48 @@ namespace core::memory
 {
   using namespace common::memory;
 
-  constinit static PageDirectoryEntry kernelPageDirectoryEntries[256];
-
-  constinit static rt::Global<MemoryMapping> initialMemoryMapping;
-  constinit static MemoryMapping* currentMemoryMapping;
+  constinit static rt::SharedPtr<MemoryMapping> currentMemoryMapping;
 
   void MemoryMapping::initialize()
   {
-    const auto& bootPageDirectory = *bootInformation->pageDirectory;
-    rt::copy(&bootPageDirectory[768], &bootPageDirectory[1024], rt::begin(kernelPageDirectoryEntries));
+    physaddr_t bootPageDirectoryPhyaddr;
+    asm volatile ("mov %[bootPageDirectoryPhyaddr], cr3" : [bootPageDirectoryPhyaddr]"=r"(bootPageDirectoryPhyaddr) : : "memory");
+    PageDirectory* bootPageDirectory = reinterpret_cast<PageDirectory*>(physToVirt(bootPageDirectoryPhyaddr));
 
-    initialMemoryMapping.construct(bootInformation->pageDirectory);
-    currentMemoryMapping = &initialMemoryMapping();
+    currentMemoryMapping = rt::makeShared<MemoryMapping>(bootPageDirectory);
   }
 
-  MemoryMapping& MemoryMapping::current()
+  rt::SharedPtr<MemoryMapping> MemoryMapping::current()
   {
-    return *currentMemoryMapping;
+    return currentMemoryMapping;
   }
 
-  rt::UniquePtr<MemoryMapping> MemoryMapping::allocate()
+  void MemoryMapping::makeCurrent(rt::SharedPtr<MemoryMapping> memoryMapping)
   {
-    auto page = allocMappedPages(1);
+    asm volatile ("mov cr3, %[pageDirectoryPhyaddr]" : : [pageDirectoryPhyaddr]"r"(virtToPhys(reinterpret_cast<uintptr_t>(memoryMapping->m_pageDirectory))) : "memory");
+    currentMemoryMapping = rt::move(memoryMapping);
+  }
+
+  rt::SharedPtr<MemoryMapping> MemoryMapping::allocate()
+  {
+    auto page = allocPages(1);
     if(!page)
       return nullptr;
 
+    const auto& currentPageDirectory = *current()->m_pageDirectory;
     auto& pageDirectory = *reinterpret_cast<common::memory::PageDirectory*>(page->address());
-    rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), common::memory::PageDirectoryEntry());
 
-    auto memoryMapping = rt::makeUnique<MemoryMapping>(&pageDirectory);
-    memoryMapping->synchronize();
-    return memoryMapping;
+    rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), common::memory::PageDirectoryEntry());
+    rt::copy(&currentPageDirectory[768], &currentPageDirectory[1024], &pageDirectory[768]);
+
+    return rt::makeShared<MemoryMapping>(&pageDirectory);
   }
 
+  MemoryMapping::MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
   MemoryMapping::~MemoryMapping()
   {
     auto page = Pages::from(reinterpret_cast<uintptr_t>(m_pageDirectory), PAGE_SIZE);
-    freeMappedPages(page);
-  }
-
-  uintptr_t MemoryMapping::doFractalMapping(uintptr_t phyaddr, size_t length)
-  {
-    using namespace common::memory;
-
-    // All the magic happen here
-    const size_t    pageDirectoryIndex = 1023;
-    const uintptr_t phyaddrBase  = phyaddr & ~(LARGE_PAGE_SIZE-1);
-    const uintptr_t virtaddrBase = LARGE_PAGE_SIZE * pageDirectoryIndex;
-
-    auto& pageDirectory = *current().m_pageDirectory;
-    auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
-    if(!pageDirectoryEntry.present() || pageDirectoryEntry.address() != phyaddrBase)
-    {
-      pageDirectoryEntry = PageDirectoryEntry(phyaddrBase, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
-      asm volatile ( "invlpg [0xFFC00000]" : : : "memory");
-    }
-
-    // There is some clever bit-masking you can do but who cares?
-    return virtaddrBase+(phyaddr-phyaddrBase);
-  }
-
-  void MemoryMapping::synchronize()
-  {
-    auto& pageDirectory = *m_pageDirectory;
-    rt::copy(rt::begin(kernelPageDirectoryEntries), rt::end(kernelPageDirectoryEntries), &pageDirectory[768]);
-  }
-
-  void MemoryMapping::makeCurrent()
-  {
-    // Synchronize. We may be able to implement a page fault handler for this,
-    // but that is too much trouble, and it is uncertain whether that will
-    // actually bring any benefit considering that the cost of page fault can be
-    // pretty high. Premature optimization is the root of all evil they say.
-    synchronize();
-    asm volatile ("mov cr3, %[pageDirectoryPhysicalAddress]" : : [pageDirectoryPhysicalAddress]"r"(virtualToPhysical(reinterpret_cast<uintptr_t>(m_pageDirectory))) : "memory");
-    currentMemoryMapping = this;
+    freePages(page);
   }
 
   void MemoryMapping::map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages)
@@ -97,7 +65,6 @@ namespace core::memory
     using namespace common::memory;
 
     ASSERT(!physicalPages || physicalPages->count == virtualPages.count);
-
     for(size_t i=0; i<virtualPages.count; ++i)
     {
       size_t virtualIndex = virtualPages.index+i;
@@ -111,11 +78,11 @@ namespace core::memory
       }
       else
       {
-        auto physicalPage = allocPhysicalPages(1);
-        if(!physicalPage)
+        auto pages = allocPages(1);
+        if(!pages)
           rt::panic("Out of physical pages\n");
 
-        pageTableEntry = PageTableEntry(physicalPage->address(), TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+        pageTableEntry = PageTableEntry(virtToPhys(pages->address()), TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
       }
 
       asm volatile ( "invlpg [%[virtaddr]]" : : [virtaddr]"r"(virtualIndex * PAGE_SIZE) : "memory");
@@ -133,20 +100,11 @@ namespace core::memory
       if(!pageTableEntry.present())
         rt::panic("Attempting to unmap pages that are not mapped");
 
-      auto physicalPages = Pages::from(pageTableEntry.address(), PAGE_SIZE);
+      auto pages = Pages::from(physToVirt(pageTableEntry.address()), PAGE_SIZE);
       pageTableEntry = PageTableEntry();
 
-      freePhysicalPages(physicalPages);
+      freePages(pages);
     }
-  }
-
-  uintptr_t MemoryMapping::virtualToPhysical(uintptr_t virtaddr)
-  {
-    auto& pageTableEntry = this->pageTableEntry(virtaddr / PAGE_SIZE, false/*allocate*/);
-    if(!pageTableEntry.present())
-      rt::panic("Page Table Entry not present\n");
-
-    return pageTableEntry.address();
   }
 
   common::memory::PageDirectoryEntry& MemoryMapping::pageDirectoryEntry(size_t virtualIndex, bool allocate)
@@ -156,27 +114,19 @@ namespace core::memory
     size_t pageDirectoryIndex = virtualIndex / 1024;
     auto& pageDirectory       = *m_pageDirectory;
     auto& pageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
-    if(pageDirectoryIndex>=768)
-      pageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
-
     if(!pageDirectoryEntry.present())
     {
       if(!allocate)
         rt::panic("Page Directory Entry not present\n");
 
-      auto physicalPage = allocPhysicalPages(1);
-      if(!physicalPage)
+      auto pages = allocPages(1);
+      if(!pages)
         rt::panic("Out of physical pages");
 
-      pageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
-      if(pageDirectoryIndex>=768)
-      {
-        auto& kernelPageDirectoryEntry = kernelPageDirectoryEntries[pageDirectoryIndex-768];
-        kernelPageDirectoryEntry = PageDirectoryEntry(physicalPage->address(), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
-      }
-
-      auto& pageTable = *reinterpret_cast<common::memory::PageTable*>(doFractalMapping(pageDirectoryEntry.address(), PAGE_SIZE));
+      auto& pageTable = *reinterpret_cast<common::memory::PageTable*>(pages->address());
       rt::fill(rt::begin(pageTable), rt::end(pageTable), PageTableEntry());
+
+      pageDirectoryEntry = PageDirectoryEntry(virtToPhys(pages->address()), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
     }
 
     return pageDirectoryEntry;
@@ -189,7 +139,7 @@ namespace core::memory
     auto& pageDirectoryEntry = this->pageDirectoryEntry(virtualIndex, allocate);
 
     size_t pageTableIndex = virtualIndex % 1024;
-    auto& pageTable       = *reinterpret_cast<common::memory::PageTable*>(doFractalMapping(pageDirectoryEntry.address(), PAGE_SIZE));
+    auto& pageTable       = *reinterpret_cast<common::memory::PageTable*>(physToVirt(pageDirectoryEntry.address()));
     auto& pageTableEntry  = pageTable[pageTableIndex];
 
     return pageTableEntry;
