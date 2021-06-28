@@ -113,8 +113,8 @@ namespace rt
     return 0;
   }
 
-  template<typename inputiterator, typename unarypredicate>
-  constexpr bool all(inputiterator first, inputiterator last, unarypredicate p)
+  template<typename InputIterator, typename UnaryPredicate>
+  constexpr bool all(InputIterator first, InputIterator last, UnaryPredicate p)
   {
     for(auto it = first; it!=last; ++it)
       if(!p(*it))
@@ -123,8 +123,8 @@ namespace rt
     return true;
   }
 
-  template<typename inputiterator, typename unarypredicate>
-  constexpr bool any(inputiterator first, inputiterator last, unarypredicate p)
+  template<typename InputIterator, typename UnaryPredicate>
+  constexpr bool any(InputIterator first, InputIterator last, UnaryPredicate p)
   {
     for(auto it = first; it!=last; ++it)
       if(p(*it))
@@ -133,8 +133,8 @@ namespace rt
     return false;
   }
 
-  template<typename inputiterator, typename unarypredicate>
-  constexpr bool none(inputiterator first, inputiterator last, unarypredicate p)
+  template<typename InputIterator, typename UnaryPredicate>
+  constexpr bool none(InputIterator first, InputIterator last, UnaryPredicate p)
   {
     for(auto it = first; it!=last; ++it)
       if(p(*it))

@@ -4,6 +4,7 @@
 
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <librt/SharedPtr.hpp>
 #include <librt/containers/Map.hpp>
 #include <librt/Optional.hpp>
 #include <librt/UniquePtr.hpp>
@@ -15,26 +16,28 @@
 
 namespace core::tasks
 {
-  class Task : public rt::NonCopyable
+  class Task : public rt::SharedPtrHook
   {
   public:
     friend class Scheduler;
 
   public:
+    static constexpr size_t STACK_PAGES_COUNT = 1;
+    static constexpr size_t STACK_SIZE        =  STACK_PAGES_COUNT * memory::PAGE_SIZE;
     struct Stack
     {
     public:
-      uintptr_t ptr;
-      size_t size;
-
+      void* ptr;
       uintptr_t esp;
     };
 
   public:
-    static Task* current(); // FIXME: Implement for multiprocessor
+    static rt::SharedPtr<Task> current();
+    static void makeCurrent(rt::SharedPtr<Task> task);
+    static void switchTo(rt::SharedPtr<Task> task);
 
   public:
-    static rt::UniquePtr<Task> allocate();
+    static rt::SharedPtr<Task> allocate();
 
   public:
     Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping);
@@ -44,8 +47,6 @@ namespace core::tasks
     constexpr auto& memoryMapping() { return m_memoryMapping; }
 
   public:
-    void makeCurrent();
-    void switchTo();
 
   public:
     // Set up the our stack to match what switchTask expect to found and invoke

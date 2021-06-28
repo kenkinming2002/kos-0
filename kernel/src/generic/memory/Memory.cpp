@@ -1,6 +1,7 @@
 #include <generic/memory/Memory.hpp>
 
 #include <generic/memory/MemoryRegions.hpp>
+#include <generic/memory/Syscalls.hpp>
 
 #include <generic/BootInformation.hpp>
 #include <i686/memory/MemoryMapping.hpp>
@@ -30,6 +31,8 @@ namespace core::memory
       for(size_t i = PHYSICAL_MEMEMORY_MAPPING_START / LARGE_PAGE_SIZE; i != PHYSICAL_MEMEMORY_MAPPING_END / LARGE_PAGE_SIZE; ++i)
       {
         pageDirectory[i] = PageDirectoryEntry(phyaddr, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+        asm volatile ( "invlpg [%[addr]]" : : [addr]"r"(i * LARGE_PAGE_SIZE) : "memory");
+
         phyaddr += LARGE_PAGE_SIZE;
       }
     }
@@ -133,12 +136,14 @@ namespace core::memory
   {
     initializeMemoryMapping();
     initializePagesHeader();
-
     MemoryMapping::initialize();
+
+    initializeSyscalls();
+
     test();
   }
 
-  rt::Optional<Pages> allocPages(size_t count)
+  void* allocPages(size_t count)
   {
     for(auto* pagesHeader = head; pagesHeader;  pagesHeader = pagesHeader->next)
     {
@@ -178,17 +183,16 @@ namespace core::memory
           head = pagesHeader->next;
       }
 
-      return Pages::from(reinterpret_cast<uintptr_t>(pagesHeader), count * PAGE_SIZE);
+      return pagesHeader;
     }
 
-    ASSERT(false);
-    return rt::nullOptional;
+    return nullptr;
   }
 
-  void freePages(Pages pages)
+  void freePages(void* pages, size_t count)
   {
-    auto* pagesHeader = reinterpret_cast<PagesHeader*>(pages.address());
-    pagesHeader->count = pages.count;
+    auto* pagesHeader = static_cast<PagesHeader*>(pages);
+    pagesHeader->count = count;
     pagesHeader->prev = nullptr;
     pagesHeader->next = head;
 

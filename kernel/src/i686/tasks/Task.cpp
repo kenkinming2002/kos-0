@@ -28,57 +28,31 @@ namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
-  constinit Task* currentTask = nullptr; // FIXME: Implement for multiprocessor
+  constinit rt::SharedPtr<Task> currentTask; // FIXME: Implement for multiprocessor
 
-  Task* Task::current()
+  rt::SharedPtr<Task> Task::current()
   {
     return currentTask;
   }
 
-  rt::UniquePtr<Task> Task::allocate()
+  void Task::makeCurrent(rt::SharedPtr<Task> task)
   {
-    auto memoryMapping = memory::MemoryMapping::allocate();
-    if(!memoryMapping)
-      return nullptr;
-
-    auto kernelStackPage = memory::allocPages(1);
-    if(!kernelStackPage)
-      return nullptr;
-
-    auto stack = Stack{
-      .ptr = kernelStackPage->address(),
-      .size = kernelStackPage->length(),
-      .esp = kernelStackPage->address() + kernelStackPage->length()
-    };
-
-    return rt::makeUnique<Task>(stack, rt::move(memoryMapping));
-  }
-
-  Task::Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping)
-    : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
-
-  Task::~Task()
-  {
-    auto kernelStackPage = memory::Pages::from(m_kernelStack.ptr, m_kernelStack.size);
-    memory::freePages(kernelStackPage);
-  }
-
-
-  void Task::makeCurrent()
-  {
-    currentTask = this;
-    interrupts::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
-    syscalls::setKernelStack(m_kernelStack.ptr, m_kernelStack.size);
-    memory::MemoryMapping::makeCurrent(m_memoryMapping);
-  }
-
-  void Task::switchTo()
-  {
-    if(current() != nullptr)
+    currentTask = task;
+    if(task)
     {
-      auto& previousTask = *current();
-      makeCurrent();
-      core_tasks_switch_esp(&previousTask.m_kernelStack.esp, &m_kernelStack.esp);
+      interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
+      syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
+      memory::MemoryMapping::makeCurrent(task->m_memoryMapping);
+    }
+  }
+
+  void Task::switchTo(rt::SharedPtr<Task> task)
+  {
+    if(current().get() != nullptr)
+    {
+      auto previousTask = current();
+      makeCurrent(task);
+      core_tasks_switch_esp(&previousTask->m_kernelStack.esp, &task->m_kernelStack.esp);
     }
     else
     {
@@ -91,10 +65,38 @@ namespace core::tasks
        *       new stack.
        */
       uintptr_t dummyEsp;
-      makeCurrent();
-      core_tasks_switch_esp(&dummyEsp, &m_kernelStack.esp);
+      makeCurrent(task);
+      core_tasks_switch_esp(&dummyEsp, &task->m_kernelStack.esp);
       __builtin_unreachable();
     }
+  }
+
+
+
+  rt::SharedPtr<Task> Task::allocate()
+  {
+    auto memoryMapping = memory::MemoryMapping::allocate();
+    if(!memoryMapping)
+      return nullptr;
+
+    void* kernelStackPage = memory::allocPages(STACK_PAGES_COUNT);
+    if(!kernelStackPage)
+      return nullptr;
+
+    auto stack = Stack{
+      .ptr = kernelStackPage,
+      .esp = reinterpret_cast<uintptr_t>(kernelStackPage) + STACK_SIZE
+    };
+
+    return rt::makeShared<Task>(stack, rt::move(memoryMapping));
+  }
+
+  Task::Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping)
+    : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
+
+  Task::~Task()
+  {
+    memory::freePages(m_kernelStack.ptr, STACK_PAGES_COUNT);
   }
 
   void Task::asUserspaceTask(uintptr_t entry)

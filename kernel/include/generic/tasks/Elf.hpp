@@ -1,5 +1,6 @@
 #pragma once
 
+#include "librt/SharedPtr.hpp"
 #include <i686/tasks/Task.hpp>
 
 #include <librt/Optional.hpp>
@@ -8,6 +9,6 @@
 
 namespace core::tasks
 {
-  int loadElf(Task& task, char* data, size_t length);
+  Result<void> loadElf(rt::SharedPtr<Task> task, rt::SharedPtr<vfs::File> file);
 }
 

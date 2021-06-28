@@ -19,6 +19,7 @@ core_src = files(
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/Memory.cpp',
+  'src/generic/memory/Syscalls.cpp',
   'src/generic/memory/liballocImpl.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
@@ -53,7 +54,7 @@ liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
 
 kernel = executable('kernel',
   core_src, core_asm_obj,
-  include_directories : ['../boot/include/', '../include', 'include/'],
+  include_directories : ['../boot/include/', 'include/'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld', '-Wl,-no-dynamic-linker'],
   link_depends : 'link.ld',
   dependencies : [liballoc_dep, libcommon_dep, librt_dep, libelf_dep],
@@ -62,3 +63,5 @@ kernel = executable('kernel',
   export_dynamic : true
 )
 
+
+kernel_dep = declare_dependency(include_directories : 'include')

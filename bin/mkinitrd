@@ -6,7 +6,30 @@ usage()
   exit -1
 }
 
-OUTPUT=$(realpath $1)
-INPUT_DIR=$(realpath $2)
+PRIVATE_DIR=
+OUTPUT=
 
-tar --format=posix -c -f $OUTPUT -C $INPUT_DIR $(find $INPUT_DIR -mindepth 1 -maxdepth 1 | xargs -L1 basename)
+while getopts "p:o:" FLAG; do
+  case $FLAG in
+    p)
+      PRIVATE_DIR=$(realpath $OPTARG)
+      ;;
+    o)
+      OUTPUT=$(realpath $OPTARG)
+      ;;
+    \?)
+      usage
+      ;;
+  esac
+done
+
+if [ -z PRIVATE_DIR -o -z OUTPUT ]; then
+  usage
+fi
+
+shift $(expr $OPTIND - 1)
+
+mkdir -p $PRIVATE_DIR/initrd/
+cp -r "$@" $PRIVATE_DIR/initrd/
+tar --format=posix -cf $OUTPUT -C $PRIVATE_DIR/initrd $(find $PRIVATE_DIR/initrd/ -mindepth 1 -maxdepth 1 | xargs -L1 basename)
+rm -rf $PRIVATE_DIR/initrd/

@@ -1,9 +1,10 @@
+#include "i686/tasks/Task.hpp"
+#include "librt/SharedPtr.hpp"
 #include <generic/tasks/Elf.hpp>
 
 #include <common/i686/memory/Paging.hpp>
 
-#include <generic/memory/Pages.hpp>
-
+#include <i686/syscalls/Access.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <libelf/libelf.hpp>
@@ -13,72 +14,65 @@
 
 namespace core::tasks
 {
-  static bool checkVirtualRange(Elf32_Off off, Elf32_Word size)
+  namespace
   {
-    Elf32_Addr result;
-    if(__builtin_add_overflow(off, size, &result))
-      return false;
-    return result<=0xC0000000;
-  }
-
-  static int loadProgramHeader(const char* data, size_t length, Task& task, const Elf32_Phdr& programHeader)
-  {
-    using namespace core::memory;
-    using namespace common::memory;
-
-    if(programHeader.p_type == PT_LOAD)
+    Result<void> loadProgramHeader(rt::SharedPtr<Task> task, rt::SharedPtr<vfs::File> file, const Elf32_Phdr& programHeader)
     {
-      if(!elf32::checkDataRange(data, length, programHeader.p_offset, programHeader.p_filesz))
-        return -1;
+      using namespace core::memory;
+      using namespace common::memory;
 
-      if(!checkVirtualRange(programHeader.p_vaddr, programHeader.p_memsz))
-        return -1;
+      if(programHeader.p_type == PT_LOAD)
+      {
+        if(!syscalls::verifyRegionUser(programHeader.p_vaddr, programHeader.p_memsz))
+          return ErrorCode::INVALID;
 
-      if(programHeader.p_filesz>programHeader.p_memsz)
-        return -1; // It is better to be more pedantic in OS code
+        if(programHeader.p_filesz>programHeader.p_memsz)
+          return ErrorCode::INVALID; // It is better to be more pedantic in OS code
 
-      // TODO: Gracefully handle any error
-      if(!(programHeader.p_flags & PF_R))
-        return -1; // We do not support a page that is not readable
+        // TODO: Gracefully handle any error
+        if(!(programHeader.p_flags & PF_R))
+          return ErrorCode::INVALID; // We do not support a page that is not readable
 
-      auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
-      task.memoryMapping()->map(Pages::fromAggressive(programHeader.p_vaddr, programHeader.p_vaddr+programHeader.p_memsz), Access::ALL, pagesPermission);
+        auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
+        task->memoryMapping()->map(programHeader.p_vaddr, programHeader.p_memsz, pagesPermission, file, programHeader.p_offset);
+      }
 
-      auto fileSegmentBegin    = reinterpret_cast<const char*>(data+programHeader.p_offset);
-      auto fileSegmentEnd      = reinterpret_cast<const char*>(data+programHeader.p_offset+programHeader.p_filesz);
-      auto virtualSegmentBegin = reinterpret_cast<char*>(programHeader.p_vaddr);
-      auto virtualSegmentEnd   = reinterpret_cast<char*>(programHeader.p_vaddr+programHeader.p_memsz);
-
-      rt::fill(virtualSegmentBegin, virtualSegmentEnd, '\0');
-      rt::copy(fileSegmentBegin, fileSegmentEnd, virtualSegmentBegin);
+      return {};
     }
-
-    return 0;
   }
 
-  int loadElf(Task& task, char* data, size_t length)
+  Result<void> loadElf(rt::SharedPtr<Task> task, rt::SharedPtr<vfs::File> file)
   {
-    if(length<sizeof(Elf32_Ehdr))
-      return -1;
+    Elf32_Ehdr header;
+    file->seek(Anchor::BEGIN, 0);
+    file->read(reinterpret_cast<char*>(&header), sizeof header);
 
-    const auto* header = elf32::readHeader(data, length);
-    if(!header)
-      return -1;
+    if(header.e_ident[EI_MAG0] != 0x7f || header.e_ident[EI_MAG1] != 'E'  || header.e_ident[EI_MAG2] != 'L'  || header.e_ident[EI_MAG3] != 'F')
+      return ErrorCode::INVALID;
 
-    size_t count;
-    const auto* programHeaders = elf32::readProgramHeaders(data, length, header, count);
-    if(!programHeaders)
-      return -1;
+    if(header.e_ident[EI_CLASS] != ELFCLASS32)
+      return ErrorCode::INVALID;
 
-    auto oldMemoryMapping = memory::MemoryMapping::current();
-    memory::MemoryMapping::makeCurrent(task.memoryMapping());
-    for(size_t i=0; i<count; ++i)
-      if(loadProgramHeader(data, length, task, programHeaders[i]) != 0)
-        return -1;
+    if(header.e_ident[EI_DATA] != ELFDATA2LSB)
+      return ErrorCode::INVALID;
 
-    task.asUserspaceTask(header->e_entry);
-    memory::MemoryMapping::makeCurrent(rt::move(oldMemoryMapping));
+    if(header.e_ident[EI_VERSION] != EV_CURRENT)
+      return ErrorCode::INVALID;
 
-    return 0;
+    auto previousTask = tasks::Task::current();
+    tasks::Task::makeCurrent(task);
+
+    // FIXME: Set an upper limit
+    Elf32_Phdr programHeaders[header.e_phnum];
+    file->seek(Anchor::BEGIN, header.e_phoff);
+    file->read(reinterpret_cast<char*>(programHeaders), sizeof programHeaders);
+    for(size_t i=0; i<header.e_phnum; ++i)
+      if(auto result = loadProgramHeader(task, file, programHeaders[i]); !result)
+        return result.error();
+
+    task->asUserspaceTask(header.e_entry);
+
+    tasks::Task::makeCurrent(rt::move(previousTask));
+    return {};
   }
 }

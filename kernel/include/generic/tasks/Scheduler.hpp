@@ -1,5 +1,6 @@
 #pragma once
 
+#include "librt/SharedPtr.hpp"
 #include <i686/tasks/Task.hpp>
 
 #include <librt/UniquePtr.hpp>
@@ -9,7 +10,7 @@ namespace core::tasks
 {
   void initializeScheduler();
 
-  Task* addTask();
+  rt::SharedPtr<Task> addTask();
   void removeTask(Task* task);
 
   [[noreturn]] void scheduleInitial();

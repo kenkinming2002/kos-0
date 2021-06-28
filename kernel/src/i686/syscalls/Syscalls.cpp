@@ -12,12 +12,6 @@
 
 namespace core::syscalls
 {
-  inline word_t _sys_test(const char*, const char*, void*, size_t, size_t, intptr_t)
-  {
-    return -1;
-  }
-  WRAP_SYSCALL6(sys_test, _sys_test)
-
   constexpr uint32_t IA32_SYSENTER_CS = 0x174;
   constexpr uint32_t IA32_SYSENTER_ESP = 0x175;
   constexpr uint32_t IA32_SYSENTER_EIP = 0x176;

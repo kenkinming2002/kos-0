@@ -7,7 +7,7 @@
 namespace core::vfs
 {
   /* TODO: Add permision checking */
-  class File
+  class File : public rt::SharedPtrHook
   {
   public:
     using Stat = Inode::Stat;
@@ -47,8 +47,8 @@ namespace core::vfs
     Result<void> umount();
 
   public:
-    Result<File> lookup(rt::StringRef name);
-    Result<File> create(rt::StringRef name, Type type);
+    Result<rt::SharedPtr<File>> lookup(rt::StringRef name);
+    Result<rt::SharedPtr<File>> create(rt::StringRef name, Type type);
     Result<void> link(rt::StringRef name, Inode& inode); // FIXME
     Result<void> unlink(rt::StringRef name);
 

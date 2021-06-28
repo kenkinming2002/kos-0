@@ -19,7 +19,11 @@ enum Syscalls : uword_t
   SYS_RESIZE   = 12,
   SYS_CLOSE    = 13,
 
-  SYS_TEST     = 14,
-  SYS_LOG      = 15
+  SYS_MMAP     = 14,
+  SYS_MUNMAP   = 15,
+  SYS_MREMAP   = 16,
+
+  SYS_TEST     = 17,
+  SYS_LOG      = 18
 };
 

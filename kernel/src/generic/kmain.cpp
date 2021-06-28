@@ -1,3 +1,4 @@
+#include "generic/Error.hpp"
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Inode.hpp>
@@ -52,39 +53,33 @@ static void kmainInitialize(BootInformation* bootInformation)
   if(bootInformation->moduleEntriesCount == 0)
     rt::panic("No modules to run");
 
-  for(size_t i=1; i<bootInformation->moduleEntriesCount; ++i)
-  {
-    const auto& module = bootInformation->moduleEntries[i];
-    if(module.cmdline == rt::StringRef("kernel", 6) || module.cmdline == rt::StringRef("initrd", 6))
-      continue;
+  // We no longer need boot modules since the initial executable should be found
+  // in initrd
+  auto root = core::vfs::root();
+  auto init = core::vfs::openAt(root, "init");
+  if(!init)
+    rt::panic("init not found\n");
 
-    auto task = core::tasks::addTask();
-    if(!task)
-      rt::panic("Failed to create task\n");
+  auto task = core::tasks::addTask();
+  if(!task)
+    rt::panic("Failed to create task\n");
 
-    auto pages = core::memory::Pages::fromAggressive(core::memory::physToVirt(module.addr), module.len);
-    if(core::tasks::loadElf(*task, reinterpret_cast<char*>(pages.address()), pages.length()) != 0)
-      rt::panic("Failed to load ELF\n");
-
-    core::memory::freePages(pages);
-  }
-  rt::log("Done\n");
+  core::tasks::loadElf(task, *init);
   core::tasks::scheduleInitial();
 }
 
-#define UNWRAP(v, expr) auto v = expr; if(!(v)) return -static_cast<result_t>(v.error())
-
-static result_t _sys_test()
+static core::Result<result_t> _sys_test()
 {
   rt::log("Hello from kernel\n");
   return 0;
 }
 WRAP_SYSCALL0(sys_test, _sys_test)
 
-static result_t _sys_log(const char* msg, size_t length)
+static core::Result<result_t> _sys_log(const char* msg, size_t length)
 {
   char buf[length+1];
-  UNWRAP(_, core::syscalls::InputUserBuffer(msg, length).read(buf, length));
+  auto result = core::syscalls::InputUserBuffer(msg, length).read(buf, length);
+  UNWRAP(result);
   buf[length] = '\0';
 
   rt::logf("%s", buf);
@@ -92,14 +87,12 @@ static result_t _sys_log(const char* msg, size_t length)
 }
 WRAP_SYSCALL2(sys_log, _sys_log)
 
-#undef UNWRAP
-
 extern "C" void kmain(BootInformation* bootInformation)
 {
   kmainInitialize(bootInformation);
 
-  core::syscalls::installHandler(core::syscalls::SYS_TEST, &sys_test);
-  core::syscalls::installHandler(core::syscalls::SYS_LOG,  &sys_log);
+  core::syscalls::installHandler(SYS_TEST, &sys_test);
+  core::syscalls::installHandler(SYS_LOG,  &sys_log);
   core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
   kmainLoadAndRunUserspaceTask();

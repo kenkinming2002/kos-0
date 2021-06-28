@@ -1,3 +1,4 @@
+#include "librt/SharedPtr.hpp"
 #include <generic/tasks/Scheduler.hpp>
 
 #include <i686/syscalls/Syscalls.hpp>
@@ -16,14 +17,14 @@ namespace core::tasks
 {
   namespace
   {
-    constinit rt::Global<rt::containers::List<rt::UniquePtr<Task>>> tasks;
+    constinit rt::Global<rt::containers::List<rt::SharedPtr<Task>>> tasks;
 
-    static uword_t _sys_yield()
+    static Result<result_t> sys_yield()
     {
       schedule();
       return 0;
     }
-    WRAP_SYSCALL0(sys_yield, _sys_yield)
+    WRAP_SYSCALL0(_sys_yield, sys_yield)
 
     /* Note: We have to disable interrupt, however, locking would not be
      *       necessary, since we would or *WILL* have a per-cpu task queue.  */
@@ -50,20 +51,20 @@ namespace core::tasks
   {
     tasks.construct();
 
-    syscalls::installHandler(syscalls::SYS_YIELD, &sys_yield);
+    syscalls::installHandler(SYS_YIELD, &_sys_yield);
 
     interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
     interrupts::clearMask(0);
   }
 
-  Task* addTask()
+  rt::SharedPtr<Task> addTask()
   {
     auto task = Task::allocate();
     if(!task)
       return nullptr;
 
     auto it = tasks().insert(tasks().end(), rt::move(task));
-    return it->get();
+    return *it;
   }
 
   void removeTask(Task* task)
@@ -75,7 +76,8 @@ namespace core::tasks
   [[noreturn]] void scheduleInitial()
   {
     rt::log("We are starting our first task\n");
-    tasks().begin()->get()->switchTo();
+    ASSERT(!tasks().empty());
+    Task::switchTo(*tasks().begin());
     __builtin_unreachable();
   }
 
@@ -83,8 +85,8 @@ namespace core::tasks
   {
     ASSERT(!tasks().empty());
     auto currentTask = Task::current();
-    auto it = findTask(currentTask);
+    auto it = findTask(currentTask.get());
     auto nextIt = rt::next(it) != tasks().end() ? rt::next(it) : tasks().begin();
-    (*nextIt)->switchTo();
+    Task::switchTo(*nextIt);
   }
 }

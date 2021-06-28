@@ -1,5 +1,6 @@
 #pragma once
 
+#include "librt/SharedPtr.hpp"
 #include <generic/vfs/File.hpp>
 
 #include <librt/containers/StaticVector.hpp>
@@ -13,11 +14,11 @@ namespace core::vfs
   class FileDescriptors
   {
   public:
-    Result<int> addFile(vfs::File file);
-    Result<File> getFile(int fd);
-    Result<void> removeFile(int fd);
+    Result<fd_t> addFile(rt::SharedPtr<File> file);
+    Result<rt::SharedPtr<File>> getFile(fd_t fd);
+    Result<void> removeFile(fd_t fd);
 
   private:
-    rt::containers::StaticVector<File, MAX_FD> m_files;
+    rt::SharedPtr<File> m_files[MAX_FD];
   };
 }

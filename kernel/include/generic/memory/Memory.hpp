@@ -1,13 +1,17 @@
 #pragma once
 
-#include <generic/memory/Pages.hpp>
+#include <common/i686/memory/Paging.hpp>
 
 #include <librt/Optional.hpp>
 
 #include <stddef.h>
+#include <stdint.h>
 
 namespace core::memory
 {
+  using common::memory::PAGE_SIZE;
+  using common::memory::LARGE_PAGE_SIZE;
+
   using uintptr_t = uintptr_t;
   using physaddr_t = uintptr_t;
 
@@ -32,8 +36,8 @@ namespace core::memory
 
   void initialize();
 
-  rt::Optional<Pages> allocPages(size_t count);
-  void freePages(Pages pages);
+  void* allocPages(size_t count);
+  void freePages(void* pages, size_t count);
 
   void* malloc(size_t size);
   void* realloc(void* ptr, size_t size);

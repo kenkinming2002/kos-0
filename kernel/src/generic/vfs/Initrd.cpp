@@ -4,7 +4,6 @@
 #include <generic/vfs/Tar.hpp>
 
 #include <generic/memory/Memory.hpp>
-#include <generic/memory/Pages.hpp>
 
 #include <generic/BootInformation.hpp>
 
@@ -51,8 +50,8 @@ namespace core::vfs
             rt::panic("Failed to open file after creation\n");
 
           // TODO: Check if data is in range
-          file->resize(tarHeaderBlock->fileSize());
-          file->write(tarHeaderBlock->fileData(), tarHeaderBlock->fileSize());
+          (*file)->resize(tarHeaderBlock->fileSize());
+          (*file)->write(tarHeaderBlock->fileData(), tarHeaderBlock->fileSize());
         }
         else if(tarHeaderBlock->isDirectory())
         {
@@ -72,8 +71,9 @@ namespace core::vfs
     if(!initrdModule)
       rt::panic("Failed to find initrd\n");
 
-    auto pages = core::memory::Pages::fromAggressive(core::memory::physToVirt(initrdModule->addr), initrdModule->len);
-    loadInitrd(reinterpret_cast<const char*>(pages.address()), pages.length());
-    memory::freePages(pages);
+    auto data   = reinterpret_cast<char*>(core::memory::physToVirt(initrdModule->addr));
+    auto length = initrdModule->len;
+    loadInitrd(data, length);
+    memory::freePages(data, (length + memory::PAGE_SIZE - 1) / memory::PAGE_SIZE);
   }
 }

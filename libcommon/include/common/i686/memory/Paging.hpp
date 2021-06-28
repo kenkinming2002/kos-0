@@ -69,10 +69,12 @@ namespace common::memory
 
   public:
     FORCE_INLINE constexpr bool present() const { return m_data & 1u; }
+    FORCE_INLINE constexpr bool dirty() const { return (m_data >> 6) & 1u; }
     FORCE_INLINE constexpr uint32_t address() const { return m_data & 0xFFFFF000; }
 
   public:
     FORCE_INLINE constexpr void present(bool present) { m_data = (m_data & ~1u) | static_cast<uint32_t>(present); }
+    FORCE_INLINE constexpr void dirty(bool dirty) { m_data = (m_data & ~(1u << 6)) | (static_cast<uint32_t>(dirty) << 6); }
     FORCE_INLINE constexpr void address(uint32_t address) { m_data = (m_data & ~0xFFFFF000) | static_cast<uint32_t>(address); }
 
   public:
@@ -84,5 +86,7 @@ namespace common::memory
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];
+  using PageFrame     = char[PAGE_SIZE];
+
 }
 

@@ -62,7 +62,9 @@ namespace rt
   public:
     constexpr T* acquire() const
     {
-      ++static_cast<SharedPtrHook*>(m_ptr)->count;
+      if(m_ptr)
+        ++static_cast<SharedPtrHook*>(m_ptr)->count;
+
       return m_ptr;
     }
 

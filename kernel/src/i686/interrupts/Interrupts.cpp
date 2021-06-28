@@ -39,6 +39,7 @@ namespace core::interrupts
   IDTEntry idtEntries[IDT_SIZE];
   Handler handlers[IDT_SIZE];
 
+  // Early handlers
   void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
   {
     uint32_t address;

@@ -1,8 +1,7 @@
-#include "librt/SharedPtr.hpp"
-#include "librt/UniquePtr.hpp"
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <generic/BootInformation.hpp>
+#include <i686/interrupts/Interrupts.hpp>
 #include <common/i686/memory/Paging.hpp>
 
 #include <librt/Panic.hpp>
@@ -18,13 +17,25 @@ namespace core::memory
 
   constinit static rt::SharedPtr<MemoryMapping> currentMemoryMapping;
 
+  void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  {
+    uint32_t address;
+    asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
+    rt::logf("\nPage Fault at 0x%lx with error code 0x%lx and old eip 0x%lx\n", address, errorCode, oldEip);
+    rt::panic("Page Fault\n");
+  }
+
+
   void MemoryMapping::initialize()
   {
+    interrupts::uninstallHandler(14);
+    interrupts::installHandler(14, &pageFaultHandler, PrivilegeLevel::RING0, true);
+
     physaddr_t bootPageDirectoryPhyaddr;
     asm volatile ("mov %[bootPageDirectoryPhyaddr], cr3" : [bootPageDirectoryPhyaddr]"=r"(bootPageDirectoryPhyaddr) : : "memory");
     PageDirectory* bootPageDirectory = reinterpret_cast<PageDirectory*>(physToVirt(bootPageDirectoryPhyaddr));
-
     currentMemoryMapping = rt::makeShared<MemoryMapping>(bootPageDirectory);
+    currentMemoryMapping->unmap(0, 0);
   }
 
   rt::SharedPtr<MemoryMapping> MemoryMapping::current()
@@ -40,109 +51,232 @@ namespace core::memory
 
   rt::SharedPtr<MemoryMapping> MemoryMapping::allocate()
   {
-    auto page = allocPages(1);
+    void* page = allocPages(1);
     if(!page)
       return nullptr;
 
     const auto& currentPageDirectory = *current()->m_pageDirectory;
-    auto& pageDirectory = *reinterpret_cast<common::memory::PageDirectory*>(page->address());
+    auto& pageDirectory = *static_cast<PageDirectory*>(page);
 
-    rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), common::memory::PageDirectoryEntry());
+    rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), PageDirectoryEntry());
     rt::copy(&currentPageDirectory[768], &currentPageDirectory[1024], &pageDirectory[768]);
 
     return rt::makeShared<MemoryMapping>(&pageDirectory);
   }
 
-  MemoryMapping::MemoryMapping(common::memory::PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
+  MemoryMapping::MemoryMapping(PageDirectory* pageDirectory) : m_pageDirectory(pageDirectory) {}
   MemoryMapping::~MemoryMapping()
   {
-    auto page = Pages::from(reinterpret_cast<uintptr_t>(m_pageDirectory), PAGE_SIZE);
-    freePages(page);
+    for(auto& memoryArea : m_memoryAreas)
+      unmap(*memoryArea);
+
+    freePages(m_pageDirectory, 1);
   }
 
-  void MemoryMapping::map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages)
+  namespace
   {
-    using namespace common::memory;
-
-    ASSERT(!physicalPages || physicalPages->count == virtualPages.count);
-    for(size_t i=0; i<virtualPages.count; ++i)
+    constexpr size_t roundDown(size_t index, size_t alignment) { return index / alignment * alignment; }
+    constexpr size_t roundUp(size_t index, size_t alignment) { return roundDown(index + alignment - 1, alignment); }
+    Result<physaddr_t> allocPageTable()
     {
-      size_t virtualIndex = virtualPages.index+i;
-      auto& pageTableEntry = this->pageTableEntry(virtualIndex, true/*allocate*/);
-      if(pageTableEntry.present())
-        rt::panic("Attempting to map pages that have already been mapped\n");
+      void* page = allocPages(1);
+      if(!page)
+        return ErrorCode::OUT_OF_MEMORY;
 
-      if(physicalPages)
+
+      auto& pageTable = *static_cast<PageTable*>(page);
+      rt::fill(rt::begin(pageTable), rt::end(pageTable), PageTableEntry());
+      return virtToPhys(reinterpret_cast<uintptr_t>(page));
+    }
+
+    Result<physaddr_t> allocPageFrame(rt::SharedPtr<vfs::File> file, size_t offset)
+    {
+      void* page = allocPages(1);
+      if(!page)
+        return ErrorCode::OUT_OF_MEMORY;
+
+      auto& pageFrame = *static_cast<PageFrame*>(page);
+      rt::fill(rt::begin(pageFrame), rt::end(pageFrame), '\0');
+      if(file)
       {
-        pageTableEntry = PageTableEntry(physicalPages->address() + i * PAGE_SIZE, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
-      }
-      else
-      {
-        auto pages = allocPages(1);
-        if(!pages)
-          rt::panic("Out of physical pages\n");
-
-        pageTableEntry = PageTableEntry(virtToPhys(pages->address()), TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+        file->seek(Anchor::BEGIN, offset);
+        file->read(pageFrame, sizeof pageFrame); // We do not care, if it failed, we are left with an empty page
       }
 
-      asm volatile ( "invlpg [%[virtaddr]]" : : [virtaddr]"r"(virtualIndex * PAGE_SIZE) : "memory");
+      return virtToPhys(reinterpret_cast<uintptr_t>(page));
+    }
+
+    void freePageTable(physaddr_t addr)
+    {
+      freePages(reinterpret_cast<void*>(physToVirt(addr)), 1);
+    }
+
+    void freePageFrame(physaddr_t addr)
+    {
+      freePages(reinterpret_cast<void*>(physToVirt(addr)), 1);
     }
   }
 
-  void MemoryMapping::unmap(Pages virtualPages)
+  Result<void> MemoryMapping::map(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file, size_t offset)
   {
-    using namespace common::memory;
+    uintptr_t begin = roundDown(addr, PAGE_SIZE);
+    uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
-    for(size_t i=0; i<virtualPages.count; ++i)
+    if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr+memoryArea->length>begin && memoryArea->addr < end; }))
+      return ErrorCode::EXIST;
+
+    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, permission, rt::move(file), offset, MemoryArea::Type::PRIVATE);
+    if(!memoryArea)
+      return ErrorCode::OUT_OF_MEMORY;
+
+    m_memoryAreas.insert(m_memoryAreas.end(), memoryArea);
+
+    map(*memoryArea);
+    return {};
+  }
+
+  /* These two functions never fail, but instead leave partial mapping on out of
+   * memory situation, which may be filled in on page fault should memory
+   * becomes available at that time, which is why more fatal error need to be
+   * detected beforehand. */
+  void MemoryMapping::map(MemoryArea& memoryArea)
+  {
+    for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
     {
-      size_t virtualIndex = virtualPages.index+i;
-      auto& pageTableEntry = this->pageTableEntry(virtualIndex, false/*allocate*/);
-      if(!pageTableEntry.present())
-        rt::panic("Attempting to unmap pages that are not mapped");
-
-      auto pages = Pages::from(physToVirt(pageTableEntry.address()), PAGE_SIZE);
-      pageTableEntry = PageTableEntry();
-
-      freePages(pages);
+      size_t offset = memoryArea.offset+(addr-memoryArea.addr);
+      mapSingle(memoryArea, addr, offset);
     }
   }
 
-  common::memory::PageDirectoryEntry& MemoryMapping::pageDirectoryEntry(size_t virtualIndex, bool allocate)
+  void MemoryMapping::mapSingle(MemoryArea& memoryArea, uintptr_t addr, size_t offset)
   {
-    using namespace common::memory;
-
-    size_t pageDirectoryIndex = virtualIndex / 1024;
-    auto& pageDirectory       = *m_pageDirectory;
-    auto& pageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
+    auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
+    auto& pageDirectory = *m_pageDirectory;
+    auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
     if(!pageDirectoryEntry.present())
     {
-      if(!allocate)
-        rt::panic("Page Directory Entry not present\n");
+      auto result = allocPageTable();
+      if(!result)
+        return;
 
-      auto pages = allocPages(1);
-      if(!pages)
-        rt::panic("Out of physical pages");
-
-      auto& pageTable = *reinterpret_cast<common::memory::PageTable*>(pages->address());
-      rt::fill(rt::begin(pageTable), rt::end(pageTable), PageTableEntry());
-
-      pageDirectoryEntry = PageDirectoryEntry(virtToPhys(pages->address()), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
+      pageDirectoryEntry = PageDirectoryEntry(*result, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
+    }
+    else
+    {
+      /* This means we are sharing the page directory with another mapping,
+       * which is perfectly fine. DO NOTHING */
     }
 
-    return pageDirectoryEntry;
-  }
-
-  common::memory::PageTableEntry& MemoryMapping::pageTableEntry(size_t virtualIndex, bool allocate)
-  {
-    using namespace common::memory;
-
-    auto& pageDirectoryEntry = this->pageDirectoryEntry(virtualIndex, allocate);
-
-    size_t pageTableIndex = virtualIndex % 1024;
-    auto& pageTable       = *reinterpret_cast<common::memory::PageTable*>(physToVirt(pageDirectoryEntry.address()));
+    size_t pageTableIndex = (addr / PAGE_SIZE) % 1024;
+    auto& pageTable       = *reinterpret_cast<PageTable*>(physToVirt(pageDirectoryEntry.address()));
     auto& pageTableEntry  = pageTable[pageTableIndex];
+    if(!pageTableEntry.present())
+    {
+      auto result = allocPageFrame(memoryArea.file, offset);
+      if(!result)
+        return;
 
-    return pageTableEntry;
+      pageTableEntry = PageTableEntry(*result, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, memoryArea.permission);
+      asm volatile ( "invlpg [%[addr]]" : : [addr]"r"(addr) : "memory");
+    }
+    else
+    {
+      /* This means we are sharing the page table with another mapping, which is
+       * impossible since this is the smallest unit of allocation. Mayday. */
+      ASSERT_UNREACHABLE;
+    }
   }
+
+  Result<void> MemoryMapping::unmap(uintptr_t addr, size_t length)
+  {
+    uintptr_t begin = roundDown(addr, PAGE_SIZE);
+    uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
+
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr == begin && memoryArea->length == end-begin; });
+    if(it == m_memoryAreas.end())
+      return ErrorCode::NOT_EXIST;
+    /* Question: Should we support partial unmap */
+
+    auto memoryArea = *it;
+    m_memoryAreas.erase(it);
+
+    unmap(*memoryArea);
+    return {};
+  }
+
+  void MemoryMapping::unmap(MemoryArea& memoryArea)
+  {
+    for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
+      unmapSingle(memoryArea, addr);
+  }
+
+  void MemoryMapping::unmapSingle(MemoryArea& memoryArea, uintptr_t addr)
+  {
+    auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
+    auto& pageDirectory = *m_pageDirectory;
+    auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
+    if(!pageDirectoryEntry.present())
+      return;
+
+    size_t pageTableIndex = (addr / PAGE_SIZE) % 1024;
+    auto& pageTable       = *reinterpret_cast<PageTable*>(physToVirt(pageDirectoryEntry.address()));
+    auto& pageTableEntry  = pageTable[pageTableIndex];
+    if(!pageTableEntry.present())
+      return;
+
+    if(true)
+    {
+      freePageFrame(pageTableEntry.address());
+      pageTableEntry = PageTableEntry();
+      asm volatile ( "invlpg [%[addr]]" : : [addr]"r"(addr) : "memory");
+    }
+
+    if(rt::none(rt::begin(pageTable), rt::end(pageTable), [](const PageTableEntry& pageTableEntry){ return pageTableEntry.present(); }))
+    {
+      freePageTable(pageDirectoryEntry.address());
+      pageDirectoryEntry = PageDirectoryEntry();
+    }
+  }
+
+  Result<void> MemoryMapping::remap(uintptr_t addr, size_t length, size_t newLength)
+  {
+    uintptr_t begin  = roundDown(addr, PAGE_SIZE);
+    uintptr_t end    = roundUp(addr+length, PAGE_SIZE);
+    uintptr_t newEnd = roundUp(addr+newLength, PAGE_SIZE);
+
+    if(newEnd == begin)
+      return ErrorCode::INVALID;
+
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr == begin && memoryArea->length == end-begin; });
+    if(it == m_memoryAreas.end())
+      return ErrorCode::NOT_EXIST;
+
+    auto memoryArea = *it;
+    remap(*memoryArea, newEnd - begin);
+    return {};
+  }
+
+  void MemoryMapping::remap(MemoryArea& memoryArea, size_t newLength)
+  {
+
+    size_t oldLength = memoryArea.length;
+    memoryArea.length = newLength;
+    if(oldLength < newLength)
+    {
+      // expand the mapping
+      for(size_t addr=memoryArea.addr+oldLength; addr!=memoryArea.addr+newLength; addr+=PAGE_SIZE)
+      {
+        size_t offset = memoryArea.offset+(addr-memoryArea.addr);
+        mapSingle(memoryArea, addr, offset);
+      }
+    }
+    else if(oldLength > newLength)
+    {
+      // Shrink the mapping
+      for(size_t addr=memoryArea.addr+newLength; addr!=memoryArea.addr+oldLength; addr+=PAGE_SIZE)
+        unmapSingle(memoryArea, addr);
+    }
+  }
+
 }
 

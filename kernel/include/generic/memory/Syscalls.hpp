@@ -1,9 +1,8 @@
 #pragma once
 
-#include <sys/Types.hpp>
 #include <generic/Error.hpp>
 
-namespace core::vfs
+namespace core::memory
 {
   void initializeSyscalls();
 }

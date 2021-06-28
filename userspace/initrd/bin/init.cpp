@@ -1,10 +1,13 @@
-#include "Syscalls.hpp"
+#include <libsys/Syscalls.hpp>
+#include <libsys/brk.hpp>
 
 #include <librt/Strings.hpp>
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
 #include <stddef.h>
+
+extern "C" char _end[];
 
 struct Dirent
 {
@@ -79,6 +82,28 @@ void test()
     rt::log("Result:");
     rt::log(readBuf, 5);
     rt::log("\n");
+  }
+
+  {
+    char* mem = static_cast<char*>(sbrk(0x1000));
+    ASSERT_ALWAYS(mem != reinterpret_cast<char*>(-1));
+    for(size_t i=0; i<0x1000; ++i)
+      mem[i] = 'K';
+  }
+
+  {
+    for(size_t i=0; i<10; ++i)
+    {
+      char* mem = static_cast<char*>(sbrk(0x1000));
+      ASSERT_ALWAYS(mem != reinterpret_cast<char*>(-1));
+      for(size_t i=0; i<0x1000; ++i)
+        mem[i] = 'A';
+      ASSERT_ALWAYS(sbrk(-0x1000) != reinterpret_cast<void*>(-1));
+    }
+  }
+
+  {
+    ASSERT_ALWAYS(sbrk(-0x1000) != reinterpret_cast<void*>(-1));
   }
 
   {

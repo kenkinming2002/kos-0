@@ -10,157 +10,194 @@
 
 namespace core::vfs
 {
-#define UNWRAP(v, expr) auto v = expr; if(!(v)) return -static_cast<result_t>(v.error())
-
-  static result_t _sys_root()
+  namespace
   {
-    auto rootFile = root();
-    UNWRAP(result, tasks::Task::current()->fileDescriptors().addFile(rootFile));
-    return *result;
+    Result<fd_t> sys_root()
+    {
+      auto rootFile = root();
+      return tasks::Task::current()->fileDescriptors().addFile(rootFile);
+    }
+    WRAP_SYSCALL0(_sys_root, sys_root)
+
+    Result<result_t> sys_mountAt(fd_t atfd, const char* _mountpoint, const char* _mountableName, const char* _arg)
+    {
+      auto at = tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto mountpoint = syscalls::stringFromUser(_mountpoint);
+      UNWRAP(mountpoint);
+
+      auto mountableName = syscalls::stringFromUser(_mountableName);
+      UNWRAP(mountableName);
+
+      auto arg = syscalls::stringFromUser(_arg);
+      UNWRAP(arg);
+
+      auto result = mountAt(rt::move(*at), *mountpoint, *mountableName, *arg);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL4(_sys_mountAt, sys_mountAt)
+
+    Result<result_t> sys_umountAt(fd_t atfd, const char* _mountpoint)
+    {
+      auto at = tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto mountpoint = syscalls::stringFromUser(_mountpoint);
+      UNWRAP(mountpoint);
+
+      auto result = umountAt(rt::move(*at), *mountpoint);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL2(_sys_umountAt, sys_umountAt)
+
+    Result<fd_t> sys_openAt(fd_t atfd, const char* _path)
+    {
+      auto at = tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto path = syscalls::stringFromUser(_path);
+      UNWRAP(path);
+
+      auto file = openAt(rt::move(*at), *path);
+      UNWRAP(file);
+      return tasks::Task::current()->fileDescriptors().addFile(rt::move(*file));
+    }
+    WRAP_SYSCALL2(_sys_openAt, sys_openAt)
+
+    Result<fd_t> sys_createAt(fd_t atfd, const char* _path, uword_t _type)
+    {
+      auto at =   tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto path = syscalls::stringFromUser(_path);
+      UNWRAP(path);
+
+      auto type = syscalls::typeFromUser(_type);
+      UNWRAP(type);
+
+      auto file = createAt(rt::move(*at), *path, *type);
+      UNWRAP(file);
+
+      return tasks::Task::current()->fileDescriptors().addFile(rt::move(*file));
+    }
+    WRAP_SYSCALL3(_sys_createAt, sys_createAt)
+
+    Result<result_t> sys_linkAt(fd_t atfd, const char* _path, const char* _target)
+    {
+      auto at =     tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto path =   syscalls::stringFromUser(_path);
+      UNWRAP(path);
+
+      auto target = syscalls::stringFromUser(_target);
+      UNWRAP(target);
+
+      auto result = linkAt(rt::move(*at), *path, *target);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL3(_sys_linkAt, sys_linkAt)
+
+    Result<result_t> sys_unlinkAt(fd_t atfd, const char* _path)
+    {
+      auto at =     tasks::Task::current()->fileDescriptors().getFile(atfd);
+      UNWRAP(at);
+
+      auto path =   syscalls::stringFromUser(_path);
+      UNWRAP(path);
+
+      auto result = unlinkAt(rt::move(*at), *path);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL2(_sys_unlinkAt, sys_unlinkAt)
+
+    struct DirectoryEntry
+    {
+      uword_t length; // This is needed to maintain forward compatiblility - length of the entire structure
+      uword_t ino;
+      uword_t type;
+
+      char name[];
+    };
+
+    Result<ssize_t> sys_readdir(fd_t fd, char* buf, size_t length)
+    {
+      auto file = tasks::Task::current()->fileDescriptors().getFile(fd);
+      UNWRAP(file);
+
+      return (*file)->readdir(buf, length);
+    }
+    WRAP_SYSCALL3(_sys_readdir, sys_readdir)
+
+    Result<ssize_t> sys_seek(fd_t fd, uword_t _anchor, off_t offset)
+    {
+      auto file = tasks::Task::current()->fileDescriptors().getFile(fd);
+      UNWRAP(file);
+
+      auto anchor = syscalls::anchorFromUser(_anchor);
+      UNWRAP(anchor);
+
+      return (*file)->seek(*anchor, offset);
+    }
+    WRAP_SYSCALL3(_sys_seek, sys_seek)
+
+    Result<ssize_t> sys_read(fd_t fd, char* buf, size_t length)
+    {
+      auto file = tasks::Task::current()->fileDescriptors().getFile(fd);
+      UNWRAP(file);
+
+      return (*file)->read(buf, length);
+    }
+    WRAP_SYSCALL3(_sys_read, sys_read)
+
+    Result<ssize_t> sys_write(fd_t fd, const char* buf, size_t length)
+    {
+      auto file = tasks::Task::current()->fileDescriptors().getFile(fd);
+      UNWRAP(file);
+
+      return (*file)->write(buf, length);
+    }
+    WRAP_SYSCALL3(_sys_write, sys_write)
+
+    Result<result_t> sys_resize(fd_t fd, size_t size)
+    {
+      auto file = tasks::Task::current()->fileDescriptors().getFile(fd);
+      UNWRAP(file);
+
+      auto result = (*file)->resize(size);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL2(_sys_resize, sys_resize)
+
+    Result<result_t> sys_close(fd_t fd)
+    {
+      auto result = tasks::Task::current()->fileDescriptors().removeFile(fd);
+      UNWRAP(result);
+      return 0;
+    }
+    WRAP_SYSCALL1(_sys_close, sys_close)
   }
-  WRAP_SYSCALL0(sys_root, _sys_root)
-
-  static result_t _sys_mountAt(fd_t atfd, const char* _mountpoint, const char* _mountableName, const char* _arg)
-  {
-    UNWRAP(at,            tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(mountpoint,    syscalls::stringFromUser(_mountpoint));
-    UNWRAP(mountableName, syscalls::stringFromUser(_mountableName));
-    UNWRAP(arg,           syscalls::stringFromUser(_arg));
-
-    UNWRAP(_, mountAt(*at, *mountpoint, *mountableName, *arg));
-    return 0;
-  }
-  WRAP_SYSCALL4(sys_mountAt, _sys_mountAt)
-
-  static result_t _sys_umountAt(fd_t atfd, const char* _mountpoint)
-  {
-    UNWRAP(at,         tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(mountpoint, syscalls::stringFromUser(_mountpoint));
-
-    UNWRAP(_, umountAt(*at, *mountpoint));
-    return 0;
-  }
-  WRAP_SYSCALL2(sys_umountAt, _sys_umountAt)
-
-  static fd_t _sys_openAt(fd_t atfd, const char* _path)
-  {
-    UNWRAP(at,   tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(path, syscalls::stringFromUser(_path));
-
-    UNWRAP(file, openAt(*at, *path));
-    UNWRAP(result, tasks::Task::current()->fileDescriptors().addFile(*file));
-
-    return *result;
-  }
-  WRAP_SYSCALL2(sys_openAt, _sys_openAt)
-
-  static fd_t _sys_createAt(fd_t atfd, const char* _path, uword_t _type)
-  {
-    UNWRAP(at,   tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(path, syscalls::stringFromUser(_path));
-    UNWRAP(type, syscalls::typeFromUser(_type));
-
-    UNWRAP(file, createAt(*at, *path, *type));
-    UNWRAP(result, tasks::Task::current()->fileDescriptors().addFile(*file));
-    return *result;
-  }
-  WRAP_SYSCALL3(sys_createAt, _sys_createAt)
-
-  static result_t _sys_linkAt(fd_t atfd, const char* _path, const char* _target)
-  {
-    UNWRAP(at,     tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(path,   syscalls::stringFromUser(_path));
-    UNWRAP(target, syscalls::stringFromUser(_target));
-
-    UNWRAP(_, linkAt(*at, *path, *target));
-    return 0;
-  }
-  WRAP_SYSCALL3(sys_linkAt, _sys_linkAt)
-
-  static result_t _sys_unlinkAt(fd_t atfd, const char* _path)
-  {
-    UNWRAP(at,     tasks::Task::current()->fileDescriptors().getFile(atfd));
-    UNWRAP(path,   syscalls::stringFromUser(_path));
-
-    UNWRAP(_, unlinkAt(*at, *path));
-    return 0;
-  }
-  WRAP_SYSCALL2(sys_unlinkAt, _sys_unlinkAt)
-
-  struct DirectoryEntry
-  {
-    uword_t length; // This is needed to maintain forward compatiblility - length of the entire structure
-    uword_t ino;
-    uword_t type;
-
-    char name[];
-  };
-
-  static result_t _sys_readdir(fd_t fd, char* buf, size_t length)
-  {
-    UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(result, file->readdir(buf, length));
-
-    return *result;
-  }
-  WRAP_SYSCALL3(sys_readdir, _sys_readdir)
-
-  static ssize_t _sys_seek(fd_t fd, uword_t _anchor, off_t offset)
-  {
-    UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(anchor, syscalls::anchorFromUser(_anchor));
-    UNWRAP(result, file->seek(*anchor, offset));
-    return *result;
-  }
-  WRAP_SYSCALL3(sys_seek, _sys_seek)
-
-  static ssize_t _sys_read(fd_t fd, char* buf, size_t length)
-  {
-    UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(result, file->read(buf, length));
-    return *result;
-  }
-  WRAP_SYSCALL3(sys_read, _sys_read)
-
-  static ssize_t _sys_write(fd_t fd, const char* buf, size_t length)
-  {
-    UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(result, file->write(buf, length));
-    return *result;
-  }
-  WRAP_SYSCALL3(sys_write, _sys_write)
-
-  static result_t _sys_resize(fd_t fd, size_t size)
-  {
-    UNWRAP(file, tasks::Task::current()->fileDescriptors().getFile(fd));
-    UNWRAP(_, file->resize(size));
-    return 0;
-  }
-  WRAP_SYSCALL2(sys_resize, _sys_resize)
-
-  static result_t _sys_close(fd_t fd)
-  {
-    UNWRAP(_, tasks::Task::current()->fileDescriptors().removeFile(fd));
-    return 0;
-  }
-  WRAP_SYSCALL1(sys_close, _sys_close)
-
-#undef UNWRAP
 
   void initializeSyscalls()
   {
-    syscalls::installHandler(syscalls::SYS_ROOT    , &sys_root    );
-    syscalls::installHandler(syscalls::SYS_MOUNTAT , &sys_mountAt );
-    syscalls::installHandler(syscalls::SYS_UMOUNTAT, &sys_umountAt);
-    syscalls::installHandler(syscalls::SYS_OPENAT  , &sys_openAt  );
-    syscalls::installHandler(syscalls::SYS_CREATEAT, &sys_createAt);
-    syscalls::installHandler(syscalls::SYS_LINKAT  , &sys_linkAt  );
-    syscalls::installHandler(syscalls::SYS_UNLINKAT, &sys_unlinkAt);
-    syscalls::installHandler(syscalls::SYS_READDIR , &sys_readdir );
-    syscalls::installHandler(syscalls::SYS_SEEK    , &sys_seek    );
-    syscalls::installHandler(syscalls::SYS_READ    , &sys_read    );
-    syscalls::installHandler(syscalls::SYS_WRITE   , &sys_write   );
-    syscalls::installHandler(syscalls::SYS_RESIZE  , &sys_resize  );
-    syscalls::installHandler(syscalls::SYS_CLOSE   , &sys_close   );
+    syscalls::installHandler(SYS_ROOT    , &_sys_root    );
+    syscalls::installHandler(SYS_MOUNTAT , &_sys_mountAt );
+    syscalls::installHandler(SYS_UMOUNTAT, &_sys_umountAt);
+    syscalls::installHandler(SYS_OPENAT  , &_sys_openAt  );
+    syscalls::installHandler(SYS_CREATEAT, &_sys_createAt);
+    syscalls::installHandler(SYS_LINKAT  , &_sys_linkAt  );
+    syscalls::installHandler(SYS_UNLINKAT, &_sys_unlinkAt);
+    syscalls::installHandler(SYS_READDIR , &_sys_readdir );
+    syscalls::installHandler(SYS_SEEK    , &_sys_seek    );
+    syscalls::installHandler(SYS_READ    , &_sys_read    );
+    syscalls::installHandler(SYS_WRITE   , &_sys_write   );
+    syscalls::installHandler(SYS_RESIZE  , &_sys_resize  );
+    syscalls::installHandler(SYS_CLOSE   , &_sys_close   );
   }
 }

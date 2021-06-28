@@ -31,16 +31,9 @@ subdir('boot')
 subdir('kernel')
 subdir('userspace')
 
-mkinitrd = find_program('bin/mkinitrd')
-initrd = custom_target('initrd',
-  build_always_stale : true, # We do not have wildcard
-  output : 'initrd',
-  command : [mkinitrd, '@OUTPUT@', '@SOURCE_ROOT@/initrd/']
-)
-
 mkiso = find_program('bin/mkiso')
 iso = custom_target('iso',
-  input  : ['grub.cfg', boot, kernel, initrd, main1, main2],
+  input  : ['grub.cfg', boot, kernel, initrd],
   output : 'os.iso',
   command : [mkiso, '-p', '@PRIVATE_DIR@', '-o', '@OUTPUT@', '-c', '@INPUT@']
 )

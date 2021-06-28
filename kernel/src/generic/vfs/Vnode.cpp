@@ -1,3 +1,4 @@
+#include "librt/String.hpp"
 #include <generic/vfs/Vnode.hpp>
 #include <generic/vfs/Path.hpp>
 
@@ -13,7 +14,7 @@ namespace core::vfs
   {
     auto it = m_childs.find(name);
     if(it == m_childs.end())
-      it = m_childs.insert({name, rt::makeShared<Vnode>(this)});
+      it = m_childs.insert({rt::String(name), rt::makeShared<Vnode>(this)});
 
     auto& childVnode = it->second;
     switch(childVnode->m_state)

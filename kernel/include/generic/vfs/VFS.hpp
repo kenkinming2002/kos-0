@@ -20,14 +20,14 @@ namespace core::vfs
 {
   void initialize();
 
-  File root();
+  rt::SharedPtr<File> root();
 
-  Result<void> mountAt(File& at, rt::StringRef mountpoint, rt::StringRef mountableName, rt::StringRef arg);
-  Result<void> mountAt(File& at, rt::StringRef mountpoint, Mountable& mountable, rt::StringRef arg);
-  Result<void> umountAt(File& at, rt::StringRef mountpoint);
+  Result<void> mountAt(rt::SharedPtr<File> at, rt::StringRef mountpoint, rt::StringRef mountableName, rt::StringRef arg);
+  Result<void> mountAt(rt::SharedPtr<File> at, rt::StringRef mountpoint, Mountable& mountable, rt::StringRef arg);
+  Result<void> umountAt(rt::SharedPtr<File> at, rt::StringRef mountpoint);
 
-  Result<File> openAt(File& at, rt::StringRef path);
-  Result<File> createAt(File& at, rt::StringRef path, Type type);
-  Result<void> linkAt(File& at, rt::StringRef path, rt::StringRef target);
-  Result<void> unlinkAt(File& at, rt::StringRef path);
+  Result<rt::SharedPtr<File>> openAt(rt::SharedPtr<File> at, rt::StringRef path);
+  Result<rt::SharedPtr<File>> createAt(rt::SharedPtr<File> at, rt::StringRef path, Type type);
+  Result<void> linkAt(rt::SharedPtr<File> at, rt::StringRef path, rt::StringRef target);
+  Result<void> unlinkAt(rt::SharedPtr<File> at, rt::StringRef path);
 }

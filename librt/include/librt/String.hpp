@@ -1,5 +1,6 @@
 #pragma once
 
+#include "librt/NonCopyable.hpp"
 #include <librt/StringRef.hpp>
 
 #include <librt/UniquePtr.hpp>
@@ -13,7 +14,7 @@ namespace rt
   class StringBase
   {
   public:
-    StringBase(StringRefBase<Char> stringRef) : StringBase(stringRef.data(), stringRef.length()) {}
+    explicit StringBase(StringRefBase<Char> stringRef) : StringBase(stringRef.data(), stringRef.length()) {}
     operator StringRefBase<Char>() const & { return StringRefBase<Char>(data(), length()); }
     StringRefBase<Char> ref() const & { return StringRefBase<Char>(data(), length()); }
 

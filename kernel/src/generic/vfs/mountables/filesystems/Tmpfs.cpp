@@ -1,3 +1,4 @@
+#include "librt/String.hpp"
 #include <generic/vfs/mountables/filesystems/Tmpfs.hpp>
 
 #include <i686/syscalls/Access.hpp>
@@ -116,7 +117,7 @@ namespace core::vfs
       return ErrorCode::INVALID;
 
     auto inode = allocate(type);
-    m_childs.insert({name, inode});
+    m_childs.insert({rt::String(name), inode});
     return rt::SharedPtr<Inode>(move(inode));
   }
 

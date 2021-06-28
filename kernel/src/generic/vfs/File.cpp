@@ -1,3 +1,4 @@
+#include "librt/SharedPtr.hpp"
 #include <generic/vfs/File.hpp>
 
 namespace core::vfs
@@ -104,22 +105,22 @@ namespace core::vfs
     return m_vnode->umount();
   }
 
-  Result<File> File::lookup(rt::StringRef name)
+  Result<rt::SharedPtr<File>> File::lookup(rt::StringRef name)
   {
     auto vnode = m_vnode->lookup(name);
     if(!vnode)
       return vnode.error();
 
-    return File(rt::move(*vnode));
+    return rt::makeShared<File>(rt::move(*vnode));
   }
 
-  Result<File> File::create(rt::StringRef name, Type type)
+  Result<rt::SharedPtr<File>> File::create(rt::StringRef name, Type type)
   {
     auto vnode = m_vnode->create(name, type);
     if(!vnode)
       return vnode.error();
 
-    return File(rt::move(*vnode));
+    return rt::makeShared<File>(rt::move(*vnode));
   }
 
   Result<void> File::link(rt::StringRef name, Inode& inode)

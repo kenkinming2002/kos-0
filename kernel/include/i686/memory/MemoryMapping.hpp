@@ -1,8 +1,13 @@
 #pragma once
 
 #include <common/i686/memory/Paging.hpp>
-#include <generic/memory/Memory.hpp>
 
+#include <generic/memory/Memory.hpp>
+#include <generic/vfs/File.hpp>
+#include <generic/memory/Pages.hpp>
+#include <common/i686/memory/Paging.hpp>
+
+#include <librt/containers/List.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/NonCopyable.hpp>
 
@@ -22,6 +27,29 @@ namespace core::memory
    * mitigation for meltdown or spectre so the entirety of kernel and kernel
    * heap is always mapped in.
    */
+
+  using namespace common::memory;
+  struct MemoryArea : rt::SharedPtrHook
+  {
+  public:
+    enum class Type { PRIVATE, SHARED };
+
+  public:
+    constexpr MemoryArea(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file, size_t offset, Type type)
+      : addr(addr), length(length), permission(permission), file(rt::move(file)), offset(offset), type(type) {}
+
+  public:
+    uintptr_t addr;
+    size_t length;
+
+    Permission permission;
+
+    rt::SharedPtr<vfs::File> file;
+    size_t offset;
+
+    Type type;
+  };
+
   class MemoryMapping : public rt::SharedPtrHook
   {
   public:
@@ -35,18 +63,32 @@ namespace core::memory
     static rt::SharedPtr<MemoryMapping> allocate();
 
   public:
-    MemoryMapping(common::memory::PageDirectory* pageDirectory);
+    MemoryMapping(PageDirectory* pageDirectory);
     ~MemoryMapping();
 
+
   public:
-    void map(Pages virtualPages, common::memory::Access access, common::memory::Permission permission, rt::Optional<Pages> physicalPages = rt::nullOptional);
-    void unmap(Pages virtualPages);
+    Result<void> map(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file = nullptr, size_t offset = 0);
 
   private:
-    common::memory::PageDirectoryEntry& pageDirectoryEntry(size_t virtualIndex, bool allocate);
-    common::memory::PageTableEntry& pageTableEntry(size_t virtualIndex, bool allocate);
+    void map(MemoryArea& memoryArea);
+    void mapSingle(MemoryArea& memoryArea, uintptr_t addr, size_t offset);
+
+  public:
+    Result<void> unmap(uintptr_t addr, size_t length);
 
   private:
-    common::memory::PageDirectory* m_pageDirectory;
+    void unmap(MemoryArea& memoryArea);
+    void unmapSingle(MemoryArea& memoryArea, uintptr_t addr);
+
+  public:
+    Result<void> remap(uintptr_t addr, size_t length, size_t newLength);
+    void remap(MemoryArea& memoryArea, size_t newLength);
+
+  private:
+    rt::containers::List<rt::SharedPtr<MemoryArea>> m_memoryAreas;
+
+  private:
+    PageDirectory* m_pageDirectory;
   };
 }

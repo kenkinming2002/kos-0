@@ -138,4 +138,12 @@ namespace core::syscalls
       return ErrorCode::INVALID;
     }
   }
+
+  inline bool verifyRegionUser(uintptr_t addr, size_t length)
+  {
+    uintptr_t end;
+    if(__builtin_add_overflow(addr, length, &end))
+      return false;
+    return end<=0xC0000000;
+  }
 }
