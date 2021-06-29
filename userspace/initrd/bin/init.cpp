@@ -50,7 +50,7 @@ void lsdir(fd_t fd, size_t depth = 0)
   }
 }
 
-void test()
+void test1()
 {
   auto rootfd = sys_root();
   ASSERT_ALWAYS(rootfd >= 0);
@@ -83,7 +83,37 @@ void test()
     rt::log(readBuf, 5);
     rt::log("\n");
   }
+}
 
+void test2()
+{
+  rt::log("Exiting...\n");
+  sys_exit(127);
+  rt::log("After exiting...\n");
+
+  auto rootfd = sys_root();
+  ASSERT_ALWAYS(rootfd >= 0);
+
+  auto serial1fd = sys_createAt(rootfd, "serial1", Type::REGULAR_FILE);
+  ASSERT_ALWAYS(serial1fd >= 0);
+  ASSERT_ALWAYS(sys_mountAt(serial1fd, "", "serial", "1") == 0);
+
+  for(;;)
+  {
+    size_t result;
+    char buf[1];
+
+    result = sys_read(serial1fd, buf, sizeof buf);
+
+    rt::log(buf, result);
+    result = sys_write(serial1fd, buf, sizeof buf);
+    if(result<0)
+      rt::log("Error occured\n");
+  }
+}
+
+void testCommon()
+{
   {
     char* mem = static_cast<char*>(sbrk(0x1000));
     ASSERT_ALWAYS(mem != reinterpret_cast<char*>(-1));
@@ -105,24 +135,24 @@ void test()
   {
     ASSERT_ALWAYS(sbrk(-0x1000) != reinterpret_cast<void*>(-1));
   }
+}
 
+void test()
+{
+  testCommon();
+
+  auto rootfd = sys_root();
+  ASSERT_ALWAYS(rootfd >= 0);
+  // Only one instance would succeed in creation
+  if(sys_createAt(rootfd, "node",  Type::REGULAR_FILE) >= 0)
   {
-    auto serial1fd = sys_createAt(rootfd, "serial1", Type::REGULAR_FILE);
-    ASSERT_ALWAYS(serial1fd >= 0);
-    ASSERT_ALWAYS(sys_mountAt(serial1fd, "", "serial", "1") == 0);
-
-    for(;;)
-    {
-      size_t result;
-      char buf[1];
-
-      result = sys_read(serial1fd, buf, sizeof buf);
-
-      rt::log(buf, result);
-      result = sys_write(serial1fd, buf, sizeof buf);
-      if(result<0)
-        rt::log("Error occured\n");
-    }
+    rt::log("First process\n");
+    test1();
+  }
+  else
+  {
+    rt::log("Second process\n");
+    test2();
   }
 }
 

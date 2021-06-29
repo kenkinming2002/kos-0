@@ -55,17 +55,24 @@ static void kmainInitialize(BootInformation* bootInformation)
 
   // We no longer need boot modules since the initial executable should be found
   // in initrd
-  auto root = core::vfs::root();
-  auto init = core::vfs::openAt(root, "init");
-  if(!init)
-    rt::panic("init not found\n");
+  {
+    auto root = core::vfs::root();
+    auto init = core::vfs::openAt(root, "init");
+    if(!init)
+      rt::panic("init not found\n");
 
-  auto task = core::tasks::addTask();
-  if(!task)
-    rt::panic("Failed to create task\n");
+    for(size_t i=0; i<2; ++i)
+    {
+      auto task = core::tasks::addTask();
+      if(!task)
+        rt::panic("Failed to create task\n");
 
-  core::tasks::loadElf(task, *init);
-  core::tasks::scheduleInitial();
+      core::tasks::loadElf(task, *init);
+    }
+  } // We need to ensure all local object is destructed before we call schedule
+
+  core::tasks::schedule();
+  __builtin_unreachable();
 }
 
 static core::Result<result_t> _sys_test()

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdint.h>
-#include <stddef.h>
 
 #include <type_traits>
 #include <limits>
@@ -14,15 +13,18 @@ using ssize_t = word_t;
 
 using off_t = word_t;
 
-using device_t = word_t;
-using inode_t = word_t;
+using dev_t = word_t;
+using ino_t = word_t;
 
 using result_t = word_t;
 using fd_t     = word_t;
 
+using status_t = word_t;
+using pid_t    = word_t;
+
 static constexpr fd_t FD_NONE = -1;
-static constexpr device_t UNKNWON_DEV = -1;
-static constexpr inode_t  UNKNWON_INO = -1;
+static constexpr dev_t UNKNWON_DEV = -1;
+static constexpr ino_t  UNKNWON_INO = -1;
 
 enum class Type   : uword_t { REGULAR_FILE, DIRECTORY, SYMBOLIC_LINK, OTHER };
 enum class Anchor : uword_t { BEGIN, CURRENT , END };

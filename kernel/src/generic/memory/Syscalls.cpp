@@ -24,10 +24,10 @@ namespace core::memory
         return syscalls::makeError(ErrorCode::FAULT);
 
       auto task = tasks::Task::current();
-      auto memoryMapping = task->memoryMapping();
+      auto memoryMapping = task->memoryMapping;
       auto permission = permissionFromBits(prot);
 
-      auto file = fd != FD_NONE ? task->fileDescriptors().getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
+      auto file = fd != FD_NONE ? task->fileDescriptors.getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
       UNWRAP(file);
 
       auto result = memoryMapping->map(addr, length, permission, rt::move(*file), offset);
@@ -43,7 +43,7 @@ namespace core::memory
         return syscalls::makeError(ErrorCode::FAULT);
 
       auto task = tasks::Task::current();
-      auto memoryMapping = task->memoryMapping();
+      auto memoryMapping = task->memoryMapping;
 
       auto result = memoryMapping->unmap(addr, length);
       UNWRAP(result);
@@ -61,7 +61,7 @@ namespace core::memory
         return syscalls::makeError(ErrorCode::FAULT);
 
       auto task = tasks::Task::current();
-      auto memoryMapping = task->memoryMapping();
+      auto memoryMapping = task->memoryMapping;
 
       auto result = memoryMapping->remap(addr, length, newLength);
       UNWRAP(result);

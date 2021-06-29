@@ -37,12 +37,19 @@ namespace core::tasks
 
   void Task::makeCurrent(rt::SharedPtr<Task> task)
   {
+    if(currentTask && currentTask->state == State::RUNNING)
+      currentTask->state = State::RUNNABLE;
+
     currentTask = task;
     if(task)
     {
+      ASSERT(currentTask->state == State::RUNNABLE);
+      currentTask->state = State::RUNNING;
+
       interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
       syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
-      memory::MemoryMapping::makeCurrent(task->m_memoryMapping);
+      if(task->memoryMapping)
+        memory::MemoryMapping::makeCurrent(task->memoryMapping); // Kernel task do not have memory mapping and would use the old one
     }
   }
 
@@ -51,6 +58,7 @@ namespace core::tasks
     if(current().get() != nullptr)
     {
       auto previousTask = current();
+
       makeCurrent(task);
       core_tasks_switch_esp(&previousTask->m_kernelStack.esp, &task->m_kernelStack.esp);
     }
@@ -71,14 +79,13 @@ namespace core::tasks
     }
   }
 
-
+  namespace
+  {
+    static constinit std::atomic<pid_t> nextPid = 0;
+  }
 
   rt::SharedPtr<Task> Task::allocate()
   {
-    auto memoryMapping = memory::MemoryMapping::allocate();
-    if(!memoryMapping)
-      return nullptr;
-
     void* kernelStackPage = memory::allocPages(STACK_PAGES_COUNT);
     if(!kernelStackPage)
       return nullptr;
@@ -88,31 +95,53 @@ namespace core::tasks
       .esp = reinterpret_cast<uintptr_t>(kernelStackPage) + STACK_SIZE
     };
 
-    return rt::makeShared<Task>(stack, rt::move(memoryMapping));
+    return rt::makeShared<Task>(nextPid++, stack);
   }
 
-  Task::Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping)
-    : m_kernelStack(kernelStack), m_memoryMapping(rt::move(memoryMapping)) {}
+  Task::Task(pid_t pid, Stack kernelStack)
+    : pid(pid), m_kernelStack(kernelStack) {}
 
   Task::~Task()
   {
     memory::freePages(m_kernelStack.ptr, STACK_PAGES_COUNT);
   }
 
-  void Task::asUserspaceTask(uintptr_t entry)
+  void Task::kill(status_t status)
   {
-    m_kernelStack.esp -= sizeof entry;
+    this->state = State::DEAD;
+    this->status = status;
+  }
+
+  Result<void> Task::asKernelTask(void(*kernelTask)())
+  {
+    m_kernelStack.esp -= sizeof(uintptr_t);
+    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = POISON; // This can really be any value, we are just simulating eip pushed when executing a call instruction
+
+    m_kernelStack.esp -= sizeof(uintptr_t);
+    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(kernelTask);
+
+    return {};
+  }
+
+  Result<void> Task::asUserspaceTask(uintptr_t entry)
+  {
+    void(*startUserspaceTask)(uintptr_t) = [](uintptr_t entry){ core_tasks_entry(reinterpret_cast<uintptr_t>(entry)); };
+
+    m_kernelStack.esp -= sizeof(uintptr_t);
     *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = entry;
 
     m_kernelStack.esp -= sizeof(uintptr_t);
     *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = POISON; // This can really be any value, we are just simulating eip pushed when executing a call instruction
 
     m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(&startUserspaceTask);
+    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(startUserspaceTask);
+
+    ASSERT(!memoryMapping);
+    memoryMapping = memory::MemoryMapping::allocate();
+    if(!memoryMapping)
+      return ErrorCode::OUT_OF_MEMORY;
+
+    return {};
   }
 
-  [[noreturn]] void Task::startUserspaceTask(uintptr_t entry)
-  {
-    core_tasks_entry(entry);
-  }
 }

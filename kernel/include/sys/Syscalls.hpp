@@ -4,26 +4,33 @@
 
 enum Syscalls : uword_t
 {
-  SYS_YIELD    = 0,
-  SYS_ROOT     = 1,
-  SYS_MOUNTAT  = 2,
-  SYS_UMOUNTAT = 3,
-  SYS_OPENAT   = 4,
-  SYS_CREATEAT = 5,
-  SYS_LINKAT   = 6,
-  SYS_UNLINKAT = 7,
-  SYS_READDIR  = 8,
-  SYS_SEEK     = 9,
-  SYS_READ     = 10,
-  SYS_WRITE    = 11,
-  SYS_RESIZE   = 12,
-  SYS_CLOSE    = 13,
+  // Filesystem management
+  SYS_ROOT     = 0,
+  SYS_MOUNTAT  = 1,
+  SYS_UMOUNTAT = 2,
+  SYS_OPENAT   = 3,
+  SYS_CREATEAT = 4,
+  SYS_LINKAT   = 5,
+  SYS_UNLINKAT = 6,
+  SYS_READDIR  = 7,
+  SYS_SEEK     = 8,
+  SYS_READ     = 9,
+  SYS_WRITE    = 10,
+  SYS_RESIZE   = 11,
+  SYS_CLOSE    = 12,
 
-  SYS_MMAP     = 14,
-  SYS_MUNMAP   = 15,
-  SYS_MREMAP   = 16,
+  // Memory management
+  SYS_MMAP     = 13,
+  SYS_MUNMAP   = 14,
+  SYS_MREMAP   = 15,
 
-  SYS_TEST     = 17,
-  SYS_LOG      = 18
+  // Process management
+  SYS_YIELD    = 16,
+  SYS_KILL     = 17,
+  SYS_EXIT     = 18,
+
+  // Misc
+  SYS_TEST     = 19,
+  SYS_LOG      = 20
 };
 

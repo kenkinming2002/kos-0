@@ -54,7 +54,7 @@ namespace core::vfs
     }
   }
 
-  TmpfsInode::TmpfsInode(rt::SharedPtr<TmpfsSuperBlock> superBlock, inode_t ino)
+  TmpfsInode::TmpfsInode(rt::SharedPtr<TmpfsSuperBlock> superBlock, ino_t ino)
     : m_superBlock(rt::move(superBlock)), m_ino(ino) {}
 
   const TmpfsSuperBlock& TmpfsInode::superBlock() const { return *m_superBlock; }

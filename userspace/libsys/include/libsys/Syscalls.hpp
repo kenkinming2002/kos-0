@@ -27,9 +27,14 @@ inline result_t sys_resize(fd_t fd, size_t size) { return syscall(SYS_RESIZE, fd
 
 inline result_t sys_close(fd_t fd) { return syscall(SYS_CLOSE, fd, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 
-inline result_t sys_test() { return syscall(SYS_TEST, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
-inline result_t sys_log(const char* msg, size_t length) { return syscall(SYS_LOG, msg, length, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
-
 inline result_t sys_mmap(uintptr_t addr, size_t length, uword_t prot, fd_t fd, size_t offset) { return syscall(SYS_MMAP, addr, length, prot, fd, offset, uword_t(0)); }
 inline result_t sys_munmap(uintptr_t addr, size_t length) { return syscall(SYS_MUNMAP, addr, length, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 inline result_t sys_mremap(uintptr_t addr, size_t length, size_t newLength) { return syscall(SYS_MREMAP, addr, length, newLength, uword_t(0), uword_t(0), uword_t(0)); }
+
+inline result_t sys_yield() { return syscall(SYS_YIELD, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
+inline result_t sys_kill(pid_t pid, status_t status) { return syscall(SYS_KILL, pid, status, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
+[[noreturn]] inline result_t sys_exit(status_t status) { syscall(SYS_EXIT, status, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); __builtin_unreachable(); }
+
+inline result_t sys_test() { return syscall(SYS_TEST, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
+inline result_t sys_log(const char* msg, size_t length) { return syscall(SYS_LOG, msg, length, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
+

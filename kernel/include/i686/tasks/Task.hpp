@@ -18,10 +18,7 @@ namespace core::tasks
 {
   class Task : public rt::SharedPtrHook
   {
-  public:
-    friend class Scheduler;
-
-  public:
+  private:
     static constexpr size_t STACK_PAGES_COUNT = 1;
     static constexpr size_t STACK_SIZE        =  STACK_PAGES_COUNT * memory::PAGE_SIZE;
     struct Stack
@@ -40,28 +37,25 @@ namespace core::tasks
     static rt::SharedPtr<Task> allocate();
 
   public:
-    Task(Stack kernelStack, rt::SharedPtr<memory::MemoryMapping> memoryMapping);
+    Task(pid_t pid, Stack kernelStack);
     ~Task();
 
   public:
-    constexpr auto& memoryMapping() { return m_memoryMapping; }
+    void kill(status_t status);
 
   public:
+    Result<void> asKernelTask(void(*kernelTask)());
+    Result<void> asUserspaceTask(uintptr_t entry);
 
   public:
-    // Set up the our stack to match what switchTask expect to found and invoke
-    // startUserspaceTask with appropriate arguments.
-    void asUserspaceTask(uintptr_t entry);
-    [[noreturn]] static void startUserspaceTask(uintptr_t entry);
+    rt::SharedPtr<memory::MemoryMapping> memoryMapping;
+    vfs::FileDescriptors fileDescriptors;
+
+    pid_t pid;
+    status_t status;
+    enum class State { RUNNING, RUNNABLE, DEAD } state = State::RUNNABLE;
 
   private:
     Stack m_kernelStack;
-    rt::SharedPtr<memory::MemoryMapping> m_memoryMapping;
-
-  public:
-    vfs::FileDescriptors& fileDescriptors() { return m_fileDescriptors; }
-
-  private:
-    vfs::FileDescriptors m_fileDescriptors;
   };
 }

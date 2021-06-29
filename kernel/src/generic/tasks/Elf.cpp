@@ -34,7 +34,7 @@ namespace core::tasks
           return ErrorCode::INVALID; // We do not support a page that is not readable
 
         auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
-        task->memoryMapping()->map(programHeader.p_vaddr, programHeader.p_memsz, pagesPermission, file, programHeader.p_offset);
+        task->memoryMapping->map(programHeader.p_vaddr, programHeader.p_memsz, pagesPermission, file, programHeader.p_offset);
       }
 
       return {};
@@ -61,6 +61,7 @@ namespace core::tasks
 
     auto previousTask = tasks::Task::current();
     tasks::Task::makeCurrent(task);
+    task->asUserspaceTask(header.e_entry);
 
     // FIXME: Set an upper limit
     Elf32_Phdr programHeaders[header.e_phnum];
@@ -69,8 +70,6 @@ namespace core::tasks
     for(size_t i=0; i<header.e_phnum; ++i)
       if(auto result = loadProgramHeader(task, file, programHeaders[i]); !result)
         return result.error();
-
-    task->asUserspaceTask(header.e_entry);
 
     tasks::Task::makeCurrent(rt::move(previousTask));
     return {};

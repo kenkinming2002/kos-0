@@ -10,6 +10,10 @@ add_global_arguments('-fno-exceptions', language: ['cpp'])
 add_global_arguments('-ffreestanding',  language: ['c', 'cpp'])
 add_global_link_arguments('-nostdlib',  language: ['c', 'cpp'])
 
+add_global_arguments('-D_PID_T_DECLARED',  language: ['c', 'cpp'])
+add_global_arguments('-D_INO_T_DECLARED',  language: ['c', 'cpp'])
+add_global_arguments('-D_DEV_T_DECLARED',  language: ['c', 'cpp'])
+
 # Intel inline assembly syntax
 add_global_arguments('-masm=intel', language : ['c', 'cpp'])
 
