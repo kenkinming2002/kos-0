@@ -13,18 +13,19 @@
 
 namespace core::memory
 {
-  using namespace common::memory;
-
-  constinit static rt::SharedPtr<MemoryMapping> currentMemoryMapping;
-
-  void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  namespace
   {
-    uint32_t address;
-    asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
-    rt::logf("\nPage Fault at 0x%lx with error code 0x%lx and old eip 0x%lx\n", address, errorCode, oldEip);
-    rt::panic("Page Fault\n");
-  }
+    constinit rt::SharedPtr<MemoryMapping> currentMemoryMapping;
 
+    void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+    {
+      uintptr_t addr;
+      asm volatile ("mov %[address], cr2" : [address]"=rm"(addr) : :);
+      auto result = MemoryMapping::current()->handlePageFault(addr);
+      if(!result)
+        rt::panic("Page Fault\n");
+    }
+  }
 
   void MemoryMapping::initialize()
   {
@@ -125,13 +126,12 @@ namespace core::memory
     if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr+memoryArea->length>begin && memoryArea->addr < end; }))
       return ErrorCode::EXIST;
 
-    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, prot, rt::move(file), offset, MemoryArea::Type::PRIVATE);
+    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, prot, rt::move(file), offset, MapType::PRIVATE);
     if(!memoryArea)
       return ErrorCode::OUT_OF_MEMORY;
 
     m_memoryAreas.insert(m_memoryAreas.end(), memoryArea);
 
-    map(*memoryArea);
     return {};
   }
 
@@ -142,14 +142,12 @@ namespace core::memory
   void MemoryMapping::map(MemoryArea& memoryArea)
   {
     for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
-    {
-      size_t offset = memoryArea.offset+(addr-memoryArea.addr);
-      mapSingle(memoryArea, addr, offset);
-    }
+      mapSingle(memoryArea, addr);
   }
 
-  void MemoryMapping::mapSingle(MemoryArea& memoryArea, uintptr_t addr, size_t offset)
+  void MemoryMapping::mapSingle(MemoryArea& memoryArea, uintptr_t addr)
   {
+    auto offset = memoryArea.offset+(addr-memoryArea.addr);
     auto permission = (memoryArea.prot & Prot::WRITE) == Prot::WRITE ? Permission::READ_WRITE : Permission::READ_ONLY;
     //auto permission = Permission::READ_WRITE;
 
@@ -268,10 +266,7 @@ namespace core::memory
     {
       // expand the mapping
       for(size_t addr=memoryArea.addr+oldLength; addr!=memoryArea.addr+newLength; addr+=PAGE_SIZE)
-      {
-        size_t offset = memoryArea.offset+(addr-memoryArea.addr);
-        mapSingle(memoryArea, addr, offset);
-      }
+        mapSingle(memoryArea, addr);
     }
     else if(oldLength > newLength)
     {
@@ -281,5 +276,15 @@ namespace core::memory
     }
   }
 
+  Result<void> MemoryMapping::handlePageFault(uintptr_t addr)
+  {
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr<=addr && addr<=memoryArea->addr+memoryArea->length; });
+    if(it == m_memoryAreas.end())
+      return ErrorCode::NOT_EXIST;
+
+    auto& memoryArea = *it;
+    mapSingle(*memoryArea, addr / PAGE_SIZE * PAGE_SIZE);
+    return {};
+  }
 }
 

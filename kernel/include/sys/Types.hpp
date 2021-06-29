@@ -37,6 +37,12 @@ enum class Prot : uword_t
   EXEC  = 1u << 2
 };
 
+enum class MapType : uword_t
+{
+  PRIVATE = 0,
+  SHARED  = 1
+};
+
 
 inline constexpr Prot operator|(Prot lhs, Prot rhs) { return static_cast<Prot>(static_cast<std::underlying_type_t<Prot>>(lhs) | static_cast<std::underlying_type_t<Prot>>(rhs)); }
 inline constexpr Prot operator&(Prot lhs, Prot rhs) { return static_cast<Prot>(static_cast<std::underlying_type_t<Prot>>(lhs) & static_cast<std::underlying_type_t<Prot>>(rhs)); }

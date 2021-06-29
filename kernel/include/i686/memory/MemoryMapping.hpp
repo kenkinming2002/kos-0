@@ -32,10 +32,7 @@ namespace core::memory
   struct MemoryArea : rt::SharedPtrHook
   {
   public:
-    enum class Type { PRIVATE, SHARED };
-
-  public:
-    constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset, Type type)
+    constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset, MapType type)
       : addr(addr), length(length), prot(prot), file(rt::move(file)), offset(offset), type(type) {}
 
   public:
@@ -47,7 +44,7 @@ namespace core::memory
     rt::SharedPtr<vfs::File> file;
     size_t offset;
 
-    Type type;
+    MapType type;
   };
 
   class MemoryMapping : public rt::SharedPtrHook
@@ -66,13 +63,12 @@ namespace core::memory
     MemoryMapping(PageDirectory* pageDirectory);
     ~MemoryMapping();
 
-
   public:
     Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file = nullptr, size_t offset = 0);
 
   private:
     void map(MemoryArea& memoryArea);
-    void mapSingle(MemoryArea& memoryArea, uintptr_t addr, size_t offset);
+    void mapSingle(MemoryArea& memoryArea, uintptr_t addr);
 
   public:
     Result<void> unmap(uintptr_t addr, size_t length);
@@ -84,6 +80,9 @@ namespace core::memory
   public:
     Result<void> remap(uintptr_t addr, size_t length, size_t newLength);
     void remap(MemoryArea& memoryArea, size_t newLength);
+
+  public:
+    Result<void> handlePageFault(uintptr_t addr);
 
   private:
     rt::containers::List<rt::SharedPtr<MemoryArea>> m_memoryAreas;
