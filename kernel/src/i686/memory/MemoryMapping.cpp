@@ -117,7 +117,7 @@ namespace core::memory
     }
   }
 
-  Result<void> MemoryMapping::map(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file, size_t offset)
+  Result<void> MemoryMapping::map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset)
   {
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
@@ -125,7 +125,7 @@ namespace core::memory
     if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr+memoryArea->length>begin && memoryArea->addr < end; }))
       return ErrorCode::EXIST;
 
-    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, permission, rt::move(file), offset, MemoryArea::Type::PRIVATE);
+    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, prot, rt::move(file), offset, MemoryArea::Type::PRIVATE);
     if(!memoryArea)
       return ErrorCode::OUT_OF_MEMORY;
 
@@ -150,6 +150,9 @@ namespace core::memory
 
   void MemoryMapping::mapSingle(MemoryArea& memoryArea, uintptr_t addr, size_t offset)
   {
+    auto permission = (memoryArea.prot & Prot::WRITE) == Prot::WRITE ? Permission::READ_WRITE : Permission::READ_ONLY;
+    //auto permission = Permission::READ_WRITE;
+
     auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
     auto& pageDirectory = *m_pageDirectory;
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
@@ -176,7 +179,7 @@ namespace core::memory
       if(!result)
         return;
 
-      pageTableEntry = PageTableEntry(*result, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, memoryArea.permission);
+      pageTableEntry = PageTableEntry(*result, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, permission);
       asm volatile ( "invlpg [%[addr]]" : : [addr]"r"(addr) : "memory");
     }
     else

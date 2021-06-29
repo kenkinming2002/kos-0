@@ -8,29 +8,20 @@
 
 namespace core::memory
 {
-  Permission permissionFromBits(uword_t prot)
-  {
-    if(prot & PROT_WRITE)
-      return Permission::READ_WRITE; // Writable mapping must also be readable, even if not specified
-
-    return Permission::READ_ONLY;
-  }
-
   namespace
   {
-    Result<result_t> sys_mmap(uintptr_t addr, size_t length, uword_t prot, fd_t fd, size_t offset)
+    Result<result_t> sys_mmap(uintptr_t addr, size_t length, Prot prot, fd_t fd, size_t offset)
     {
       if(!syscalls::verifyRegionUser(addr, length))
         return syscalls::makeError(ErrorCode::FAULT);
 
       auto task = tasks::Task::current();
       auto memoryMapping = task->memoryMapping;
-      auto permission = permissionFromBits(prot);
 
       auto file = fd != FD_NONE ? task->fileDescriptors.getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
       UNWRAP(file);
 
-      auto result = memoryMapping->map(addr, length, permission, rt::move(*file), offset);
+      auto result = memoryMapping->map(addr, length, prot, rt::move(*file), offset);
       UNWRAP(result);
 
       return 0;

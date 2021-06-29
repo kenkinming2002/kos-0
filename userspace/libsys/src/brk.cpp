@@ -23,7 +23,7 @@ int brk(void* addr)
   // TODO: Possibly implement mremap
   if(programEnd == programBreak)
   {
-    if(sys_mmap(reinterpret_cast<uintptr_t>(programEnd), newProgramBreak - programEnd, PROT_READ | PROT_WRITE, FD_NONE, 0) != 0)
+    if(sys_mmap(reinterpret_cast<uintptr_t>(programEnd), newProgramBreak - programEnd, Prot::READ | Prot::WRITE, FD_NONE, 0) != 0)
       return -1;
   }
   else if(programEnd == newProgramBreak)

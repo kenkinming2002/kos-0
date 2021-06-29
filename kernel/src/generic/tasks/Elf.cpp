@@ -33,8 +33,14 @@ namespace core::tasks
         if(!(programHeader.p_flags & PF_R))
           return ErrorCode::INVALID; // We do not support a page that is not readable
 
-        auto pagesPermission = (programHeader.p_flags & PF_W) ? Permission::READ_WRITE : Permission::READ_ONLY;
-        task->memoryMapping->map(programHeader.p_vaddr, programHeader.p_memsz, pagesPermission, file, programHeader.p_offset);
+        auto permission = Prot::NONE;
+        if(programHeader.p_flags & PF_R)
+          permission |= Prot::READ;
+
+        if(programHeader.p_flags & PF_W)
+          permission |= Prot::WRITE;
+
+        task->memoryMapping->map(programHeader.p_vaddr, programHeader.p_memsz, permission, file, programHeader.p_offset);
       }
 
       return {};

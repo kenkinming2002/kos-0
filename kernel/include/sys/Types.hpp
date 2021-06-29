@@ -29,11 +29,18 @@ static constexpr ino_t  UNKNWON_INO = -1;
 enum class Type   : uword_t { REGULAR_FILE, DIRECTORY, SYMBOLIC_LINK, OTHER };
 enum class Anchor : uword_t { BEGIN, CURRENT , END };
 
-enum Prot
+enum class Prot : uword_t
 {
-  PROT_NONE  = 0,
-  PROT_READ  = 1u << 0,
-  PROT_WRITE = 1u << 1,
-  PROT_EXEC  = 1u << 2
+  NONE  = 0,
+  READ  = 1u << 0,
+  WRITE = 1u << 1,
+  EXEC  = 1u << 2
 };
+
+
+inline constexpr Prot operator|(Prot lhs, Prot rhs) { return static_cast<Prot>(static_cast<std::underlying_type_t<Prot>>(lhs) | static_cast<std::underlying_type_t<Prot>>(rhs)); }
+inline constexpr Prot operator&(Prot lhs, Prot rhs) { return static_cast<Prot>(static_cast<std::underlying_type_t<Prot>>(lhs) & static_cast<std::underlying_type_t<Prot>>(rhs)); }
+
+inline constexpr Prot& operator|=(Prot& lhs, Prot rhs) { lhs = lhs | rhs; return lhs; }
+inline constexpr Prot& operator&=(Prot& lhs, Prot rhs) { lhs = lhs & rhs; return lhs; }
 

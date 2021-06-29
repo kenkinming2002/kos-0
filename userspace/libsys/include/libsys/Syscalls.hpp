@@ -27,7 +27,7 @@ inline result_t sys_resize(fd_t fd, size_t size) { return syscall(SYS_RESIZE, fd
 
 inline result_t sys_close(fd_t fd) { return syscall(SYS_CLOSE, fd, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 
-inline result_t sys_mmap(uintptr_t addr, size_t length, uword_t prot, fd_t fd, size_t offset) { return syscall(SYS_MMAP, addr, length, prot, fd, offset, uword_t(0)); }
+inline result_t sys_mmap(uintptr_t addr, size_t length, Prot prot, fd_t fd, size_t offset) { return syscall(SYS_MMAP, addr, length, prot, fd, offset, uword_t(0)); }
 inline result_t sys_munmap(uintptr_t addr, size_t length) { return syscall(SYS_MUNMAP, addr, length, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 inline result_t sys_mremap(uintptr_t addr, size_t length, size_t newLength) { return syscall(SYS_MREMAP, addr, length, newLength, uword_t(0), uword_t(0), uword_t(0)); }
 

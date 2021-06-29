@@ -35,14 +35,14 @@ namespace core::memory
     enum class Type { PRIVATE, SHARED };
 
   public:
-    constexpr MemoryArea(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file, size_t offset, Type type)
-      : addr(addr), length(length), permission(permission), file(rt::move(file)), offset(offset), type(type) {}
+    constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset, Type type)
+      : addr(addr), length(length), prot(prot), file(rt::move(file)), offset(offset), type(type) {}
 
   public:
     uintptr_t addr;
     size_t length;
 
-    Permission permission;
+    Prot prot;
 
     rt::SharedPtr<vfs::File> file;
     size_t offset;
@@ -68,7 +68,7 @@ namespace core::memory
 
 
   public:
-    Result<void> map(uintptr_t addr, size_t length, Permission permission, rt::SharedPtr<vfs::File> file = nullptr, size_t offset = 0);
+    Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file = nullptr, size_t offset = 0);
 
   private:
     void map(MemoryArea& memoryArea);
