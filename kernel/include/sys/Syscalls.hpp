@@ -25,9 +25,9 @@ enum Syscalls : uword_t
   SYS_MREMAP   = 15,
 
   // Process management
-  SYS_YIELD    = 16,
-  SYS_KILL     = 17,
-  SYS_EXIT     = 18,
+  SYS_GETPID   = 16,
+  SYS_YIELD    = 17,
+  SYS_KILL     = 18,
 
   // Misc
   SYS_TEST     = 19,

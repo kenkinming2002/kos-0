@@ -88,7 +88,7 @@ void test1()
 void test2()
 {
   rt::log("Exiting...\n");
-  sys_exit(127);
+  _exit(127);
   rt::log("After exiting...\n");
 
   auto rootfd = sys_root();

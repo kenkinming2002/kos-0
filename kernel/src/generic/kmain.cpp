@@ -1,4 +1,5 @@
 #include "generic/Error.hpp"
+#include "generic/tasks/Syscalls.hpp"
 #include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Inode.hpp>
@@ -45,6 +46,7 @@ static void kmainInitialize(BootInformation* bootInformation)
   core::memory::initialize();
   core::syscalls::initialize();
   core::tasks::initializeScheduler();
+  core::tasks::initializeSyscalls();
   core::vfs::initialize();
 }
 

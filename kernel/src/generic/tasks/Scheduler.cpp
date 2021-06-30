@@ -1,7 +1,5 @@
-#include "librt/SharedPtr.hpp"
 #include <generic/tasks/Scheduler.hpp>
 
-#include <i686/syscalls/Syscalls.hpp>
 #include <i686/interrupts/Interrupts.hpp>
 #include <i686/tasks/Switch.hpp>
 
@@ -17,28 +15,6 @@ namespace core::tasks
 {
   namespace
   {
-    static Result<result_t> sys_yield()
-    {
-      schedule();
-      return 0;
-    }
-    WRAP_SYSCALL0(_sys_yield, sys_yield)
-
-    static Result<result_t> sys_exit(status_t status)
-    {
-      pid_t pid = Task::current()->pid;
-      kill(pid, status);
-      schedule();
-      __builtin_unreachable();
-    }
-    WRAP_SYSCALL1(_sys_exit, sys_exit)
-
-    static Result<result_t> sys_kill(pid_t pid, status_t status)
-    {
-      return kill(pid, status);
-    }
-    WRAP_SYSCALL2(_sys_kill, sys_kill)
-
     /* Note: We have to disable interrupt, however, locking would not be
      *       necessary, since we would or *WILL* have a per-cpu task queue.  */
     void timerHandler(uint8_t, uint32_t, uintptr_t)
@@ -77,10 +53,6 @@ namespace core::tasks
   {
     activeTasksList.construct();
     terminatedTasksList.construct();
-
-    syscalls::installHandler(SYS_YIELD, &_sys_yield);
-    syscalls::installHandler(SYS_KILL,  &_sys_kill);
-    syscalls::installHandler(SYS_EXIT,  &_sys_exit);
 
     interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
     interrupts::clearMask(0);
@@ -137,6 +109,7 @@ namespace core::tasks
     } // We need to ensure all local object is destructed before we call schedule
 
     schedule();
+    ASSERT(pid != Task::current()->pid); // If we kill ourself, we should not be able to reach here
     return 0;
   }
 }
