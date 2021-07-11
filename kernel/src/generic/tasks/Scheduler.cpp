@@ -11,6 +11,8 @@
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
+#include <librt/containers/SharedList.hpp>
+
 namespace core::tasks
 {
   namespace
@@ -26,8 +28,8 @@ namespace core::tasks
 
   namespace
   {
-    constinit rt::Global<rt::containers::List<rt::SharedPtr<Task>>> activeTasksList;
-    constinit rt::Global<rt::containers::List<rt::SharedPtr<Task>>> terminatedTasksList;
+    constinit rt::Global<rt::containers::SharedList<Task>> activeTasksList;
+    constinit rt::Global<rt::containers::SharedList<Task>> terminatedTasksList;
   }
 
   namespace
@@ -38,8 +40,8 @@ namespace core::tasks
       {
         if(!terminatedTasksList().empty())
         {
-          auto task = *terminatedTasksList().begin();
-          terminatedTasksList().erase(terminatedTasksList().begin());
+          auto task = terminatedTasksList().begin().get();
+          terminatedTasksList().remove(terminatedTasksList().begin());
           rt::logf("Reaping process pid = %ld, status = %ld\n", task->pid, task->status);
         }
 
@@ -68,7 +70,7 @@ namespace core::tasks
       return nullptr;
 
     auto it = activeTasksList().insert(activeTasksList().end(), rt::move(task));
-    return *it;
+    return it.get();
   }
 
   namespace
@@ -78,9 +80,8 @@ namespace core::tasks
       if(activeTasksList().empty())
         return nullptr;
 
-      auto nextTask = *activeTasksList().begin();
-      activeTasksList().erase(activeTasksList().begin());
-      activeTasksList().insert(activeTasksList().end(), nextTask);
+      auto nextTask = activeTasksList().begin().get();
+      activeTasksList().splice(activeTasksList().end(), activeTasksList(), activeTasksList().begin(), rt::next(activeTasksList().begin()));
       return nextTask;
     }
   }
@@ -98,14 +99,12 @@ namespace core::tasks
   Result<result_t> kill(pid_t pid, status_t status)
   {
     {
-      auto it = rt::find_if(activeTasksList().begin(), activeTasksList().end(), [pid](const rt::SharedPtr<Task>& task) { return task->pid == pid; });
+      auto it = rt::find_if(activeTasksList().begin(), activeTasksList().end(), [pid](const Task& task) { return task.pid == pid; });
       if(it == activeTasksList().end())
         return ErrorCode::INVALID;
 
-      auto victim = *it;
-      activeTasksList().erase(it);
-      victim->kill(status);
-      terminatedTasksList().insert(terminatedTasksList().end(), rt::move(victim));
+      terminatedTasksList().splice(terminatedTasksList().end(), activeTasksList(), it, next(it));
+      it->kill(status);
     } // We need to ensure all local object is destructed before we call schedule
 
     schedule();

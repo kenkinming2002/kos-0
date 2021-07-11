@@ -4,10 +4,10 @@
 
 #include <generic/memory/Memory.hpp>
 #include <generic/vfs/File.hpp>
-#include <generic/memory/Pages.hpp>
+#include <generic/memory/Page.hpp>
 #include <common/i686/memory/Paging.hpp>
 
-#include <librt/containers/List.hpp>
+#include <librt/containers/UniqueList.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/NonCopyable.hpp>
 
@@ -29,7 +29,7 @@ namespace core::memory
    */
 
   using namespace common::memory;
-  struct MemoryArea : rt::SharedPtrHook
+  struct MemoryArea : rt::containers::ListHook
   {
   public:
     constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset, MapType type)
@@ -83,9 +83,10 @@ namespace core::memory
 
   public:
     Result<void> handlePageFault(uintptr_t addr);
+    Result<void> handlePageFault(MemoryArea& memoryArea, size_t newLength);
 
   private:
-    rt::containers::List<rt::SharedPtr<MemoryArea>> m_memoryAreas;
+    rt::containers::UniqueList<MemoryArea> m_memoryAreas;
 
   private:
     PageDirectory* m_pageDirectory;

@@ -5,7 +5,8 @@ librt_src = [
   'src/New.cpp',
   'src/Panic.cpp',
   'src/Trace.cpp',
-  'src/cxxabi.cpp'
+  'src/cxxabi.cpp',
+  'src/containers/ListBase.cpp'
 ]
 
 librt_inc = include_directories('include')

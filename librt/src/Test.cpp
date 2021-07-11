@@ -9,7 +9,7 @@
 #include <librt/Result.hpp>
 
 #include <librt/containers/Map.hpp>
-#include <librt/containers/List.hpp>
+#include <librt/containers/UniqueList.hpp>
 
 #include <librt/Assert.hpp>
 
@@ -98,23 +98,27 @@ static void testMap()
   ASSERT(map.find(4) == map.end());
 }
 
+struct ListElem : rt::containers::ListHook { ListElem(int value) : value(value) {} int value; };
 static void testList()
 {
-  rt::containers::List<int> list;
+  rt::containers::UniqueList<ListElem> list;
   ASSERT(list.empty());
 
-  list.insert(list.begin(), 1);
-  list.insert(list.begin(), 2);
-  list.insert(list.begin(), 3);
-  list.insert(list.begin(), 4);
-  ASSERT(*list.begin() == 4);
-  ASSERT(*(++list.begin()) == 3);
-  ASSERT(*(++(++list.begin())) == 2);
+  list.insert(list.begin(), rt::makeUnique<ListElem>(1));
+  list.insert(list.begin(), rt::makeUnique<ListElem>(2));
+  list.insert(list.begin(), rt::makeUnique<ListElem>(3));
+  list.insert(list.begin(), rt::makeUnique<ListElem>(4));
+  for(auto& elem : list)
+    rt::logf("elem:%d\n", elem.value);
 
-  list.erase(++list.begin());
-  ASSERT(*list.begin() == 4);
-  ASSERT(*(++list.begin()) == 2);
-  ASSERT(*(++(++list.begin())) == 1);
+  ASSERT(rt::next(list.begin(), 0)->value == 4);
+  ASSERT(rt::next(list.begin(), 1)->value == 3);
+  ASSERT(rt::next(list.begin(), 2)->value == 2);
+
+  list.remove(++list.begin());
+  ASSERT(rt::next(list.begin(), 0)->value == 4);
+  ASSERT(rt::next(list.begin(), 1)->value == 2);
+  ASSERT(rt::next(list.begin(), 2)->value == 1);
 }
 
 static void testSharedPtr()
@@ -138,7 +142,7 @@ static void testSharedPtr()
 
   std::vector<std::thread> threads;
   for(size_t i=0; i<std::thread::hardware_concurrency(); ++i)
-    threads.emplace_back([=](){ for(size_t i=0; i<10; ++i) { auto dup = ptr;} });
+    threads.emplace_back([=](){ for(size_t i=0; i<10; ++i) { auto dup = ptr; dup = ptr;} });
 
   for(auto& thread : threads)
     thread.join();

@@ -9,9 +9,11 @@
 #include <librt/StringRef.hpp>
 #include <librt/UniquePtr.hpp>
 
+#include <librt/containers/List.hpp>
+
 namespace core::vfs
 {
-  class Mountable
+  class Mountable : public rt::containers::ListHook
   {
   public:
     virtual Result<rt::SharedPtr<Inode>> mount(rt::StringRef arg) = 0;

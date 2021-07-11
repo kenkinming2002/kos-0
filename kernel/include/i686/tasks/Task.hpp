@@ -16,7 +16,7 @@
 
 namespace core::tasks
 {
-  class Task : public rt::SharedPtrHook
+  class Task : public rt::SharedPtrHook, public rt::containers::ListHook
   {
   private:
     static constexpr size_t STACK_PAGES_COUNT = 1;

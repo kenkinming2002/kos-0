@@ -35,6 +35,8 @@ namespace core::memory
     physaddr_t bootPageDirectoryPhyaddr;
     asm volatile ("mov %[bootPageDirectoryPhyaddr], cr3" : [bootPageDirectoryPhyaddr]"=r"(bootPageDirectoryPhyaddr) : : "memory");
     PageDirectory* bootPageDirectory = reinterpret_cast<PageDirectory*>(physToVirt(bootPageDirectoryPhyaddr));
+
+    ASSERT(currentMemoryMapping.get() == nullptr);
     currentMemoryMapping = rt::makeShared<MemoryMapping>(bootPageDirectory);
     currentMemoryMapping->unmap(0, 0);
   }
@@ -69,7 +71,7 @@ namespace core::memory
   MemoryMapping::~MemoryMapping()
   {
     for(auto& memoryArea : m_memoryAreas)
-      unmap(*memoryArea);
+      unmap(memoryArea);
 
     freePages(m_pageDirectory, 1);
   }
@@ -123,15 +125,11 @@ namespace core::memory
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
-    if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr+memoryArea->length>begin && memoryArea->addr < end; }))
+    if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr+memoryArea.length>begin && memoryArea.addr < end; }))
       return ErrorCode::EXIST;
 
-    auto memoryArea = rt::makeShared<MemoryArea>(begin, end-begin, prot, rt::move(file), offset, MapType::PRIVATE);
-    if(!memoryArea)
-      return ErrorCode::OUT_OF_MEMORY;
-
-    m_memoryAreas.insert(m_memoryAreas.end(), memoryArea);
-
+    auto memoryArea = rt::makeUnique<MemoryArea>(begin, end-begin, prot, rt::move(file), offset, MapType::PRIVATE);
+    m_memoryAreas.insert(m_memoryAreas.end(), rt::move(memoryArea));
     return {};
   }
 
@@ -193,15 +191,15 @@ namespace core::memory
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
-    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr == begin && memoryArea->length == end-begin; });
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr == begin && memoryArea.length == end-begin; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
     /* Question: Should we support partial unmap */
 
-    auto memoryArea = *it;
-    m_memoryAreas.erase(it);
+    auto& memoryArea = *it;
+    unmap(memoryArea);
 
-    unmap(*memoryArea);
+    m_memoryAreas.remove(it);
     return {};
   }
 
@@ -248,18 +246,17 @@ namespace core::memory
     if(newEnd == begin)
       return ErrorCode::INVALID;
 
-    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr == begin && memoryArea->length == end-begin; });
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr == begin && memoryArea.length == end-begin; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
 
-    auto memoryArea = *it;
-    remap(*memoryArea, newEnd - begin);
+    auto& memoryArea = *it;
+    remap(memoryArea, newEnd - begin);
     return {};
   }
 
   void MemoryMapping::remap(MemoryArea& memoryArea, size_t newLength)
   {
-
     size_t oldLength = memoryArea.length;
     memoryArea.length = newLength;
     if(oldLength < newLength)
@@ -278,12 +275,17 @@ namespace core::memory
 
   Result<void> MemoryMapping::handlePageFault(uintptr_t addr)
   {
-    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const rt::SharedPtr<MemoryArea>& memoryArea) { return memoryArea->addr<=addr && addr<=memoryArea->addr+memoryArea->length; });
+    auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr<=addr && addr<=memoryArea.addr+memoryArea.length; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
 
     auto& memoryArea = *it;
-    mapSingle(*memoryArea, addr / PAGE_SIZE * PAGE_SIZE);
+    return handlePageFault(memoryArea, addr);
+  }
+
+  Result<void> MemoryMapping::handlePageFault(MemoryArea& memoryArea, size_t addr)
+  {
+    mapSingle(memoryArea, addr / PAGE_SIZE * PAGE_SIZE);
     return {};
   }
 }

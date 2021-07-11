@@ -61,4 +61,13 @@ namespace rt
   };
 
   template class ReverseIterator<int*>;
+
+  template<typename Iterator,typename DifferenceType>
+  Iterator next(Iterator it, DifferenceType difference)
+  {
+    for(DifferenceType i = 0; i != difference; ++i)
+      ++it;
+
+    return it;
+  }
 }

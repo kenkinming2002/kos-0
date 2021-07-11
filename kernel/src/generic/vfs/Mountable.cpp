@@ -5,14 +5,13 @@
 
 #include <librt/Algorithm.hpp>
 #include <librt/Global.hpp>
-#include <librt/containers/List.hpp>
 
 namespace core::vfs
 {
   namespace
   {
     // TODO: Maybe someform of reference wrappers or intrusive list?
-    constinit rt::Global<rt::containers::List<Mountable*>> mountables;
+    constinit rt::Global<rt::containers::List<Mountable>> mountables;
   }
 
   void initializeMountables()
@@ -24,21 +23,24 @@ namespace core::vfs
 
   void registerMountable(Mountable& mountable)
   {
-    mountables().insert(mountables().end(), &mountable);
+    mountables().insert(mountables().end(), mountable);
   }
 
   void deregisterMountable(Mountable& mountable)
   {
-    auto it = rt::find(mountables().begin(), mountables().end(), &mountable);
+    auto it = rt::find_if(mountables().begin(), mountables().end(), [&mountable](Mountable& _mountable){
+        return mountable.name() == _mountable.name();
+    });
+
     ASSERT(it != mountables().end());
-    mountables().erase(it);
+    mountables().remove_and_dispose(it, [](auto ptr) {});
   }
 
   Mountable* lookupMountable(rt::StringRef name)
   {
-    auto it = rt::find_if(mountables().begin(), mountables().end(), [&name](Mountable* mountable){
-        return mountable->name() == name;
+    auto it = rt::find_if(mountables().begin(), mountables().end(), [&name](Mountable& mountable){
+        return mountable.name() == name;
     });
-    return it != mountables().end() ? *it : nullptr;
+    return it != mountables().end() ? &(*it) : nullptr;
   }
 }

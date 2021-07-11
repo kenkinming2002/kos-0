@@ -4,6 +4,7 @@
 #include <librt/DefaultConstruct.hpp>
 #include <librt/NonCopyable.hpp>
 #include <librt/Assert.hpp>
+#include <librt/Log.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -11,7 +12,7 @@
 
 namespace rt
 {
-  class SharedPtrHook : public rt::NonCopyable
+  struct SharedPtrHook : public rt::NonCopyable
   {
     template<typename> friend class SharedPtr;
 
@@ -19,7 +20,7 @@ namespace rt
      * managed by SharedPtr is at least one bytes, there is no way for count
      * to exceed the maximum value representable by size_t before exhausting
      * all the memory.  */
-    std::atomic<size_t> count = 1;
+    std::atomic<size_t> count = 0;
   };
 
   template<typename T>
@@ -40,60 +41,61 @@ namespace rt
     friend class SharedPtr;
 
   public:
-    explicit constexpr SharedPtr(T* ptr) { reset(ptr); }
-
-    constexpr SharedPtr()               : SharedPtr(nullptr) {}
-    constexpr SharedPtr(std::nullptr_t) : SharedPtr(static_cast<T*>(nullptr)) {}
-    constexpr ~SharedPtr()                { reset(); }
+    constexpr void adopt(pointer ptr) { ASSERT(m_ptr == nullptr); m_ptr = ptr; }
+    constexpr reference release()     { ASSERT(m_ptr != nullptr); return *exchange(m_ptr, nullptr); }
 
   public:
-    constexpr SharedPtr& operator=(SharedPtr&& other) { reset(other.release()); return *this; }
-    constexpr SharedPtr(SharedPtr&& other)            { reset(other.release()); }
-
-    template<typename U> constexpr SharedPtr& operator=(SharedPtr<U>&& other) { reset(other.release()); return *this; }
-    template<typename U> constexpr SharedPtr(SharedPtr<U>&& other)            { reset(other.release()); }
-
-    constexpr SharedPtr& operator=(const SharedPtr& other) { reset(other.acquire()); return *this; }
-    constexpr SharedPtr(const SharedPtr& other)            { reset(other.acquire()); }
-
-    template<typename U> constexpr SharedPtr& operator=(const SharedPtr<U>& other) { reset(other.acquire()); return *this; }
-    template<typename U> constexpr SharedPtr(const SharedPtr<U>& other)            { reset(other.acquire()); }
-
-  public:
-    constexpr T* acquire() const
+    constexpr void addRef()
     {
       if(m_ptr)
         ++static_cast<SharedPtrHook*>(m_ptr)->count;
-
-      return m_ptr;
     }
 
-    constexpr T* release()
+    constexpr void dropRef()
     {
-      return exchange(m_ptr, nullptr);
+      if(m_ptr)
+      {
+        --static_cast<SharedPtrHook*>(m_ptr)->count;
+        if(static_cast<SharedPtrHook*>(m_ptr)->count == 0)
+          delete m_ptr;
+      }
     }
 
-    constexpr void reset(T* ptr = nullptr)
-    {
-      /* There is no overflow here, because we are actually holding a reference
-       * count */
-      if(m_ptr && --static_cast<SharedPtrHook*>(m_ptr)->count == 0)
-        delete m_ptr;
+  public:
+    explicit constexpr SharedPtr(pointer ptr) { m_ptr = ptr; addRef(); }
+    constexpr ~SharedPtr()                    { dropRef(); m_ptr = nullptr;}
 
-      m_ptr = ptr;
-      ASSERT(!m_ptr || static_cast<SharedPtrHook*>(m_ptr)->count != 0);
-    }
+  public:
+    constexpr SharedPtr()               : SharedPtr(nullptr) {}
+    constexpr SharedPtr(std::nullptr_t) : SharedPtr(static_cast<T*>(nullptr)) {}
+
+  public:
+    constexpr SharedPtr& operator=(SharedPtr&& other)      { dropRef(); m_ptr = exchange(other.m_ptr, nullptr); return *this; }
+    constexpr SharedPtr& operator=(const SharedPtr& other) { dropRef(); m_ptr = other.m_ptr; this->addRef();    return *this; }
+
+    template<typename U> constexpr SharedPtr& operator=(SharedPtr<U>&& other)      { dropRef(); m_ptr = static_cast<pointer>(exchange(other.m_ptr, nullptr)); return *this; }
+    template<typename U> constexpr SharedPtr& operator=(const SharedPtr<U>& other) { dropRef(); m_ptr = static_cast<pointer>(other.m_ptr); this->addRef();    return *this; }
+
+  public:
+    constexpr SharedPtr(SharedPtr&& other)      : SharedPtr() { *this = move(other); }
+    constexpr SharedPtr(const SharedPtr& other) : SharedPtr() { *this = other; }
+
+    template<typename U> constexpr SharedPtr(SharedPtr<U>&& other)      : SharedPtr() { *this = move(other); }
+    template<typename U> constexpr SharedPtr(const SharedPtr<U>& other) : SharedPtr() { *this = other; }
+
+  public:
+    constexpr void reset() { dropRef(); m_ptr = nullptr; } // Synonym of dropRef
 
   public:
     constexpr pointer get()             { return m_ptr; }
     constexpr const_pointer get() const { return m_ptr; }
 
   public:
-    constexpr pointer operator->()             { ASSERT(*this); return get(); }
-    constexpr const_pointer operator->() const { ASSERT(*this); return get(); }
+    constexpr pointer operator->()             { ASSERT(*this && count() != 0); return get(); }
+    constexpr const_pointer operator->() const { ASSERT(*this && count() != 0); return get(); }
 
-    constexpr reference operator*()             { ASSERT(*this); return *get(); }
-    constexpr const_reference operator*() const { ASSERT(*this); return *get(); }
+    constexpr reference operator*()             { ASSERT(*this && count() != 0); return *get(); }
+    constexpr const_reference operator*() const { ASSERT(*this && count() != 0); return *get(); }
 
     constexpr operator bool() const { return get(); }
 

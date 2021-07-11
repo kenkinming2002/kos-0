@@ -2,9 +2,6 @@
 
 #include <i686/tasks/Task.hpp>
 
-#include <librt/UniquePtr.hpp>
-#include <librt/containers/List.hpp>
-
 namespace core::tasks
 {
   void initializeScheduler();
