@@ -4,6 +4,7 @@
 #include <generic/vfs/Tar.hpp>
 
 #include <generic/memory/Memory.hpp>
+#include <i686/memory/Memory.hpp>
 
 #include <generic/BootInformation.hpp>
 
@@ -71,7 +72,7 @@ namespace core::vfs
     if(!initrdModule)
       rt::panic("Failed to find initrd\n");
 
-    auto data   = reinterpret_cast<char*>(core::memory::physToVirt(initrdModule->addr));
+    auto data   = reinterpret_cast<char*>(memory::physToVirt(initrdModule->addr));
     auto length = initrdModule->len;
     loadInitrd(data, length);
     memory::freePages(data, (length + memory::PAGE_SIZE - 1) / memory::PAGE_SIZE);

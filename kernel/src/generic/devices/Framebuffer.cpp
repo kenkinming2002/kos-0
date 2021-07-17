@@ -1,11 +1,13 @@
-#include "generic/log/Log.hpp"
-#include "librt/Optional.hpp"
 #include <generic/devices/Framebuffer.hpp>
 
+#include <generic/log/Log.hpp>
 #include <generic/BootInformation.hpp>
+
+#include <generic/memory/Memory.hpp>
 
 #include <x86/assembly/io.hpp>
 
+#include <librt/Optional.hpp>
 #include <librt/Global.hpp>
 #include <librt/Algorithm.hpp>
 

@@ -2,8 +2,7 @@
 
 #include <generic/vfs/File.hpp>
 #include <generic/memory/Page.hpp>
-
-#include <common/i686/memory/Paging.hpp>
+#include <i686/memory/Memory.hpp>
 
 #include <sys/Types.hpp>
 

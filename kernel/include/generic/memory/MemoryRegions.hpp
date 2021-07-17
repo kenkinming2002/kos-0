@@ -2,6 +2,7 @@
 
 #include <generic/BootInformation.hpp>
 #include <generic/memory/Memory.hpp>
+#include <i686/memory/Memory.hpp>
 
 #include <librt/containers/StaticVector.hpp>
 #include <librt/Pair.hpp>
