@@ -9,6 +9,7 @@ namespace rt
   struct Result
   {
   public:
+    constexpr Result() = delete;
     constexpr Result(T value)     : m_data(type_constant<T>, rt::move(value)) {}
     constexpr Result(Error error) : m_data(type_constant<Error>, rt::move(error)) {}
 

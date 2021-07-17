@@ -22,6 +22,8 @@ using fd_t     = word_t;
 using status_t = word_t;
 using pid_t    = word_t;
 
+using irq_t    = uint8_t;
+
 static constexpr fd_t FD_NONE = -1;
 static constexpr dev_t UNKNWON_DEV = -1;
 static constexpr ino_t  UNKNWON_INO = -1;

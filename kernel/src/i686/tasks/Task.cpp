@@ -28,26 +28,22 @@ namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
-  constinit rt::SharedPtr<Task> currentTask; // FIXME: Implement for multiprocessor
-
-  rt::SharedPtr<Task> Task::current()
-  {
-    return currentTask;
-  }
+  // FIXME: Implement for multiprocessor
+  constinit rt::SharedPtr<Task> Task::current;
 
   void Task::makeCurrent(rt::SharedPtr<Task> task)
   {
-    if(currentTask && currentTask->state == State::RUNNING)
-      currentTask->state = State::RUNNABLE;
+    if(current && current->state == State::RUNNING)
+      current->state = State::RUNNABLE;
 
-    currentTask = task;
+    current = task;
     if(task)
     {
-      ASSERT(currentTask->state == State::RUNNABLE);
-      currentTask->state = State::RUNNING;
+      ASSERT(current->state == State::RUNNABLE);
+      current->state = State::RUNNING;
 
-      interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
-      syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->m_kernelStack.ptr), STACK_SIZE);
+      interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
+      syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
       if(task->memoryMapping)
         memory::MemoryMapping::makeCurrent(task->memoryMapping); // Kernel task do not have memory mapping and would use the old one
     }
@@ -55,12 +51,12 @@ namespace core::tasks
 
   void Task::switchTo(rt::SharedPtr<Task> task)
   {
-    if(current().get() != nullptr)
+    if(current.get() != nullptr)
     {
-      auto previousTask = current();
+      auto previousTask = current;
 
       makeCurrent(task);
-      core_tasks_switch_esp(&previousTask->m_kernelStack.esp, &task->m_kernelStack.esp);
+      core_tasks_switch_esp(&previousTask->kernelStack.esp, &task->kernelStack.esp);
     }
     else
     {
@@ -74,7 +70,7 @@ namespace core::tasks
        */
       uintptr_t dummyEsp;
       makeCurrent(task);
-      core_tasks_switch_esp(&dummyEsp, &task->m_kernelStack.esp);
+      core_tasks_switch_esp(&dummyEsp, &task->kernelStack.esp);
       __builtin_unreachable();
     }
   }
@@ -98,12 +94,30 @@ namespace core::tasks
     return rt::makeShared<Task>(nextPid++, stack);
   }
 
+  rt::SharedPtr<Task> Task::clone()
+  {
+    auto task = allocate();
+    if(!task)
+      return nullptr;
+
+    task->fileDescriptors = this->fileDescriptors;
+    task->asUserTask(this->registers);
+    if(this->memoryMapping)
+    {
+      task->memoryMapping = this->memoryMapping->clone();
+      if(!task->memoryMapping)
+        return nullptr; // Clone failed
+    }
+
+    return task;
+  }
+
   Task::Task(pid_t pid, Stack kernelStack)
-    : pid(pid), m_kernelStack(kernelStack) {}
+    : pid(pid), kernelStack(kernelStack) {}
 
   Task::~Task()
   {
-    memory::freePages(m_kernelStack.ptr, STACK_PAGES_COUNT);
+    memory::freePages(kernelStack.ptr, STACK_PAGES_COUNT);
   }
 
   void Task::kill(status_t status)
@@ -112,29 +126,46 @@ namespace core::tasks
     this->status = status;
   }
 
+  namespace
+  {
+    template<typename T>
+    void push(Stack& stack, const T& value) requires(std::is_trivially_copyable_v<T>)
+    {
+      stack.esp -= sizeof value;
+      *reinterpret_cast<T*>(stack.esp) = value;
+    }
+
+    void newKernelTask(void(*kernelTask)())
+    {
+      rt::logf("Launching new kernel tasks\n");
+      kernelTask();
+    }
+
+    void newUserTask(Registers& registers)
+    {
+      rt::logf("Launching new user tasks with eip=0x%lx, esp=0x%lx\n", registers.eip, registers.esp);
+      core_tasks_entry(&registers);
+    }
+  }
+
   Result<void> Task::asKernelTask(void(*kernelTask)())
   {
-    m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = POISON; // This can really be any value, we are just simulating eip pushed when executing a call instruction
+    // Ideally, we would inject a call to kill current task at exit
 
-    m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(kernelTask);
+    push(kernelStack, kernelTask);
+    push(kernelStack, POISON); // This can really be any value, we are just simulating eip pushed when executing a call instruction
+    push(kernelStack, &newKernelTask);
 
     return {};
   }
 
-  Result<void> Task::asUserspaceTask(uintptr_t entry)
+  Result<void> Task::asUserTask(Registers registers)
   {
-    void(*startUserspaceTask)(uintptr_t) = [](uintptr_t entry){ core_tasks_entry(reinterpret_cast<uintptr_t>(entry)); };
+    this->registers = registers;
 
-    m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = entry;
-
-    m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = POISON; // This can really be any value, we are just simulating eip pushed when executing a call instruction
-
-    m_kernelStack.esp -= sizeof(uintptr_t);
-    *reinterpret_cast<uintptr_t*>(m_kernelStack.esp) = reinterpret_cast<uintptr_t>(startUserspaceTask);
+    push(kernelStack, &this->registers);
+    push(kernelStack, POISON); // This can really be any value, we are just simulating eip pushed when executing a call instruction
+    push(kernelStack, &newUserTask);
 
     ASSERT(!memoryMapping);
     memoryMapping = memory::MemoryMapping::allocate();

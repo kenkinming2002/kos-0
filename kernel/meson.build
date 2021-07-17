@@ -19,6 +19,7 @@ core_src = files(
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/Memory.cpp',
+  'src/generic/memory/MemoryArea.cpp',
   'src/generic/memory/Syscalls.cpp',
   'src/generic/memory/liballocImpl.cpp',
   'src/i686/memory/MemoryMapping.cpp',

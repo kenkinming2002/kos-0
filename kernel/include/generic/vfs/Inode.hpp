@@ -14,9 +14,6 @@
 #include <librt/Result.hpp>
 #include <librt/String.hpp>
 
-#include <librt/containers/Map.hpp>
-#include <librt/containers/List.hpp>
-
 #include <type_traits>
 
 namespace core::vfs

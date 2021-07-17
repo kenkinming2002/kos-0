@@ -34,6 +34,7 @@ inline result_t sys_mremap(uintptr_t addr, size_t length, size_t newLength) { re
 inline pid_t sys_getpid() { return syscall(SYS_GETPID, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 inline result_t sys_yield() { return syscall(SYS_YIELD, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 inline result_t sys_kill(pid_t pid, status_t status) { return syscall(SYS_KILL, pid, status, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
+inline pid_t sys_fork() { return syscall(SYS_FORK, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 
 inline result_t sys_test() { return syscall(SYS_TEST, uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }
 inline result_t sys_log(const char* msg, size_t length) { return syscall(SYS_LOG, msg, length, uword_t(0), uword_t(0), uword_t(0), uword_t(0)); }

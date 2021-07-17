@@ -28,9 +28,10 @@ enum Syscalls : uword_t
   SYS_GETPID   = 16,
   SYS_YIELD    = 17,
   SYS_KILL     = 18,
+  SYS_FORK     = 19,
 
   // Misc
-  SYS_TEST     = 19,
-  SYS_LOG      = 20
+  SYS_TEST     = 20,
+  SYS_LOG      = 21
 };
 

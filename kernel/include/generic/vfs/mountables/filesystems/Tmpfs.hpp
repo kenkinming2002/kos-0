@@ -17,7 +17,7 @@ namespace core::vfs
   class Tmpfs final : public Mountable
   {
   public:
-    rt::Result<rt::SharedPtr<Inode>, ErrorCode> mount(rt::StringRef arg) override;
+    Result<rt::SharedPtr<Inode>> mount(rt::StringRef arg) override;
     rt::StringRef name() override;
   };
 

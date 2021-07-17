@@ -93,10 +93,9 @@ namespace rt
 
     Variant& operator=(Variant&& other)
     {
-      reset();
       other.visit([this](auto& t){
         using T = std::remove_cvref_t<decltype(t)>;
-        new(&m_storage) T(move(t));
+        this->emplace(type_constant<T>, move(t));
       });
       other.reset();
       return *this;
@@ -104,10 +103,9 @@ namespace rt
 
     Variant& operator=(const Variant& other)
     {
-      reset();
       other.visit([this](const auto& t){
         using T = std::remove_cvref_t<decltype(t)>;
-        new(&m_storage) T(t);
+        this->emplace(type_constant<T>, t);
       });
       return *this;
     }

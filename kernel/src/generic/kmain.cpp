@@ -63,14 +63,12 @@ static void kmainInitialize(BootInformation* bootInformation)
     if(!init)
       rt::panic("init not found\n");
 
-    for(size_t i=0; i<2; ++i)
-    {
-      auto task = core::tasks::addTask();
-      if(!task)
-        rt::panic("Failed to create task\n");
+    auto task = core::tasks::Task::allocate();
+    if(!task)
+      rt::panic("Failed to create task\n");
 
-      core::tasks::loadElf(task, *init);
-    }
+    core::tasks::loadElf(task, *init);
+    core::tasks::addTask(task);
   } // We need to ensure all local object is destructed before we call schedule
 
   core::tasks::schedule();
@@ -102,7 +100,7 @@ extern "C" void kmain(BootInformation* bootInformation)
 
   core::syscalls::installHandler(SYS_TEST, &sys_test);
   core::syscalls::installHandler(SYS_LOG,  &sys_log);
-  core::interrupts::installHandler(0x80, [](uint8_t, uint32_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
+  core::interrupts::installHandler(0x80, [](irq_t, uword_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
 
   kmainLoadAndRunUserspaceTask();
 }

@@ -83,10 +83,14 @@ void test1()
     rt::log(readBuf, 5);
     rt::log("\n");
   }
+  lsdir(rootfd);
 }
 
 void test2()
 {
+  rt::log("Triggering page fault...\n");
+  const_cast<char*>("str")[0] = 'a';
+
   rt::log("Exiting...\n");
   _exit(127);
   rt::log("After exiting...\n");
@@ -137,34 +141,19 @@ void testCommon()
   }
 }
 
-void test()
+extern "C" void main()
 {
   testCommon();
 
-  auto rootfd = sys_root();
-  ASSERT_ALWAYS(rootfd >= 0);
-  // Only one instance would succeed in creation
-  if(sys_createAt(rootfd, "node",  Type::REGULAR_FILE) >= 0)
+  switch(sys_fork())
   {
-    rt::log("First process\n");
+  case 0:
+    rt::log("Child process\n");
     test1();
-  }
-  else
-  {
-    rt::log("Second process\n");
+    break;
+  default:
+    rt::log("Parent process\n");
     test2();
+    break;
   }
-}
-
-extern "C" void main()
-{
-  auto rootfd = sys_root();
-  if(rootfd != 0)
-  {
-    rt::log("root()\n");
-    return;
-  }
-
-  test();
-  lsdir(rootfd);
 }

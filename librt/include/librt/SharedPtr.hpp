@@ -91,11 +91,11 @@ namespace rt
     constexpr const_pointer get() const { return m_ptr; }
 
   public:
-    constexpr pointer operator->()             { ASSERT(*this && count() != 0); return get(); }
-    constexpr const_pointer operator->() const { ASSERT(*this && count() != 0); return get(); }
+    constexpr pointer operator->()             { ASSERT(*this); ASSERT(count() != 0); return get(); }
+    constexpr const_pointer operator->() const { ASSERT(*this); ASSERT(count() != 0); return get(); }
 
-    constexpr reference operator*()             { ASSERT(*this && count() != 0); return *get(); }
-    constexpr const_reference operator*() const { ASSERT(*this && count() != 0); return *get(); }
+    constexpr reference operator*()             { ASSERT(*this); ASSERT(count() != 0); return *get(); }
+    constexpr const_reference operator*() const { ASSERT(*this); ASSERT(count() != 0); return *get(); }
 
     constexpr operator bool() const { return get(); }
 

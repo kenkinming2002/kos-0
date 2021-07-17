@@ -11,7 +11,7 @@ namespace core::vfs
   namespace
   {
     // TODO: Maybe someform of reference wrappers or intrusive list?
-    constinit rt::Global<rt::containers::List<Mountable>> mountables;
+    constinit rt::Global<rt::containers::IntrusiveList<Mountable>> mountables;
   }
 
   void initializeMountables()

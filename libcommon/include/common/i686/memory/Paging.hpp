@@ -86,7 +86,6 @@ namespace common::memory
 
   using PageDirectory = PageDirectoryEntry[PAGE_DIRECTORY_ENTRY_COUNT];
   using PageTable     = PageTableEntry[PAGE_TABLE_ENTRY_COUNT];
-  using PageFrame     = char[PAGE_SIZE];
 
 }
 

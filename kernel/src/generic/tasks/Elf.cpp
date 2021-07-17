@@ -65,18 +65,22 @@ namespace core::tasks
     if(header.e_ident[EI_VERSION] != EV_CURRENT)
       return ErrorCode::INVALID;
 
-    auto previousTask = tasks::Task::current();
+    Registers registers = {};
+    registers.eip = header.e_entry;
+    task->asUserTask(registers);
+
+    auto previousTask = tasks::Task::current;
     tasks::Task::makeCurrent(task);
-    task->asUserspaceTask(header.e_entry);
+    {
+      // FIXME: Set an upper limit
+      Elf32_Phdr programHeaders[header.e_phnum];
+      file->seek(Anchor::BEGIN, header.e_phoff);
+      file->read(reinterpret_cast<char*>(programHeaders), sizeof programHeaders);
+      for(size_t i=0; i<header.e_phnum; ++i)
+        if(auto result = loadProgramHeader(task, file, programHeaders[i]); !result)
+          return result.error();
 
-    // FIXME: Set an upper limit
-    Elf32_Phdr programHeaders[header.e_phnum];
-    file->seek(Anchor::BEGIN, header.e_phoff);
-    file->read(reinterpret_cast<char*>(programHeaders), sizeof programHeaders);
-    for(size_t i=0; i<header.e_phnum; ++i)
-      if(auto result = loadProgramHeader(task, file, programHeaders[i]); !result)
-        return result.error();
-
+    }
     tasks::Task::makeCurrent(rt::move(previousTask));
     return {};
   }

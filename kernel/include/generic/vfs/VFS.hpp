@@ -11,8 +11,6 @@
 #include <librt/UniquePtr.hpp>
 #include <librt/StringRef.hpp>
 #include <librt/Span.hpp>
-#include <librt/containers/List.hpp>
-#include <librt/containers/Map.hpp>
 
 #include <stddef.h>
 

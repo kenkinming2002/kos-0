@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sys/Types.hpp>
+
 #include <i686/PrivilegeLevel.hpp>
 
 #include <stddef.h>
@@ -7,7 +9,7 @@
 
 namespace core::interrupts
 {
-  using Handler =  void(*)(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip);
+  using Handler =  void(*)(irq_t irqNumber, uword_t errorCode, uintptr_t oldEip);
 
   void initialize();
 

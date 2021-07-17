@@ -214,6 +214,20 @@ namespace rt::containers
     constexpr Map() = default;
 
   public:
+    Map& operator=(Map&& other) = default;
+    Map(Map&& other) = default;
+
+  public:
+    Map& operator=(const Map& other)
+    {
+      for(const auto& [key, value] : other)
+        insert({key, value});
+
+      return *this;
+    }
+    Map(const Map& other) { *this = other; }
+
+  public:
     const_iterator begin() const { return m_root ? const_iterator(m_root->leftist()) : const_iterator(nullptr); }
     const_iterator end() const { return const_iterator(nullptr); }
     iterator begin() { return m_root ? iterator(m_root->leftist()) : iterator(nullptr); }

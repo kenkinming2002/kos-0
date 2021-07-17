@@ -22,7 +22,7 @@ namespace core::vfs
     registerMountable(tmpfs());
   }
 
-  rt::Result<rt::SharedPtr<Inode>, ErrorCode> Tmpfs::mount(rt::StringRef arg)
+  Result<rt::SharedPtr<Inode>> Tmpfs::mount(rt::StringRef arg)
   {
     auto superBlock = rt::makeShared<TmpfsSuperBlock>();
     return rt::SharedPtr<Inode>(superBlock->allocate(superBlock, Type::DIRECTORY));

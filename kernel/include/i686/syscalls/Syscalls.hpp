@@ -27,63 +27,54 @@ namespace core::syscalls
 
   /* We have maximum of 6 arguments, this may expand? ;) */
   static constexpr int MAX_SYSCALL_COUNT = 256;
-  typedef result_t(*Handler)(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6);
+  typedef Result<result_t>(*Handler)(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6);
 
   void installHandler(int syscallNumber, Handler handler);
   void uninstallHandler(int syscallNumber);
-
-  inline int makeError(ErrorCode errorCode) { return -static_cast<int>(errorCode); }
 }
 
 #define UNWRAP(v) do { if(!(v)) return v.error(); } while(0)
 
 #define WRAP_SYSCALL0(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(); \
   }
 
 #define WRAP_SYSCALL1(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1)); \
   }
 
 #define WRAP_SYSCALL2(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1), rt::autoBitCast(a2)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1), rt::autoBitCast(a2)); \
   }
 
 #define WRAP_SYSCALL3(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3)); \
   }
 
 #define WRAP_SYSCALL4(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4)); \
   }
 
 #define WRAP_SYSCALL5(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4), rt::autoBitCast(a5)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4), rt::autoBitCast(a5)); \
   }
 
 #define WRAP_SYSCALL6(name, realName) \
-  result_t name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
+  core::Result<result_t> name(uword_t a1, uword_t a2, uword_t a3, uword_t a4, uword_t a5, uword_t a6) \
   { \
-    auto result = realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4), rt::autoBitCast(a5), rt::autoBitCast(a6)); \
-    return result ? rt::bitCast<word_t>(*result) : core::syscalls::makeError(result.error()); \
+    return realName(rt::autoBitCast(a1), rt::autoBitCast(a2), rt::autoBitCast(a3), rt::autoBitCast(a4), rt::autoBitCast(a5), rt::autoBitCast(a6)); \
   }
 
 

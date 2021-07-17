@@ -9,11 +9,11 @@
 #include <librt/StringRef.hpp>
 #include <librt/UniquePtr.hpp>
 
-#include <librt/containers/List.hpp>
+#include <librt/containers/IntrusiveList.hpp>
 
 namespace core::vfs
 {
-  class Mountable : public rt::containers::ListHook
+  class Mountable : public rt::containers::IntrusiveListHook
   {
   public:
     virtual Result<rt::SharedPtr<Inode>> mount(rt::StringRef arg) = 0;

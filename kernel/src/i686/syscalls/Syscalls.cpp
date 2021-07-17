@@ -5,6 +5,9 @@
 
 #include <x86/assembly/msr.hpp>
 
+#include <generic/tasks/Scheduler.hpp>
+#include <i686/tasks/Registers.hpp>
+
 #include <librt/Optional.hpp>
 #include <librt/Algorithm.hpp>
 #include <librt/Panic.hpp>
@@ -44,34 +47,35 @@ namespace core::syscalls
     handlers[syscallNumber] = nullptr;
   }
 
-  using result_t = word_t;
-  extern "C" uword_t core_syscalls_dispatch(uword_t syscallNumber, uword_t a1, uword_t a2, uword_t a3, uword_t espUser)
+  Result<result_t> syscallsDispatch(tasks::Registers registers)
   {
-    if(syscallNumber<0 || syscallNumber>=MAX_SYSCALL_COUNT)
-    {
-      rt::log("Syscall numbers out of range\n");
-      return -1;
-    }
+    auto i = registers.eax;
+    if(i>=MAX_SYSCALL_COUNT || !handlers[i])
+      return ErrorCode::INVALID;
 
-    if(!handlers[syscallNumber])
-    {
-      rt::log("Unknown Syscalls\n");
-      return -1; // TODO: Error code
-    }
+    uword_t args[6];
+    args[0] = registers.ebx;
+    args[1] = registers.esi;
+    args[2] = registers.edi;
 
-    // Retrieve stack arguments
-    uword_t a4, a5, a6;
-    {
-      int stackArgs[3] = {};
-      auto buffer = InputUserBuffer(reinterpret_cast<const char*>(espUser), sizeof stackArgs);
-      if(auto result = buffer.read(reinterpret_cast<char*>(stackArgs), sizeof stackArgs); !result)
-        return -static_cast<result_t>(result.error());
+    auto length = 3 * sizeof args[0];
+    auto buffer = InputUserBuffer(reinterpret_cast<const char*>(registers.esp), length);
+    if(auto result = buffer.read(reinterpret_cast<char*>(&args[3]), length); !result)
+      return result.error();
 
-      a4 = stackArgs[0];
-      a5 = stackArgs[1];
-      a6 = stackArgs[2];
-    }
+    Result<result_t> result = handlers[i](args[0], args[1], args[2], args[3], args[4], args[5]);
+    tasks::onResume();
+    return result;
+  }
 
-    return handlers[syscallNumber](a1, a2, a3, a4, a5, a6);
+  inline int makeError(ErrorCode errorCode) { return -static_cast<int>(errorCode); }
+
+  // The registers arg could be modified if necessary
+  extern "C" result_t core_syscalls_dispatch(tasks::Registers& registers)
+  {
+    tasks::Task::current->registers = registers;
+    auto result = syscallsDispatch(registers);
+    registers = tasks::Task::current->registers;
+    return result ? *result : makeError(result.error());
   }
 }

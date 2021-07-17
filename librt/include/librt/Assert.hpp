@@ -26,6 +26,7 @@ namespace rt::internals
 #define ASSERT_UNREACHABLE do { __builtin_unreachable(); } while(0)
 #endif
 
-#define ASSERT_FALSE(expr) _ASSERT(!(expr))
-#define ASSERT_TRUE(expr) _ASSERT(expr)
-#define ASSERT_UNIMPLEMENTED _ASSERT("Unimplemented function")
+#define ASSERT_UNIMPLEMENTED _ASSERT(false && "Unimplemented function")
+
+#define ASSERT_FALSE(expr) ASSERT(!(expr))
+#define ASSERT_TRUE(expr) ASSERT(expr)

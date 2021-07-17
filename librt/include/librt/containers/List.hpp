@@ -1,83 +1,107 @@
 #pragma once
 
-#include <librt/containers/ListBase.hpp>
+#include <librt/containers/IntrusiveList.hpp>
 
 namespace rt::containers
 {
   template<typename T>
-  class ListIterator : public ListIteratorBase<std::conditional_t<std::is_const_v<T>, const ListHook, ListHook>>
+  struct ListNode : public IntrusiveListHook
   {
-  public:
-    using Base = ListIteratorBase<std::conditional_t<std::is_const_v<T>, const ListHook, ListHook>>;
-
-  public:
-    using value_type        = T;
-    using pointer           = value_type*;
-    using reference         = value_type&;
-
-  public:
-    constexpr ListIterator(const Base& base) : Base(base) {}
-    template<typename U>
-    constexpr ListIterator(ListIterator<U> other) : ListIterator(static_cast<typename ListIterator<U>::Base>(other)) {}
-
-  public:
-    constexpr pointer operator->() const { return static_cast<pointer>(Base::operator->()); }
-    constexpr reference operator*() const { return static_cast<reference>(Base::operator*()); }
-
-  public:
-    constexpr ListIterator& operator++() { Base::operator++(); return *this;}
-    constexpr ListIterator operator++(int) { return Base::operator++(0); }
-
-  public:
-    constexpr ListIterator& operator--() { Base::operator--(); return *this;}
-    constexpr ListIterator operator--(int) { return Base::operator--(0); }
+    T value;
   };
 
   template<typename T>
-  class List : public ListBase
+  class List : public IntrusiveList<ListNode<T>>
   {
   public:
-    static_assert(std::is_base_of_v<ListHook, T>);
-
-  private:
-    using Base = ListBase;
+    using Node = ListNode<T>;
+    using Base = IntrusiveList<Node>;
 
   public:
-    using Base::Base;
+    class Iterator : public IntrusiveList<Node>::Iterator
+    {
+    public:
+      using Base = typename IntrusiveList<Node>::Iterator;
+
+    public:
+      using value_type        = const T;
+      using pointer           = value_type*;
+      using reference         = value_type&;
+
+    public:
+      constexpr Iterator(const Base& base) : Base(base) {}
+      using Base::Base;
+
+    public:
+      constexpr pointer operator->()  const { return &Base::operator*().value; }
+      constexpr reference operator*() const { return Base::operator*().value; }
+
+    public:
+      using Base::operator++;
+      using Base::operator--;
+    };
 
   public:
-    using iterator       = ListIterator<T>;
-    using const_iterator = ListIterator<const T>;
-    using value_type     = typename iterator::value_type;
-    using pointer        = typename iterator::pointer;
-    using reference      = typename iterator::reference;
+    using iterator        = MutableIterator<Iterator>;
+    using const_iterator  = Iterator;
+    using value_type      = T;
+    using pointer         = value_type*;
+    using reference       = value_type&;
+    using const_pointer   = const value_type*;
+    using const_reference = const value_type&;
 
   public:
-    iterator begin() { return Base::begin(); }
-    iterator end()   { return Base::end(); }
+    constexpr List() = default;
+    constexpr ~List() { clear(); }
 
+  public:
+    List& operator=(List&& other) = default;
+    List(List&& other) = default;
+
+  public:
+    List& operator=(const List& other)
+    {
+      clear();
+      for(const auto& value : other)
+        insert(end(), value);
+
+      return *this;
+    }
+    List(const List& other) : List() { *this = other; }
+
+
+  public:
     const_iterator begin() const { return Base::begin(); }
     const_iterator end()   const { return Base::end(); }
 
+    iterator begin() { return asConst(*this).begin(); }
+    iterator end()   { return asConst(*this).end(); }
+
+  private:
+    static constexpr auto disposer = [](Node* node){ delete node; };
+
   public:
-    iterator insert(const_iterator position, reference value)        { return Base::insert(position, value); }
-
-    /* We are borrowing terminology from boost intrusive */
-    template<typename Disposer>
-    iterator remove_and_dispose(const_iterator position, Disposer disposer)
+    template<typename... Args>
+    iterator emplace(const_iterator position, Args&&... args)
     {
-      ListHook* listHook;
-      auto result = Base::remove(position, listHook);
-      disposer(static_cast<pointer>(listHook));
-      return result;
+      auto* node = new Node{.value = Value(forwart<Args>(args)...)};
+      return Base::insert(position, *node);
     }
 
-    template<typename Disposer>
-    void clear_and_dispose(Disposer disposer)
+    iterator insert(const_iterator position, value_type&& value)
     {
-      while(!empty())
-        remove_and_dispose(begin(), disposer);
+      auto* node = new Node{.value = move(value)};
+      return Base::insert(position, *node);
     }
+
+    iterator insert(const_iterator position, const value_type& value)
+    {
+      auto* node = new Node{.value = value};
+      return Base::insert(position, *node);
+    }
+
+    iterator remove(const_iterator position) { return Base::remove_and_dispose(position, disposer); }
+    void clear() { Base::clear_and_dispose(disposer); }
 
   public:
     void splice(const_iterator position, List& other, const_iterator first, const_iterator last)
@@ -86,3 +110,4 @@ namespace rt::containers
     }
   };
 }
+

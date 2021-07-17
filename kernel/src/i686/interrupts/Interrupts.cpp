@@ -6,6 +6,8 @@
 
 #include <x86/interrupts/8259.hpp>
 
+#include <generic/tasks/Scheduler.hpp>
+
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
@@ -40,20 +42,20 @@ namespace core::interrupts
   Handler handlers[IDT_SIZE];
 
   // Early handlers
-  void pageFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  void pageFaultHandler(irq_t irqNumber, uword_t errorCode, uintptr_t oldEip)
   {
-    uint32_t address;
+    uintptr_t address;
     asm volatile ("mov %[address], cr2" : [address]"=rm"(address) : :);
     rt::logf("\nPage Fault at 0x%lx with error code 0x%lx and old eip 0x%lx\n", address, errorCode, oldEip);
     rt::panic("Page Fault\n");
   }
 
-  void generalProtectionFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  void generalProtectionFaultHandler(irq_t irqNumber, uword_t errorCode, uintptr_t oldEip)
   {
     rt::panic("General Protection Fault\n");
   }
 
-  void doubleFaultHandler(uint8_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  void doubleFaultHandler(irq_t irqNumber, uword_t errorCode, uintptr_t oldEip)
   {
     rt::panic("Double Fault\n");
   }
@@ -79,15 +81,18 @@ namespace core::interrupts
     initialize8259();
   }
 
-  extern "C" void isr(uint32_t irqNumber, uint32_t errorCode, uintptr_t oldEip)
+  extern "C" void isr(uword_t irqNumber, uword_t errorCode, uintptr_t oldEip)
   {
     if(!handlers[irqNumber])
     {
-      rt::logf("Unhandled Interrupt %u\n", static_cast<unsigned>(irqNumber));
+      rt::logf("Unhandled Interrupt %lu\n", irqNumber);
       for(;;) asm volatile("hlt");
     }
 
     handlers[irqNumber](irqNumber, errorCode, oldEip);
+
+    if(oldEip<0xC0000000) // We could have interrupted a syscall, so make sure
+      tasks::onResume();
   }
 
   void setKernelStack(uintptr_t ptr, size_t size)

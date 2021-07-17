@@ -9,7 +9,7 @@
 #include <librt/Result.hpp>
 
 #include <librt/containers/Map.hpp>
-#include <librt/containers/UniqueList.hpp>
+#include <librt/containers/List.hpp>
 
 #include <librt/Assert.hpp>
 
@@ -98,16 +98,16 @@ static void testMap()
   ASSERT(map.find(4) == map.end());
 }
 
-struct ListElem : rt::containers::ListHook { ListElem(int value) : value(value) {} int value; };
+struct ListElem { ListElem(int value) : value(value) {} int value; };
 static void testList()
 {
-  rt::containers::UniqueList<ListElem> list;
+  rt::containers::List<ListElem> list;
   ASSERT(list.empty());
 
-  list.insert(list.begin(), rt::makeUnique<ListElem>(1));
-  list.insert(list.begin(), rt::makeUnique<ListElem>(2));
-  list.insert(list.begin(), rt::makeUnique<ListElem>(3));
-  list.insert(list.begin(), rt::makeUnique<ListElem>(4));
+  list.insert(list.begin(), ListElem(1));
+  list.insert(list.begin(), ListElem(2));
+  list.insert(list.begin(), ListElem(3));
+  list.insert(list.begin(), ListElem(4));
   for(auto& elem : list)
     rt::logf("elem:%d\n", elem.value);
 
@@ -119,6 +119,18 @@ static void testList()
   ASSERT(rt::next(list.begin(), 0)->value == 4);
   ASSERT(rt::next(list.begin(), 1)->value == 2);
   ASSERT(rt::next(list.begin(), 2)->value == 1);
+
+  auto steal = rt::move(list);
+  auto copy = steal;
+
+  for(auto& elem : list)
+    rt::logf("list:%d\n", elem.value);
+
+  for(auto& elem : steal)
+    rt::logf("steal:%d\n", elem.value);
+
+  for(auto& elem : copy)
+    rt::logf("copy:%d\n", elem.value);
 }
 
 static void testSharedPtr()

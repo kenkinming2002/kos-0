@@ -1,26 +1,16 @@
 global core_syscalls_entry
 extern core_syscalls_dispatch
 
-; eax - syscall no.
-; ebx - arg 1
-; ecx - userspace esp
-; edx - userspace eip
-; esi - arg 2
-; edi - arg 3
-; ebp - user stack
-
 ; TODO: Sanitize kernel registers
-
 core_syscalls_entry:
-  push ecx
-  push edx
+  push edx ; userspace esp
+  push ecx ; userspace eip
 
   push ebp
-  xor ebp, ebp ; Clear the base pointer to make stack tracing works
-
-  push ecx
   push edi
   push esi
+  push edx
+  push ecx
   push ebx
   push eax
 
@@ -30,7 +20,13 @@ core_syscalls_entry:
   mov fs, bx
   mov gs, bx
 
+  push DWORD 0 ; For stack tracing
+
+  lea eax, [esp+0x4]
+  push eax
   call core_syscalls_dispatch
+
+  add esp, 0x8
 
   mov bx, 0x23
   mov ds, bx
@@ -38,11 +34,15 @@ core_syscalls_entry:
   mov fs, bx
   mov gs, bx
 
-  add esp, 0x14
-
+  add esp, 0x4; syscall return value
+  pop ebx
+  add esp, 0x8; ecx, edx
+  pop esi
+  pop edi
   pop ebp
-  pop edx
+
   pop ecx
+  pop edx
 
   sti
   sysexit

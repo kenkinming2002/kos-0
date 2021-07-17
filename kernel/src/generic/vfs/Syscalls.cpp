@@ -15,13 +15,13 @@ namespace core::vfs
     Result<fd_t> sys_root()
     {
       auto rootFile = root();
-      return tasks::Task::current()->fileDescriptors.addFile(rootFile);
+      return tasks::Task::current->fileDescriptors.addFile(rootFile);
     }
     WRAP_SYSCALL0(_sys_root, sys_root)
 
     Result<result_t> sys_mountAt(fd_t atfd, const char* _mountpoint, const char* _mountableName, const char* _arg)
     {
-      auto at = tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at = tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto mountpoint = syscalls::stringFromUser(_mountpoint);
@@ -41,7 +41,7 @@ namespace core::vfs
 
     Result<result_t> sys_umountAt(fd_t atfd, const char* _mountpoint)
     {
-      auto at = tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at = tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto mountpoint = syscalls::stringFromUser(_mountpoint);
@@ -55,7 +55,7 @@ namespace core::vfs
 
     Result<fd_t> sys_openAt(fd_t atfd, const char* _path)
     {
-      auto at = tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at = tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto path = syscalls::stringFromUser(_path);
@@ -63,13 +63,13 @@ namespace core::vfs
 
       auto file = openAt(rt::move(*at), *path);
       UNWRAP(file);
-      return tasks::Task::current()->fileDescriptors.addFile(rt::move(*file));
+      return tasks::Task::current->fileDescriptors.addFile(rt::move(*file));
     }
     WRAP_SYSCALL2(_sys_openAt, sys_openAt)
 
     Result<fd_t> sys_createAt(fd_t atfd, const char* _path, uword_t _type)
     {
-      auto at =   tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at =   tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto path = syscalls::stringFromUser(_path);
@@ -81,13 +81,13 @@ namespace core::vfs
       auto file = createAt(rt::move(*at), *path, *type);
       UNWRAP(file);
 
-      return tasks::Task::current()->fileDescriptors.addFile(rt::move(*file));
+      return tasks::Task::current->fileDescriptors.addFile(rt::move(*file));
     }
     WRAP_SYSCALL3(_sys_createAt, sys_createAt)
 
     Result<result_t> sys_linkAt(fd_t atfd, const char* _path, const char* _target)
     {
-      auto at =     tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at =     tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto path =   syscalls::stringFromUser(_path);
@@ -104,7 +104,7 @@ namespace core::vfs
 
     Result<result_t> sys_unlinkAt(fd_t atfd, const char* _path)
     {
-      auto at =     tasks::Task::current()->fileDescriptors.getFile(atfd);
+      auto at =     tasks::Task::current->fileDescriptors.getFile(atfd);
       UNWRAP(at);
 
       auto path =   syscalls::stringFromUser(_path);
@@ -127,7 +127,7 @@ namespace core::vfs
 
     Result<ssize_t> sys_readdir(fd_t fd, char* buf, size_t length)
     {
-      auto file = tasks::Task::current()->fileDescriptors.getFile(fd);
+      auto file = tasks::Task::current->fileDescriptors.getFile(fd);
       UNWRAP(file);
 
       return (*file)->readdir(buf, length);
@@ -136,7 +136,7 @@ namespace core::vfs
 
     Result<ssize_t> sys_seek(fd_t fd, uword_t _anchor, off_t offset)
     {
-      auto file = tasks::Task::current()->fileDescriptors.getFile(fd);
+      auto file = tasks::Task::current->fileDescriptors.getFile(fd);
       UNWRAP(file);
 
       auto anchor = syscalls::anchorFromUser(_anchor);
@@ -148,7 +148,7 @@ namespace core::vfs
 
     Result<ssize_t> sys_read(fd_t fd, char* buf, size_t length)
     {
-      auto file = tasks::Task::current()->fileDescriptors.getFile(fd);
+      auto file = tasks::Task::current->fileDescriptors.getFile(fd);
       UNWRAP(file);
 
       return (*file)->read(buf, length);
@@ -157,7 +157,7 @@ namespace core::vfs
 
     Result<ssize_t> sys_write(fd_t fd, const char* buf, size_t length)
     {
-      auto file = tasks::Task::current()->fileDescriptors.getFile(fd);
+      auto file = tasks::Task::current->fileDescriptors.getFile(fd);
       UNWRAP(file);
 
       return (*file)->write(buf, length);
@@ -166,7 +166,7 @@ namespace core::vfs
 
     Result<result_t> sys_resize(fd_t fd, size_t size)
     {
-      auto file = tasks::Task::current()->fileDescriptors.getFile(fd);
+      auto file = tasks::Task::current->fileDescriptors.getFile(fd);
       UNWRAP(file);
 
       auto result = (*file)->resize(size);
@@ -177,7 +177,7 @@ namespace core::vfs
 
     Result<result_t> sys_close(fd_t fd)
     {
-      auto result = tasks::Task::current()->fileDescriptors.removeFile(fd);
+      auto result = tasks::Task::current->fileDescriptors.removeFile(fd);
       UNWRAP(result);
       return 0;
     }
