@@ -172,7 +172,6 @@ namespace core::tasks
     if(!clone)
       return ErrorCode::OUT_OF_MEMORY;
 
-    clone->registers.eax = 0;
     addTask(clone);
     rt::logf("clone->pid:%ld\n", clone->pid);
     return clone->pid;

@@ -103,7 +103,11 @@ namespace core::tasks
       return nullptr;
 
     task->fileDescriptors = this->fileDescriptors;
-    task->asUserTask(this->registers);
+
+    Registers registers = this->registers;
+    registers.eax = 0;
+    task->asUserTask(registers);
+
     if(this->memoryMapping)
     {
       task->memoryMapping = this->memoryMapping->clone();
@@ -156,8 +160,6 @@ namespace core::tasks
 
   Result<void> Task::asKernelTask(void(*kernelTask)())
   {
-    // Ideally, we would inject a call to kill current task at exit
-
     push(kernelStack, kernelTask);
     push(kernelStack, POISON); // This can really be any value, we are just simulating eip pushed when executing a call instruction
     push(kernelStack, &newKernelTask);
