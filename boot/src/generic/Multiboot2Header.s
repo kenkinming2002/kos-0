@@ -15,15 +15,17 @@ align 8 ; magic number for boot loader
   dd HEADER_LENGTH
   dd CHECKSUM
 
+; Note: each tag has to be 8 byte aligned
+
   dw 6
   dw 0
   dd 8 ; module alignment tag
 
   dw 1
   dw 0
-  dd 16
+  dd 12
   dd 6 ; mmap information request
-  dd 8 ; framebuffer information request
+  dd 0 ; Padding
 
   dw 0
   dw 0

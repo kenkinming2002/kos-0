@@ -56,7 +56,6 @@ struct BootInformation
   size_t reservedMemoryRegionsCount;
 
   common::memory::PageDirectory* pageDirectory;
-  void* framebuffer;
 };
 
 

@@ -1,13 +1,10 @@
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/log/Log.hpp>
-#include <generic/BootInformation.hpp>
-
-#include <generic/memory/Memory.hpp>
+#include <i686/memory/Memory.hpp>
 
 #include <x86/assembly/io.hpp>
 
-#include <librt/Optional.hpp>
 #include <librt/Global.hpp>
 #include <librt/Algorithm.hpp>
 
@@ -37,7 +34,7 @@ namespace core::devices
 
   Framebuffer::Framebuffer() : m_cells(nullptr), m_width(0), m_height(0)
   {
-    m_cells = reinterpret_cast<Cell*>(bootInformation->framebuffer);
+    m_cells = reinterpret_cast<Cell*>(memory::physToVirt(0x000B8000));
     m_width = 80;
     m_height = 25;
   }

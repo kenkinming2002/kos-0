@@ -63,12 +63,6 @@ namespace boot
 
     uintptr_t result;
 
-    result = memory::map(bootInformation, 0xb8000, PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
-    if(result == MAP_FAILED)
-      rt::panic("Failed to map framebuffer");
-
-    bootInformation.framebuffer = reinterpret_cast<void*>(result);
-
     result = memory::map(bootInformation, reinterpret_cast<uintptr_t>(memory::pageDirectory), PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
     if(result == MAP_FAILED)
       rt::panic("Failed to map page directory");
