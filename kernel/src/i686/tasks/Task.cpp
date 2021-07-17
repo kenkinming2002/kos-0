@@ -3,6 +3,8 @@
 #include <generic/memory/Memory.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <generic/tasks/Scheduler.hpp>
+
 #include <i686/tasks/Switch.hpp>
 #include <i686/interrupts/Interrupts.hpp>
 #include <i686/syscalls/Syscalls.hpp>
@@ -139,12 +141,16 @@ namespace core::tasks
     {
       rt::logf("Launching new kernel tasks\n");
       kernelTask();
+      killCurrent(0);
+      schedule();
+      ASSERT_UNREACHABLE;
     }
 
     void newUserTask(Registers& registers)
     {
       rt::logf("Launching new user tasks with eip=0x%lx, esp=0x%lx\n", registers.eip, registers.esp);
       core_tasks_entry(&registers);
+      ASSERT_UNREACHABLE;
     }
   }
 

@@ -53,7 +53,6 @@ namespace core::tasks
         }
         schedule();
       }
-      ASSERT_UNREACHABLE;
     }
 
     // This should be a task with lowest possibly imaginable priority
@@ -65,7 +64,17 @@ namespace core::tasks
         asm("hlt");
         asm("cli");
       }
-      ASSERT_UNREACHABLE;
+    }
+
+    void test()
+    {
+      for(size_t i=0; i<10; ++i)
+      {
+        asm("sti");
+        asm("hlt");
+        asm("cli");
+      }
+      return;
     }
 
     void initializeKernelTasks()
@@ -77,6 +86,10 @@ namespace core::tasks
       auto idleTask = Task::allocate();
       idleTask->asKernelTask(&idle);
       addTask(rt::move(idleTask));
+
+      auto testTask = Task::allocate();
+      testTask->asKernelTask(&test);
+      addTask(rt::move(testTask));
     }
   }
 
