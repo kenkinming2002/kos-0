@@ -1,21 +1,19 @@
 #include <boot/generic/BootInformation.hpp>
 
-#include <boot/i686/Paging.hpp>
 #include <boot/generic/Kernel.hpp>
-#include <boot/generic/multiboot2-Utils.hpp>
-#include <boot/generic/Config.h>
+#include <boot/generic/multiboot2.hpp>
 #include <boot/generic/Memory.hpp>
+
+#include <boot/i686/Paging.hpp>
 
 #include <librt/Panic.hpp>
 #include <librt/Strings.hpp>
 
 namespace boot
 {
-  void bootInformationInitialize(BootInformation& bootInformation, struct multiboot_boot_information* multiboot2BootInformation)
+  BootInformation initBootInformation(struct multiboot_boot_information* multiboot2BootInformation)
   {
-    using namespace boot::memory;
-    using namespace common::memory;
-
+    BootInformation bootInformation = {};
     for(auto* tag = multiboot2BootInformation->tags; tag->type != MULTIBOOT_TAG_TYPE_END; tag = multiboot2::next_tag(tag))
       switch(tag->type)
       {
@@ -61,12 +59,6 @@ namespace boot
           }
       }
 
-    uintptr_t result;
-
-    result = memory::map(bootInformation, reinterpret_cast<uintptr_t>(memory::pageDirectory), PAGE_SIZE, Access::SUPERVISOR_ONLY, Permission::READ_WRITE);
-    if(result == MAP_FAILED)
-      rt::panic("Failed to map page directory");
-
-    bootInformation.pageDirectory = reinterpret_cast<PageDirectory*>(result);
+    return bootInformation;
   }
 }

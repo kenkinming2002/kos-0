@@ -3,7 +3,6 @@
 #include <boot/generic/BootInformation.hpp>
 
 #include <stddef.h>
-#include <stdint.h>
 
 namespace boot::memory
 {

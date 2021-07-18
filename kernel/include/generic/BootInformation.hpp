@@ -1,3 +1,3 @@
-#include <boot/generic/BootInformation.hpp>
+#include <boot/generic/api/BootInformation.hpp>
 
 extern BootInformation* bootInformation;

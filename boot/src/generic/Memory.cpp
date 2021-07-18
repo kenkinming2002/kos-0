@@ -1,6 +1,6 @@
 #include <boot/generic/Memory.hpp>
 
-#include <boot/generic/Config.h>
+#include <boot/generic/api/Config.hpp>
 
 #include <common/i686/memory/Paging.hpp>
 

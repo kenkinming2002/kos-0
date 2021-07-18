@@ -1,7 +1,8 @@
 #pragma once
 
-#include <boot/generic/BootInformation.hpp>
-#include <boot/generic/multiboot2.h>
+#include <boot/generic/api/BootInformation.hpp>
+#include <boot/generic/api/multiboot2.h>
+
 #include <libelf/libelf.hpp>
 
 #include <librt/Optional.hpp>
@@ -13,14 +14,14 @@ namespace boot
   class Kernel
   {
   public:
-    static rt::Optional<Kernel> from(const multiboot_boot_information* multiboot2BootInformation);
+    Kernel(BootInformation& bootInformation);
 
   public:
     /* In the future, we may support decompression, though it is highly doubted
      * whether that is necessary considering the minimalistic nature of our
      * kernel.
      */
-    [[nodiscard]] int extractAndMap(BootInformation& bootInformation);
+    [[nodiscard]] bool extractAndMap(BootInformation& bootInformation);
     [[noreturn]] void run(BootInformation& bootInformation);
 
   private:

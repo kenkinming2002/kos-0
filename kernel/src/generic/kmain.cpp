@@ -40,8 +40,6 @@ static void kmainInitialize(BootInformation* bootInformation)
 {
   ::bootInformation = bootInformation;
 
-  core::memory::archInitialize();
-
   core::log::initialize();
   core::internals::initialize();
   core::interrupts::initialize();

@@ -1,4 +1,5 @@
-#include <boot/generic/multiboot2.h>
+#include <boot/generic/api/multiboot2.h>
+
 #include <boot/generic/BootInformation.hpp>
 #include <boot/generic/Kernel.hpp>
 #include <boot/generic/Memory.hpp>
@@ -8,22 +9,14 @@
 
 extern "C" void bmain(struct multiboot_boot_information* multiboot2BootInformation)
 {
-  // BootInformation
-  BootInformation bootInformation = {};
+  auto bootInformation = boot::initBootInformation(multiboot2BootInformation);
 
-  // Paging
   boot::memory::initializePaging(bootInformation);
+  boot::Kernel kernel(bootInformation);
 
-  // Kernel
-  auto kernel = boot::Kernel::from(multiboot2BootInformation);
-  if(!kernel)
-    rt::panic("Failed to locate kernel\n");
-
-  if(kernel->extractAndMap(bootInformation) != 0)
+  if(!kernel.extractAndMap(bootInformation))
     rt::panic("Failed to extract and map kernel\n");
 
-  boot::bootInformationInitialize(bootInformation, multiboot2BootInformation);
-
-  kernel->run(bootInformation);
+  kernel.run(bootInformation);
 }
 

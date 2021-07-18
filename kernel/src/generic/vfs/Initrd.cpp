@@ -4,7 +4,6 @@
 #include <generic/vfs/Tar.hpp>
 
 #include <generic/memory/Memory.hpp>
-#include <i686/memory/Memory.hpp>
 
 #include <generic/BootInformation.hpp>
 
@@ -22,7 +21,7 @@ namespace core::vfs
       for(size_t i=0; i<bootInformation->moduleEntriesCount; ++i)
       {
         auto& moduleEntry = bootInformation->moduleEntries[i];
-        if(moduleEntry.cmdline == rt::StringRef("initrd", 6))
+        if(moduleEntry.cmdline == rt::StringRef("initrd"))
           return &moduleEntry;
       }
 

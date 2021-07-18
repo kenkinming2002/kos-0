@@ -23,7 +23,6 @@ core_src = files(
   'src/generic/memory/Syscalls.cpp',
   'src/generic/memory/liballocImpl.cpp',
   'src/i686/memory/MemoryMapping.cpp',
-  'src/i686/memory/Memory.cpp',
 
   'src/x86/interrupts/8259.cpp',
   'src/i686/interrupts/Interrupts.cpp',

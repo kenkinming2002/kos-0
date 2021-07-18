@@ -1,5 +1,5 @@
 boot_src = files(
-  'src/generic/BootInfomation.cpp',
+  'src/generic/BootInformation.cpp',
   'src/generic/Kernel.cpp',
   'src/generic/Memory.cpp',
   'src/i686/librt/Hooks.cpp',

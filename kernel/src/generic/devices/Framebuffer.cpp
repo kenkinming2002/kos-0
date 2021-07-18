@@ -1,7 +1,7 @@
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/log/Log.hpp>
-#include <i686/memory/Memory.hpp>
+#include <generic/memory/Memory.hpp>
 
 #include <x86/assembly/io.hpp>
 

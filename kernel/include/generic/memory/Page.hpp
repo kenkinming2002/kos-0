@@ -1,7 +1,6 @@
 #pragma once
 
 #include <generic/memory/Memory.hpp>
-#include <i686/memory/Memory.hpp>
 
 #include <librt/SharedPtr.hpp>
 #include <librt/UniquePtr.hpp>
