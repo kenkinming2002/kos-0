@@ -17,18 +17,9 @@ namespace core::interrupts
    * redirection entries on the IOAPIC.
    */
 
-  class PICTimer
-  {
-  public:
-    typedef void(*callback_t)();
-
-  public:
-    virtual void registerCallback(callback_t callback) = 0;
-    virtual ~PICTimer() = default;
-  };
-
   class PIC
   {
+  /* hardware interrupts */
   public:
     /* Offset required to avoid colliding with interrupt vectors used for cpu
      * exceptions */
@@ -43,8 +34,13 @@ namespace core::interrupts
     virtual irq_t translateISA(unsigned isa) = 0;
     virtual irq_t translateGSI(unsigned gsi) = 0;
 
+  /* timer interrupts */
   public:
-    virtual PICTimer& timer() = 0;
+    typedef void(*timer_callback_t)();
+
+  public:
+    virtual void registerTimerCallback(timer_callback_t callback) = 0;
+    virtual void resetTimer() = 0;
 
     virtual ~PIC() = default;
   };
@@ -69,5 +65,6 @@ namespace core::interrupts
   static constexpr size_t GSI_IRQ_COUNT = 223;
   irq_t translateGSI(unsigned gsi);
 
-  void addTimerCallback(PICTimer::callback_t callback);
+  void addTimerCallback(PIC::timer_callback_t callback);
+  void resetTimer();
 }

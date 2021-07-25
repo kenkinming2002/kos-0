@@ -155,6 +155,4 @@ extern "C" void main()
     test2();
     break;
   }
-
-  for(;;);
 }

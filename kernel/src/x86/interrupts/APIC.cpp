@@ -14,29 +14,6 @@
 
 namespace core::interrupts
 {
-  class APICTimer : public PICTimer
-  {
-  private:
-    inline static callback_t m_callback = nullptr;
-
-  public:
-    static void timerHandler(irq_t irq, uword_t, uintptr_t)
-    {
-      interrupts::acknowledge(irq);
-      if(m_callback)
-        m_callback();
-    }
-
-  public:
-    void registerCallback(callback_t callback) override
-    {
-      // TODO: Support multiple callback
-      ASSERT(!m_callback);
-      interrupts::installHandler(LocalAPIC::TIMER_VECTOR, &timerHandler, PrivilegeLevel::RING0, true);
-      m_callback = callback;
-    }
-  };
-
   class APIC : public PIC
   {
   public:
@@ -119,8 +96,30 @@ namespace core::interrupts
     irq_t translateISA(unsigned isa) override { return translateGSI(m_isaTranslations[isa]); }
     irq_t translateGSI(unsigned gsi) override { return OFFSET + gsi; }
 
+  private:
+    inline static timer_callback_t m_callback = nullptr;
+
   public:
-    PICTimer& timer() override { return m_timer; }
+    static void timerHandler(irq_t irq, uword_t, uintptr_t)
+    {
+      interrupts::acknowledge(irq);
+      if(m_callback)
+        m_callback();
+    }
+
+  public:
+    void registerTimerCallback(timer_callback_t callback) override
+    {
+      // TODO: Support multiple callback
+      ASSERT(!m_callback);
+      interrupts::installHandler(LocalAPIC::TIMER_VECTOR, &timerHandler, PrivilegeLevel::RING0, true);
+      m_callback = callback;
+    }
+
+    void resetTimer() override
+    {
+      m_localAPIC->resetTimer();
+    }
 
   private:
     unsigned m_isaTranslations[ISA_IRQ_COUNT];
@@ -158,8 +157,6 @@ namespace core::interrupts
   private:
     rt::Optional<LocalAPIC> m_localAPIC;
     rt::containers::StaticVector<IOAPIC, 4> m_ioapics;
-
-    APICTimer m_timer;
   };
 
   namespace { constinit rt::Global<APIC> apic; }

@@ -177,6 +177,7 @@ namespace core::tasks
     auto currentTask = Task::current();
     auto nextTask = scheduler().getNextTask();
 
+    interrupts::resetTimer();
     ASSERT(nextTask);
     if(currentTask.get() != nextTask.get())
     {

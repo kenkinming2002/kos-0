@@ -12,32 +12,6 @@
 
 namespace core::interrupts
 {
-  class PIC8259Timer : public PICTimer
-  {
-  private:
-    inline static callback_t m_callback = nullptr;
-
-  public:
-    static void timerHandler(irq_t irq, uword_t, uintptr_t)
-    {
-      interrupts::acknowledge(irq);
-      if(m_callback)
-        m_callback();
-    }
-
-  public:
-    void registerCallback(callback_t callback) override
-    {
-      // TODO: Support multiple callback
-      ASSERT(!m_callback);
-
-      auto timer_irq = interrupts::translateISA(0x0);
-      interrupts::installHandler(timer_irq, &timerHandler, PrivilegeLevel::RING0, true);
-      interrupts::unmask(timer_irq);
-      m_callback = callback;
-    }
-  };
-
   class PIC8259 : public PIC
   {
   public:
@@ -158,11 +132,30 @@ namespace core::interrupts
     irq_t translateISA(unsigned isa) override { return OFFSET+isa; }
     irq_t translateGSI(unsigned gsi) override { rt::panic("Pic 8259 does not support global system interrupt\n"); }
 
-  public:
-    PICTimer& timer() override { return m_timer; }
-
   private:
-    PIC8259Timer m_timer;
+    inline static timer_callback_t m_callback = nullptr;
+
+  public:
+    static void timerHandler(irq_t irq, uword_t, uintptr_t)
+    {
+      interrupts::acknowledge(irq);
+      if(m_callback)
+        m_callback();
+    }
+
+  public:
+    void registerTimerCallback(timer_callback_t callback) override
+    {
+      // TODO: Support multiple callback
+      ASSERT(!m_callback);
+
+      auto timer_irq = interrupts::translateISA(0x0);
+      interrupts::installHandler(timer_irq, &timerHandler, PrivilegeLevel::RING0, true);
+      interrupts::unmask(timer_irq);
+      m_callback = callback;
+    }
+
+    void resetTimer() override {}
   };
 
   namespace { constinit rt::Global<PIC8259> pic8259; }

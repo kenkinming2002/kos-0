@@ -25,9 +25,10 @@ namespace core::interrupts
     static constexpr size_t SPURIOUS_INTERRUPT_VECTOR_REGISTER = 0x0F0;
     static constexpr size_t EOI_REGISTER                       = 0x0B0;
 
-    static constexpr size_t LVT_TIMER_REGISTER           = 0x320;
-    static constexpr size_t TIMER_INITIAL_COUNT_REGISTER = 0x380;
-    static constexpr size_t TIMER_CURRENT_COUNT_REGISTER = 0x390;
+    static constexpr size_t LVT_TIMER_REGISTER                  = 0x320;
+    static constexpr size_t TIMER_INITIAL_COUNT_REGISTER        = 0x380;
+    static constexpr size_t TIMER_CURRENT_COUNT_REGISTER        = 0x390;
+    static constexpr size_t TIMER_DIVIDE_CONFIGURATION_REGISTER = 0x3E0;
 
   public:
     constexpr LocalAPIC(memory::physaddr_t physaddr) : m_physaddr(physaddr) {}
@@ -43,8 +44,13 @@ namespace core::interrupts
     void enableTimer()
     {
       rt::logf("Enabling Local APIC Timer\n");
-      write(TIMER_INITIAL_COUNT_REGISTER, 100000); // Set initial count: TODO: Allow adjusting
-      write(LVT_TIMER_REGISTER, 0x1 << 17 /* Periodic mode */ | TIMER_VECTOR); // Set spurious interrupt to 0xFF and enable APIC
+      write(LVT_TIMER_REGISTER, 0x0 << 17 /* One-shot mode */ | TIMER_VECTOR);
+      write(TIMER_DIVIDE_CONFIGURATION_REGISTER, 0b1000); // divied by 32
+    }
+
+    void resetTimer()
+    {
+      write(TIMER_INITIAL_COUNT_REGISTER, 0x1000); // Set initial count: TODO: Allow adjusting
     }
 
   public:
