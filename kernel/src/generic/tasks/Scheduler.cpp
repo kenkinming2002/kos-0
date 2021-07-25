@@ -1,15 +1,21 @@
 #include <generic/tasks/Scheduler.hpp>
 
-#include <i686/interrupts/Interrupts.hpp>
 #include <i686/tasks/Switch.hpp>
 
-#include <x86/interrupts/8259.hpp>
+#include <generic/Init.hpp>
+#include <generic/PerCPU.hpp>
+#include <generic/vfs/VFS.hpp>
+#include <generic/tasks/Elf.hpp>
+
+#include <i686/interrupts/Interrupts.hpp>
+#include <x86/interrupts/PIC.hpp>
 
 #include <librt/Panic.hpp>
 #include <librt/Global.hpp>
 #include <librt/Iterator.hpp>
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
+#include <librt/SpinLock.hpp>
 
 #include <librt/containers/List.hpp>
 
@@ -17,40 +23,94 @@ namespace core::tasks
 {
   namespace
   {
-    constinit rt::Global<rt::containers::List<rt::SharedPtr<Task>>> activeTasksList;
-    constinit rt::Global<rt::containers::List<rt::SharedPtr<Task>>> terminatedTasksList;
+    struct Scheduler
+    {
+      std::atomic<unsigned> nextCpuid = 0;
+
+      PerCPU<rt::containers::List<rt::SharedPtr<Task>>> activeTasksList;
+      PerCPU<rt::SpinLock>                              activeTasksListLock;
+
+      rt::containers::List<rt::SharedPtr<Task>> terminatedTasksList;
+      rt::SpinLock                              terminatedTasksListLock;
+
+      void reap()
+      {
+        rt::LockGuard guard(terminatedTasksListLock);
+        if(!terminatedTasksList.empty())
+        {
+          auto task = *terminatedTasksList.begin();
+          terminatedTasksList.remove(terminatedTasksList.begin());
+          rt::logf("Reaping process pid = %ld, status = %ld\n", task->pid, task->status);
+        }
+      }
+
+      void addTask(rt::SharedPtr<Task> task, unsigned cpuid)
+      {
+        rt::logf("Adding task to cpuid: %u\n", cpuid);
+        auto& activeTasksListLockTarget = activeTasksListLock.get(cpuid);
+        auto& activeTasksListTarget     = activeTasksList.get(cpuid);
+
+        rt::LockGuard guard(activeTasksListLockTarget);
+        activeTasksListTarget.insert(activeTasksListTarget.end(), rt::move(task));
+      }
+
+      void addTask(rt::SharedPtr<Task> task)
+      {
+        unsigned cpuid = nextCpuid++ % getCpusCount(); // There may be a bit of wrapping issue at the end but who cares?
+        return addTask(rt::move(task), cpuid);
+      }
+
+      rt::SharedPtr<Task> getNextTask()
+      {
+        auto& activeTasksListLockCurrent = activeTasksListLock.current();
+        auto& activeTasksListCurrent     = activeTasksList.current();
+        rt::LockGuard guard(activeTasksListLockCurrent);
+
+        if(activeTasksListCurrent.empty())
+          return nullptr;
+
+        auto nextTask = *activeTasksListCurrent.begin();
+        activeTasksListCurrent.splice(activeTasksListCurrent.end(), activeTasksListCurrent, activeTasksListCurrent.begin(), rt::next(activeTasksListCurrent.begin()));
+        return nextTask;
+      }
+
+      Result<result_t> kill(pid_t pid, status_t status)
+      {
+        for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)
+        {
+          auto& activeTasksListLockTarget = activeTasksListLock.get(cpuid);
+          auto& activeTasksListTarget     = activeTasksList.get(cpuid);
+          rt::LockGuard guard1(activeTasksListLockTarget);
+
+          auto it = rt::find_if(activeTasksListTarget.begin(), activeTasksListTarget.end(), [pid](const rt::SharedPtr<Task>& task) { return task->pid == pid; });
+          if(it == activeTasksListTarget.end())
+            continue;
+
+          rt::LockGuard guard2(terminatedTasksListLock);
+          terminatedTasksList.splice(terminatedTasksList.end(), activeTasksListTarget, it, next(it));
+          (*it)->kill(status);
+          return 0;
+        }
+        return ErrorCode::INVALID;
+      }
+    };
+
+    rt::Global<Scheduler> scheduler;
   }
 
   namespace
   {
-    /* Note: We have to disable interrupt, however, locking would not be
-     *       necessary, since we would or *WILL* have a per-cpu task queue.  */
-    void timerHandler(irq_t, uword_t, uintptr_t)
+    void timerHandler()
     {
-      interrupts::acknowledge(0);
       schedule();
     }
 
-    void initializeTimerInterrupt()
-    {
-      interrupts::installHandler(0x20, &timerHandler, PrivilegeLevel::RING0, true);
-      interrupts::clearMask(0);
-    }
-  }
-
-  namespace
-  {
     // This should be a extremely low priority task
     void reaper()
     {
       for(;;)
       {
-        if(!terminatedTasksList().empty())
-        {
-          auto task = *terminatedTasksList().begin();
-          terminatedTasksList().remove(terminatedTasksList().begin());
-          rt::logf("Reaping process pid = %ld, status = %ld\n", task->pid, task->status);
-        }
+        scheduler().reap();
         schedule();
       }
     }
@@ -66,70 +126,64 @@ namespace core::tasks
       }
     }
 
-    void test()
+    void initializeTimer()
     {
-      for(size_t i=0; i<10; ++i)
-      {
-        asm("sti");
-        asm("hlt");
-        asm("cli");
-      }
-      return;
+      interrupts::addTimerCallback(&timerHandler);
     }
 
     void initializeKernelTasks()
     {
+      for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)
+      {
+        auto idleTask = Task::allocate();
+        idleTask->asKernelTask(&idle);
+        addTask(rt::move(idleTask), cpuid);
+      }
+
       auto reaperTask = Task::allocate();
       reaperTask->asKernelTask(&reaper);
       addTask(rt::move(reaperTask));
+    }
 
-      auto idleTask = Task::allocate();
-      idleTask->asKernelTask(&idle);
-      addTask(rt::move(idleTask));
+    void initializeInitTasks()
+    {
+      auto root = vfs::root();
+      auto init = vfs::openAt(root, "init");
+      if(!init)
+        rt::panic("init not found\n");
 
-      auto testTask = Task::allocate();
-      testTask->asKernelTask(&test);
-      addTask(rt::move(testTask));
+      auto task = core::tasks::Task::allocate();
+      if(!task)
+        rt::panic("Failed to create task\n");
+
+      core::tasks::loadElf(task, *init);
+      core::tasks::addTask(task);
     }
   }
 
   void initializeScheduler()
   {
-    activeTasksList.construct();
-    terminatedTasksList.construct();
-
-    initializeTimerInterrupt();
+    scheduler.construct();
+    initializeTimer();
     initializeKernelTasks();
+    initializeInitTasks();
   }
 
-  void addTask(rt::SharedPtr<Task> task)
-  {
-    activeTasksList().insert(activeTasksList().end(), rt::move(task));
-  }
-
-  namespace
-  {
-    rt::SharedPtr<Task> getNextTask()
-    {
-      if(activeTasksList().empty())
-        return nullptr;
-
-      auto nextTask = *activeTasksList().begin();
-      activeTasksList().splice(activeTasksList().end(), activeTasksList(), activeTasksList().begin(), rt::next(activeTasksList().begin()));
-      return nextTask;
-    }
-  }
+  void addTask(rt::SharedPtr<Task> task, unsigned cpuid) { scheduler().addTask(rt::move(task), cpuid); }
+  void addTask(rt::SharedPtr<Task> task)                 { scheduler().addTask(rt::move(task)); }
 
   void schedule()
   {
-    auto currentTask = Task::current;
-    auto nextTask = getNextTask();
+    auto currentTask = Task::current();
+    auto nextTask = scheduler().getNextTask();
 
-    // We always have the reaper task
     ASSERT(nextTask);
-
     if(currentTask.get() != nextTask.get())
+    {
+      ASSERT(nextTask->state == Task::State::RUNNABLE);
       Task::switchTo(rt::move(nextTask));
+    }
+
   }
 
   void killCurrent(status_t status)
@@ -139,7 +193,7 @@ namespace core::tasks
 
   void onResume()
   {
-    if(Task::current->state == Task::State::DEAD)
+    if(Task::current()->state == Task::State::DEAD)
     {
       rt::log("rescheduling since current task is killed\n");
       schedule();
@@ -147,33 +201,17 @@ namespace core::tasks
     }
   }
 
-  pid_t getpid()
-  {
-    return Task::current->pid;
-  }
-
-  Result<result_t> kill(pid_t pid, status_t status)
-  {
-    auto it = rt::find_if(activeTasksList().begin(), activeTasksList().end(), [pid](const rt::SharedPtr<Task>& task) { return task->pid == pid; });
-    if(it == activeTasksList().end())
-      return ErrorCode::INVALID;
-
-    terminatedTasksList().splice(terminatedTasksList().end(), activeTasksList(), it, next(it));
-    (*it)->kill(status);
-
-    /* We cannot reschedule at this moment since all objects from our calling
-     * context may not yet be properly cleaned up */
-    return 0;
-  }
+  pid_t getpid() { return Task::current()->pid; }
+  Result<result_t> kill(pid_t pid, status_t status) { return scheduler().kill(pid, status); }
 
   Result<pid_t> fork()
   {
-    auto clone = Task::current->clone();
+    auto clone = Task::current()->clone();
     if(!clone)
       return ErrorCode::OUT_OF_MEMORY;
 
+    rt::logf("Forking\n");
     addTask(clone);
-    rt::logf("clone->pid:%ld\n", clone->pid);
     return clone->pid;
   }
 }

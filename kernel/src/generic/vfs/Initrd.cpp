@@ -59,8 +59,8 @@ namespace core::vfs
           if(!file)
             rt::panic("Failed to create directory from initrd\n");
         }
-        else
-          rt::log("Unknown header block type detected\n");
+        //else
+        //  rt::log("Unknown header block type detected\n");
       }
     }
   }

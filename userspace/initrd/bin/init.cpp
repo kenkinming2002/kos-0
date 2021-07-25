@@ -144,7 +144,6 @@ void testCommon()
 extern "C" void main()
 {
   testCommon();
-
   switch(sys_fork())
   {
   case 0:
@@ -156,4 +155,6 @@ extern "C" void main()
     test2();
     break;
   }
+
+  for(;;);
 }

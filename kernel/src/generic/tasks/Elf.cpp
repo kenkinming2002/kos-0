@@ -69,7 +69,7 @@ namespace core::tasks
     registers.eip = header.e_entry;
     task->asUserTask(registers);
 
-    auto previousTask = tasks::Task::current;
+    auto previousTask = tasks::Task::current();
     tasks::Task::makeCurrent(task);
     {
       // FIXME: Set an upper limit

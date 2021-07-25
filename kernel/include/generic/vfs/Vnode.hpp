@@ -11,6 +11,7 @@
 #include <librt/SharedPtr.hpp>
 #include <librt/UniquePtr.hpp>
 #include <librt/Assert.hpp>
+#include <librt/SpinLock.hpp>
 
 namespace core::vfs
 {
@@ -45,10 +46,11 @@ namespace core::vfs
     Result<void> unlink(rt::StringRef name);
 
   private:
-    Vnode* m_parent; // To support walking .. directories
+    Vnode* m_parent; // To support walking .. directories, potential race
     rt::containers::Map<rt::String, rt::SharedPtr<Vnode>> m_childs;
 
   private:
+    rt::SpinLock m_lock;
     enum class State { NEW, NORMAL, UMOUNTED, MOUNTED } m_state = State::NEW;
     rt::SharedPtr<Inode> m_inode;
   };

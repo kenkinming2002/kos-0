@@ -1,10 +1,20 @@
 #include <generic/memory/Memory.hpp>
 
+#include <librt/SpinLock.hpp>
 #include <librt/Panic.hpp>
 
-// NOTE: It has to be Reentrant and MT-Safe
-extern "C" int liballoc_lock() { return 0; }
-extern "C" int liballoc_unlock() { return 0; }
+constinit static rt::SpinLock lock;
+extern "C" int liballoc_lock()
+{
+  lock.lock();
+  return 0;
+}
+
+extern "C" int liballoc_unlock()
+{
+  lock.unlock();
+  return 0;
+}
 
 extern "C" void* liballoc_alloc(size_t count)
 {

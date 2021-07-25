@@ -7,23 +7,33 @@
 #include <generic/vfs/VFS.hpp>
 
 #include <generic/log/Log.hpp>
+#include <generic/Init.hpp>
+#include <generic/PerCPU.hpp>
 
+#include <generic/tasks/Tasks.hpp>
 #include <generic/tasks/Elf.hpp>
 #include <generic/tasks/Scheduler.hpp>
 
 #include <generic/devices/Framebuffer.hpp>
 
 #include <generic/memory/Memory.hpp>
+#include <generic/memory/Syscalls.hpp>
 
 #include <generic/BootInformation.hpp>
 
 #include <i686/syscalls/Access.hpp>
 #include <i686/internals/Internals.hpp>
+
 #include <i686/interrupts/Interrupts.hpp>
+
 #include <i686/memory/MemoryMapping.hpp>
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 
+#include <x86/acpi/ACPI.hpp>
+#include <x86/interrupts/PIC.hpp>
+
+#include <librt/SpinLock.hpp>
 #include <librt/Strings.hpp>
 #include <librt/StringRef.hpp>
 #include <librt/UniquePtr.hpp>
@@ -35,45 +45,7 @@
 #include <librt/String.hpp>
 
 #include <type_traits>
-
-static void kmainInitialize(BootInformation* bootInformation)
-{
-  ::bootInformation = bootInformation;
-
-  core::log::initialize();
-  core::internals::initialize();
-  core::interrupts::initialize();
-  core::memory::initialize();
-  core::syscalls::initialize();
-  core::tasks::initializeScheduler();
-  core::tasks::initializeSyscalls();
-  core::vfs::initialize();
-}
-
-[[noreturn]] static void kmainLoadAndRunUserspaceTask()
-{
-  if(bootInformation->moduleEntriesCount == 0)
-    rt::panic("No modules to run");
-
-  // We no longer need boot modules since the initial executable should be found
-  // in initrd
-  {
-    auto root = core::vfs::root();
-    auto init = core::vfs::openAt(root, "init");
-    if(!init)
-      rt::panic("init not found\n");
-
-    auto task = core::tasks::Task::allocate();
-    if(!task)
-      rt::panic("Failed to create task\n");
-
-    core::tasks::loadElf(task, *init);
-    core::tasks::addTask(task);
-  } // We need to ensure all local object is destructed before we call schedule
-
-  core::tasks::schedule();
-  __builtin_unreachable();
-}
+#include <atomic>
 
 static core::Result<result_t> _sys_test()
 {
@@ -94,13 +66,76 @@ static core::Result<result_t> _sys_log(const char* msg, size_t length)
 }
 WRAP_SYSCALL2(sys_log, _sys_log)
 
-extern "C" void kmain(BootInformation* bootInformation)
+static void irq_test(irq_t, uword_t, uintptr_t)
 {
-  kmainInitialize(bootInformation);
+  rt::log("User Interrupt\n");
+}
+
+static std::atomic<unsigned> count = 0;
+static void test() { ++count; }
+void testInitCall()
+{
+  static constexpr size_t COUNT = 10;
+  for(size_t i=0; i<COUNT; ++i)
+    core::foreachCPUInitCall(&test);
+
+  ASSERT(count == COUNT * bootInformation->coresCount);
+}
+
+[[noreturn]] static void runBSP(BootInformation* bootInformation, unsigned apicid)
+{
+  ::bootInformation = bootInformation;
+
+  core::log::initialize();
+  rt::logf("Booting with %u cores\n", bootInformation->coresCount);
+  rt::logf("Selected processor with apicid %u as BSP\n", apicid);
+
+  // Early initialization, this service are needed for further initialization
+  core::initializePerCPU();
+  core::memory::initialize();
+  core::internals::initialize();
+  core::interrupts::initialize();
+  core::syscalls::initialize();
+
+  // Boot information in form of ACPI, also very important
+  core::acpi::initialize();
+  core::interrupts::initializePIC();
+
+  core::vfs::initialize();
+  core::tasks::initialize();
 
   core::syscalls::installHandler(SYS_TEST, &sys_test);
   core::syscalls::installHandler(SYS_LOG,  &sys_log);
-  core::interrupts::installHandler(0x80, [](irq_t, uword_t, uintptr_t) { rt::log("User Interrupt\n"); }, core::PrivilegeLevel::RING3, true);
+  core::interrupts::installHandler(0x80, &irq_test , core::PrivilegeLevel::RING3, true);
 
-  kmainLoadAndRunUserspaceTask();
+  core::foreachCPUInitCall([](){
+    core::tasks::schedule();
+    __builtin_unreachable();
+  });
+  __builtin_unreachable();
+}
+
+[[noreturn]] static void runAP()
+{
+  core::foreachCPUInitHandleLoop();
+}
+
+namespace
+{
+  std::atomic<unsigned> bsp;
+  std::atomic<unsigned> initializedCoresCount;
+
+  rt::SpinLock lock;
+}
+
+extern "C" void kmain(BootInformation* bootInformation, unsigned apicid)
+{
+  ++initializedCoresCount;
+  while(initializedCoresCount != bootInformation->coresCount) asm volatile("pause");
+
+  //if(bsp.exchange(1) == 0)
+  if(apicid == 0)
+    runBSP(bootInformation, apicid); // This is not necessarily BSP
+  else
+    runAP();
 }

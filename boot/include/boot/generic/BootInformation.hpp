@@ -1,8 +1,9 @@
 #pragma once
 
-#include <boot/generic/api/BootInformation.hpp>
+#include <boot/generic/api/multiboot2.h>
+#include <stdint.h>
 
 namespace boot
 {
-  BootInformation initBootInformation(struct multiboot_boot_information* multiboot2BootInformation);
+  void initializeBootInformation(struct multiboot_boot_information* multiboot2BootInformation);
 }

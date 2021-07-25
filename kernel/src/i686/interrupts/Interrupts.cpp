@@ -6,6 +6,7 @@
 
 #include <x86/interrupts/8259.hpp>
 
+#include <generic/Init.hpp>
 #include <generic/tasks/Scheduler.hpp>
 
 #include <librt/Panic.hpp>
@@ -69,24 +70,23 @@ namespace core::interrupts
       idtEntries[i] = IDTEntry(InterruptType::INTERRUPT_GATE_32, PrivilegeLevel::RING0, 0x8, reinterpret_cast<uintptr_t>(isrs[i]));
 
     // Load idt
-    IDT idt(idtEntries);
-    asm volatile ( "lidt %[idt]" : : [idt]"m"(idt) : "ax");
-
-    installHandler(8,  &doubleFaultHandler,            PrivilegeLevel::RING0, true);
-    installHandler(13, &generalProtectionFaultHandler, PrivilegeLevel::RING0, true);
-    installHandler(14, &pageFaultHandler,              PrivilegeLevel::RING0, true);
+    foreachCPUInitCall([](){
+      IDT idt(idtEntries);
+      asm volatile ( "lidt %[idt]" : : [idt]"m"(idt) : "ax");
+    });
 
     rt::log("Done\n");
-
-    initialize8259();
   }
 
   extern "C" void isr(uword_t irqNumber, uword_t errorCode, uintptr_t oldEip)
   {
     if(!handlers[irqNumber])
     {
-      rt::logf("Unhandled Interrupt %lu\n", irqNumber);
-      for(;;) asm volatile("hlt");
+      if(irqNumber<0x20)
+        rt::panic("Unhandled exception %lu\n", irqNumber);
+
+      rt::logf("Unhandled Interrupt %lu\n", irqNumber); // TODO: Implement warning
+      return;
     }
 
     handlers[irqNumber](irqNumber, errorCode, oldEip);

@@ -30,12 +30,10 @@ namespace core::memory
   class MemoryMapping : public rt::SharedPtrHook
   {
   public:
-    static rt::SharedPtr<MemoryMapping> current;
-
-  public:
     static void initialize();
 
   public:
+    static rt::SharedPtr<MemoryMapping>& current();
     static void makeCurrent(rt::SharedPtr<MemoryMapping> memoryMapping);
 
   public:
@@ -46,6 +44,12 @@ namespace core::memory
     MemoryMapping(PageDirectory* pageDirectory);
     ~MemoryMapping();
 
+  // Kernel address space
+  public:
+    uintptr_t kmap(physaddr_t physaddr);
+    void kunmap(uintptr_t addr);
+
+  // User address space
   public:
     Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file = nullptr, size_t offset = 0);
     Result<void> unmap(uintptr_t addr, size_t length);

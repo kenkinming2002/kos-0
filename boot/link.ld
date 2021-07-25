@@ -2,11 +2,19 @@ ENTRY(loader)
 
 SECTIONS {
   /*****************
+   * AP Trampoline *
+   *****************/
+  . = 0x8000;
+
+  .ap_trampoline :
+  {
+    KEEP(*(.ap_trampoline))
+  }
+
+  /*****************
    * Boot sections *
    *****************/
   . = 0x100000;
-
-  boot_memory_begin = .;
 
   .text :
   {

@@ -1,5 +1,7 @@
 core_src = files(
   'src/generic/kmain.cpp',
+  'src/generic/Init.cpp',
+  'src/generic/PerCPU.cpp',
   'src/generic/BootInformation.cpp',
   'src/generic/librt/Hooks.cpp',
 
@@ -18,13 +20,17 @@ core_src = files(
 
   'src/generic/devices/Framebuffer.cpp',
 
-  'src/generic/memory/Memory.cpp',
   'src/generic/memory/MemoryArea.cpp',
+  'src/generic/memory/Heap.cpp',
+  'src/generic/memory/Virtual.cpp',
+  'src/generic/memory/Memory.cpp',
   'src/generic/memory/Syscalls.cpp',
   'src/generic/memory/liballocImpl.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
+  'src/x86/interrupts/PIC.cpp',
   'src/x86/interrupts/8259.cpp',
+  'src/x86/interrupts/APIC.cpp',
   'src/i686/interrupts/Interrupts.cpp',
 
   'src/i686/internals/Internals.cpp',
@@ -33,6 +39,7 @@ core_src = files(
   'src/i686/syscalls/Syscalls.cpp',
   'src/i686/syscalls/Access.cpp',
 
+  'src/generic/tasks/Tasks.cpp',
   'src/generic/tasks/Scheduler.cpp',
   'src/generic/tasks/Elf.cpp',
   'src/generic/tasks/Syscalls.cpp',
@@ -40,6 +47,7 @@ core_src = files(
 
   'src/x86/assembly/io.cpp',
   'src/x86/assembly/msr.cpp',
+  'src/x86/acpi/ACPI.cpp'
 )
 
 core_asm_obj = asm_gen.process(
@@ -57,6 +65,7 @@ liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
 kernel = executable('kernel',
   core_src, core_asm_obj,
   include_directories : ['../boot/include/', 'include/'],
+  cpp_args : ['-fstack-protector', '-fstack-protector-strong', '-fstack-protector-all'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld', '-Wl,-no-dynamic-linker'],
   link_depends : 'link.ld',
   dependencies : [liballoc_dep, libcommon_dep, librt_dep, libelf_dep],

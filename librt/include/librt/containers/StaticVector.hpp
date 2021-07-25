@@ -5,8 +5,10 @@
 #include <librt/Algorithm.hpp>
 #include <librt/Utility.hpp>
 
-#include <stddef.h>
 #include <type_traits>
+#include <new>
+
+#include <stddef.h>
 
 namespace rt::containers
 {
@@ -69,14 +71,24 @@ namespace rt::containers
     constexpr bool empty() const { return m_size == 0; }
     constexpr size_t size() const { return m_size; }
     constexpr size_t capacity() const { return N; }
+    constexpr void shrink(size_t size)
+    {
+      ASSERT(m_size>=size);
+      while(m_size != size) popBack();
+    }
+    constexpr void expand(size_t size, const T& t = T())
+    {
+      ASSERT(m_size<=size);
+      while(m_size != size) pushBack(t);
+    }
     constexpr void resize(size_t size, const T& t = T())
     {
       if(m_size<size)
-        while(m_size != size) pushBack(t);
+        expand(size, t);
       else if(m_size>size)
-        while(m_size != size) popBack();
+        shrink(size);
     }
-    constexpr void clear() { resize(0); }
+    constexpr void clear() { shrink(0); }
 
   public:
     reference       operator[](size_type i)       { ASSERT(i<m_size); return reinterpret_cast<reference>(m_storage[i]); }

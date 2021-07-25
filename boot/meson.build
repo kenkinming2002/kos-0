@@ -2,14 +2,17 @@ boot_src = files(
   'src/generic/BootInformation.cpp',
   'src/generic/Kernel.cpp',
   'src/generic/Memory.cpp',
+  'src/x86/SMP.cpp',
   'src/i686/librt/Hooks.cpp',
   'src/i686/Paging.cpp',
-  'src/i686/bmain.cpp'
+  'src/i686/bmain.cpp',
 )
 
 boot_asm_obj = asm_gen.process(
   'src/generic/Multiboot2Header.s',
-  'src/i686/Loader.s'
+  'src/x86/ap_trampoline.s',
+  'src/i686/Loader.s',
+  'src/i686/Entry.s',
 )
 
 boot = executable('boot',

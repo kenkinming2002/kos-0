@@ -1,5 +1,7 @@
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <generic/Init.hpp>
+#include <generic/PerCPU.hpp>
 #include <generic/BootInformation.hpp>
 #include <generic/tasks/Scheduler.hpp>
 #include <i686/interrupts/Interrupts.hpp>
@@ -21,7 +23,7 @@ namespace core::memory
     {
       uintptr_t addr;
       asm volatile ("mov %[address], cr2" : [address]"=rm"(addr) : :);
-      auto result = MemoryMapping::current->handlePageFault(addr, errorCode);
+      auto result = MemoryMapping::current()->handlePageFault(addr, errorCode);
       if(!result)
       {
         rt::logf("process killed by page fault at 0x%lx with error code:0x%lx and old eip:0x%lx\n", addr, errorCode, oldEip);
@@ -30,7 +32,11 @@ namespace core::memory
     }
   }
 
-  constinit rt::SharedPtr<MemoryMapping> MemoryMapping::current;
+  namespace
+  {
+    constinit rt::SharedPtr<MemoryMapping> bootMemoryMapping;
+    constinit rt::Global<PerCPU<rt::SharedPtr<MemoryMapping>>> currentMemoryMapping;
+  }
 
   void MemoryMapping::initialize()
   {
@@ -41,15 +47,23 @@ namespace core::memory
     asm volatile ("mov %[bootPageDirectoryPhyaddr], cr3" : [bootPageDirectoryPhyaddr]"=r"(bootPageDirectoryPhyaddr) : : "memory");
     PageDirectory* bootPageDirectory = reinterpret_cast<PageDirectory*>(physToVirt(bootPageDirectoryPhyaddr));
 
-    ASSERT(!current);
-    current = rt::makeShared<MemoryMapping>(bootPageDirectory);
+    currentMemoryMapping.construct();
+    bootMemoryMapping = rt::makeShared<MemoryMapping>(bootPageDirectory);
+    for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)
+      currentMemoryMapping().get(cpuid) = bootMemoryMapping;
+
+    bootMemoryMapping.reset();
   }
 
+  rt::SharedPtr<MemoryMapping>& MemoryMapping::current()
+  {
+    return currentMemoryMapping().current();
+  }
 
   void MemoryMapping::makeCurrent(rt::SharedPtr<MemoryMapping> memoryMapping)
   {
     asm volatile ("mov cr3, %[pageDirectoryPhyaddr]" : : [pageDirectoryPhyaddr]"r"(virtToPhys(reinterpret_cast<uintptr_t>(memoryMapping->m_pageDirectory))) : "memory");
-    current = rt::move(memoryMapping);
+    current() = rt::move(memoryMapping);
   }
 
   rt::SharedPtr<MemoryMapping> MemoryMapping::allocate()
@@ -58,8 +72,7 @@ namespace core::memory
     if(!page)
       return nullptr;
 
-    ASSERT(current);
-    const auto& currentPageDirectory = *current->m_pageDirectory;
+    const auto& currentPageDirectory = *current()->m_pageDirectory;
     auto& pageDirectory = *static_cast<PageDirectory*>(page);
 
     rt::fill(rt::begin(pageDirectory), rt::end(pageDirectory), PageDirectoryEntry());
@@ -91,6 +104,50 @@ namespace core::memory
     freePages(m_pageDirectory, 1);
   }
 
+  /* We use to to have a spinlock here for both kmap and kunmap, but that turns
+   * out to be a major source of lock contention.
+   *
+   * How do we solve it?
+   *
+   * We reserve the last n PageDirectoryEntry use 1 for each core, so that there
+   * could never be any collision. */
+  uintptr_t MemoryMapping::kmap(physaddr_t physaddr)
+  {
+    size_t pageDirectoryEntryIndex = 1024 - getCpusCount() + cpuidCurrent();
+
+    size_t offset            = physaddr % LARGE_PAGE_SIZE;
+
+    physaddr_t physaddr_base = physaddr / LARGE_PAGE_SIZE * LARGE_PAGE_SIZE;
+    uintptr_t addr_base      = pageDirectoryEntryIndex * LARGE_PAGE_SIZE;
+    uintptr_t addr           = addr_base + offset;
+
+    auto& pageDirectory = *m_pageDirectory;
+    auto& lastPageDirectoryEntry = pageDirectory[pageDirectoryEntryIndex];
+
+    ASSERT(!lastPageDirectoryEntry.present());
+    lastPageDirectoryEntry = PageDirectoryEntry(physaddr_base, CacheMode::DISABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+    ASSERT(lastPageDirectoryEntry.present());
+
+    asm volatile ( "invlpg [%[addr_base]]" : : [addr_base]"r"(addr_base) : "memory");
+    return addr;
+  }
+
+  void MemoryMapping::kunmap(uintptr_t addr)
+  {
+    size_t pageDirectoryEntryIndex = 1024 - getCpusCount() + cpuidCurrent();
+
+    uintptr_t addr_base = addr / LARGE_PAGE_SIZE * LARGE_PAGE_SIZE;
+
+    auto& pageDirectory = *m_pageDirectory;
+    auto& lastPageDirectoryEntry = pageDirectory[pageDirectoryEntryIndex];
+
+    ASSERT(lastPageDirectoryEntry.present());
+    lastPageDirectoryEntry = PageDirectoryEntry();
+    ASSERT(!lastPageDirectoryEntry.present());
+
+    asm volatile ( "invlpg [%[addr_base]]" : : [addr_base]"r"(addr_base) : "memory");
+  }
+
   /*
    * Public interface
    */
@@ -106,10 +163,18 @@ namespace core::memory
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
     if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr+memoryArea.length>begin && memoryArea.addr < end; }))
+    {
+      for(const auto& memoryArea: m_memoryAreas)
+        rt::logf("mapped => addr:%lx, length:%lx\n", memoryArea.addr, memoryArea.length);
+
+      rt::logf("new => addr:%lx, length:%lx\n", addr, length);
+      ASSERT(false);
       return ErrorCode::EXIST;
+    }
 
     auto memoryArea = MemoryArea(begin, end-begin, prot, rt::move(file), offset, MapType::PRIVATE);
     m_memoryAreas.insert(m_memoryAreas.end(), rt::move(memoryArea));
+
     return {};
   }
 

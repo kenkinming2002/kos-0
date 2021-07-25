@@ -60,6 +60,7 @@ namespace core::internals
   class GDT
   {
   public:
+    constexpr GDT() = default;
     GDT(const GDTEntry* gdtEntries, size_t size)
     {
       m_size = sizeof (GDTEntry) * size - 1;

@@ -14,53 +14,82 @@
 
 namespace boot::memory
 {
-  using namespace common::memory;
-
+  extern "C" { PageDirectory* pageDirectory; }
   namespace
   {
-    PageDirectory& getPageDirectory(BootInformation& bootInformation)
+    PageDirectory& getPageDirectory()
     {
-      static PageDirectory* pageDirectory = nullptr;
       if(!pageDirectory)
-        pageDirectory = static_cast<PageDirectory*>(allocPages(bootInformation, 1, ReservedMemoryRegion::Type::PAGING));
+        pageDirectory = static_cast<PageDirectory*>(allocPages(1));
 
       return *pageDirectory;
     }
 
-    PageDirectoryEntry& getPageDirectoryEntry(BootInformation& bootInformation, uintptr_t virtaddr)
+    PageDirectoryEntry& getPageDirectoryEntry(uintptr_t virtaddr)
     {
-      auto& pageDirectory = getPageDirectory(bootInformation);
+      auto& pageDirectory = getPageDirectory();
       size_t pageDirectoryIndex = virtaddr / LARGE_PAGE_SIZE;
       auto& pageDirectoryEntry  = pageDirectory[pageDirectoryIndex];
       return pageDirectoryEntry;
     }
 
-    PageTable& getPageTable(BootInformation& bootInformation, uintptr_t virtaddr)
+    PageTable& getPageTable(uintptr_t virtaddr)
     {
-      auto& pageDirectoryEntry = getPageDirectoryEntry(bootInformation, virtaddr);
+      auto& pageDirectoryEntry = getPageDirectoryEntry(virtaddr);
       if(!pageDirectoryEntry.present())
       {
-        PageTable* pageTable = static_cast<PageTable*>(allocPages(bootInformation, 1, ReservedMemoryRegion::Type::PAGING));
+        PageTable* pageTable = static_cast<PageTable*>(allocPages(1));
         pageDirectoryEntry = PageDirectoryEntry(reinterpret_cast<uintptr_t>(pageTable), CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
       }
       return *reinterpret_cast<PageTable*>(pageDirectoryEntry.address());
     }
 
-    PageTableEntry& getPageTableEntry(BootInformation& bootInformation, uintptr_t virtaddr)
+    PageTableEntry& getPageTableEntry(uintptr_t virtaddr)
     {
-      auto pageTable        = getPageTable(bootInformation, virtaddr);
+      auto pageTable        = getPageTable(virtaddr);
       size_t pageTableIndex = (virtaddr % LARGE_PAGE_SIZE) / PAGE_SIZE;
       auto& pageTableEntry  = pageTable[pageTableIndex];
       return pageTableEntry;
     }
   }
 
-  void initializePaging(BootInformation& bootInformation)
+  uintptr_t map(uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
+  {
+    using namespace common::memory;
+    rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx\n", phyaddr, virtaddr, length);
+
+    for(size_t offset=0; offset<length; offset+=PAGE_SIZE)
+    {
+      const auto phyaddrLocal  = phyaddr + offset;
+      const auto virtaddrLocal = virtaddr + offset;
+      auto& pageTableEntry = getPageTableEntry(virtaddrLocal);
+      if(pageTableEntry.present())
+        rt::panic("Attempting to modify mapped page\n");
+
+      pageTableEntry = PageTableEntry(phyaddrLocal, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
+    }
+
+    return virtaddr;
+  }
+
+  void initializePaging()
   {
     // Setup identity paging before enabling paging just so that we can continue
     // execution, before we transfer control to the kernel
-    auto& pageDirectory = getPageDirectory(bootInformation);
-    pageDirectory[0] = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+    getPageDirectoryEntry(0) = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+
+    // Setup mapping for physical memory
+    uintptr_t phyaddr = 0;
+    for(uintptr_t virtaddr = PHYSICAL_MEMORY_MAPPING_START; virtaddr != PHYSICAL_MEMORY_MAPPING_END; virtaddr += LARGE_PAGE_SIZE)
+    {
+      auto& pageDirectoryEntry = getPageDirectoryEntry(virtaddr);
+      pageDirectoryEntry = PageDirectoryEntry(phyaddr, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+      phyaddr += LARGE_PAGE_SIZE;
+    }
+  }
+
+  void enablePaging()
+  {
     asm volatile (
       // Load page directory
       "mov cr3, %[pageDirectory];"
@@ -74,38 +103,9 @@ namespace boot::memory
       "mov eax, cr0;"
       "or  eax, 0x80000001;"
       "mov cr0, eax;"
-      : : [pageDirectory]"r"(&pageDirectory) : "eax", "memory"
+      : : [pageDirectory]"r"(pageDirectory) : "eax", "memory"
     );
-
-    // Setup mapping for physical memory
-    uintptr_t phyaddr = 0;
-    for(uintptr_t virtaddr = PHYSICAL_MEMORY_MAPPING_START; virtaddr != PHYSICAL_MEMORY_MAPPING_END; virtaddr += LARGE_PAGE_SIZE)
-    {
-      auto& pageDirectoryEntry = getPageDirectoryEntry(bootInformation, virtaddr);
-      pageDirectoryEntry = PageDirectoryEntry(phyaddr, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
-      phyaddr += LARGE_PAGE_SIZE;
-    }
-
-    bootInformation.physicalMemoryOffset = PHYSICAL_MEMORY_MAPPING_START;
   }
 
-  uintptr_t map(BootInformation& bootInformation, uintptr_t phyaddr, uintptr_t virtaddr, size_t length, common::memory::Access access, common::memory::Permission permission)
-  {
-    using namespace common::memory;
-    rt::logf("Mapping 0x%lx to 0x%lx of length 0x%lx", phyaddr, virtaddr, length);
-
-    for(size_t offset=0; offset<length; offset+=PAGE_SIZE)
-    {
-      const auto phyaddrLocal  = phyaddr + offset;
-      const auto virtaddrLocal = virtaddr + offset;
-      auto& pageTableEntry = getPageTableEntry(bootInformation, virtaddrLocal);
-      if(pageTableEntry.present())
-        rt::panic("Attempting to modify mapped page\n");
-
-      pageTableEntry = PageTableEntry(phyaddrLocal, TLBMode::LOCAL, CacheMode::ENABLED, WriteMode::WRITE_BACK, access, permission);
-    }
-
-    return virtaddr;
-  }
 }
 

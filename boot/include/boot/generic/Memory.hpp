@@ -1,12 +1,19 @@
 #pragma once
 
-#include <boot/generic/BootInformation.hpp>
-
 #include <stddef.h>
+#include <stdint.h>
 
 namespace boot::memory
 {
-  void* allocPages(BootInformation& bootInformation, size_t count, ReservedMemoryRegion::Type type);
-  void* alloc(BootInformation& bootInformation, size_t size, ReservedMemoryRegion::Type type);
+  void* allocPages(size_t count);
+  void* alloc(size_t size);
+
+  struct Region
+  {
+    uintptr_t addr;
+    size_t length;
+  };
+
+  Region getUsedRegion();
 }
 

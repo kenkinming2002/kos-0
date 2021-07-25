@@ -31,8 +31,11 @@ namespace core::tasks
     static constexpr size_t STACK_SIZE        =  STACK_PAGES_COUNT * memory::PAGE_SIZE;
 
   public:
-    static rt::SharedPtr<Task> current;
+    static void intialize();
+
+    static rt::SharedPtr<Task>& current();
     static void makeCurrent(rt::SharedPtr<Task> task);
+
     static void switchTo(rt::SharedPtr<Task> task);
 
   public:

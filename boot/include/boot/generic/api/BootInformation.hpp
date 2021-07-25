@@ -28,7 +28,7 @@ struct ReservedMemoryRegion
 {
   uintptr_t addr;
   size_t len;
-  enum class Type { KERNEL, PAGING, BOOT_INFORMATION } type;
+  enum class Type { KERNEL, PAGING, BOOT_INFORMATION, MISC } type;
 };
 
 // I need a way to tell the kernel what memory regions it should not use
@@ -45,17 +45,18 @@ struct ReservedMemoryRegion
 //       binary compatibility
 struct BootInformation
 {
+  uint8_t coresCount; // This must be the first element
+
   uintptr_t physicalMemoryOffset;
+  size_t physicalMemoryLength;
+
+  size_t memoryMapEntriesCount;
+  size_t moduleEntriesCount;
+  size_t reservedMemoryRegionsCount;
 
   char cmdline[MAX_CMDLINE_LENGTH];
-
   MemoryMapEntry memoryMapEntries[MAX_MEMORY_MAP_ENTRIES_COUNT];
-  size_t memoryMapEntriesCount;
-
   ModuleEntry moduleEntries[MAX_MODULE_ENTRIES_COUNT];
-  size_t moduleEntriesCount;
-
   ReservedMemoryRegion reservedMemoryRegions[MAX_MEMORY_REGIONS_COUNT];
-  size_t reservedMemoryRegionsCount;
 };
 

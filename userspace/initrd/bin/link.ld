@@ -2,25 +2,64 @@ ENTRY(_start)
 
 SECTIONS {
   . = ALIGN(0x1000);
+  /*********************
+   * Read-Only Section *
+   *********************/
   .text :
   {
-    *(.text.*)
+    *(.text .text.*)
   }
 
   .rodata :
   {
-    *(.rodata)
+    *(.rodata .rodata.*)
   }
 
+  /* Dynamic Relocation Information */
+  .rel.dyn :
+  {
+    *(.rel.dyn)
+  }
+
+  /* Dynamic Symbols */
+  .dynsym :
+  {
+    *(.dynsym)
+  }
+
+  .dynstr :
+  {
+    *(.dynstr)
+  }
+
+  .gnu.hash :
+  {
+    *(.gnu.hash)
+  }
+
+
+  /*********************
+   * Read-Write Section *
+   *********************/
   . = ALIGN(0x1000);
   .data :
   {
-    *(.data)
+    *(.data .data.*)
+  }
+
+  .got.plt :
+  {
+    *(.got.plt)
+  }
+
+  .dynamic :
+  {
+    *(.dynamic)
   }
 
   .bss (NOLOAD) :
   {
-    *(.bss)
+    *(.bss .bss.* COMMON)
   }
 
   . = ALIGN(0x1000);

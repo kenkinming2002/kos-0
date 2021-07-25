@@ -6,6 +6,7 @@ namespace core::tasks
 {
   void initializeScheduler();
 
+  void addTask(rt::SharedPtr<Task> task, unsigned cpuid);
   void addTask(rt::SharedPtr<Task> task);
 
   void schedule();

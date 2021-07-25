@@ -3,6 +3,8 @@
 #include <generic/memory/Memory.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
+#include <generic/Init.hpp>
+#include <generic/PerCPU.hpp>
 #include <generic/tasks/Scheduler.hpp>
 
 #include <i686/tasks/Switch.hpp>
@@ -10,39 +12,41 @@
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/tasks/Entry.hpp>
 
-#include "librt/SharedPtr.hpp"
-#include "librt/UniquePtr.hpp"
+#include <librt/SharedPtr.hpp>
+#include <librt/UniquePtr.hpp>
+#include <librt/Global.hpp>
 #include <librt/Panic.hpp>
-
-extern "C"
-{
-  extern char kernel_stack_top[];
-  extern char kernel_stack_bottom[];
-
-  extern char kernel_read_only_section_begin [];
-  extern char kernel_read_only_section_end [];
-
-  extern char kernel_read_write_section_begin [];
-  extern char kernel_read_write_section_end [];
-}
 
 namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
   // FIXME: Implement for multiprocessor
-  constinit rt::SharedPtr<Task> Task::current;
+  namespace
+  {
+    constinit rt::Global<PerCPU<rt::SharedPtr<Task>>> currentTask;
+  }
+
+  void Task::intialize()
+  {
+    currentTask.construct();
+  }
+
+  rt::SharedPtr<Task>& Task::current()
+  {
+    return currentTask().current();
+  }
 
   void Task::makeCurrent(rt::SharedPtr<Task> task)
   {
-    if(current && current->state == State::RUNNING)
-      current->state = State::RUNNABLE;
+    if(current() && current()->state == State::RUNNING)
+      current()->state = State::RUNNABLE;
 
-    current = task;
+    current() = task;
     if(task)
     {
-      ASSERT(current->state == State::RUNNABLE);
-      current->state = State::RUNNING;
+      ASSERT(current()->state == State::RUNNABLE);
+      current()->state = State::RUNNING;
 
       interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
       syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
@@ -53,9 +57,9 @@ namespace core::tasks
 
   void Task::switchTo(rt::SharedPtr<Task> task)
   {
-    if(current.get() != nullptr)
+    if(current().get() != nullptr)
     {
-      auto previousTask = current;
+      auto previousTask = current();
 
       makeCurrent(task);
       core_tasks_switch_esp(&previousTask->kernelStack.esp, &task->kernelStack.esp);
@@ -143,7 +147,6 @@ namespace core::tasks
 
     void newKernelTask(void(*kernelTask)())
     {
-      rt::logf("Launching new kernel tasks\n");
       kernelTask();
       killCurrent(0);
       schedule();
@@ -152,7 +155,6 @@ namespace core::tasks
 
     void newUserTask(Registers& registers)
     {
-      rt::logf("Launching new user tasks with eip=0x%lx, esp=0x%lx\n", registers.eip, registers.esp);
       core_tasks_entry(&registers);
       ASSERT_UNREACHABLE;
     }
