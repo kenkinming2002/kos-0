@@ -1,6 +1,7 @@
 #include <boot/generic/BootInformation.hpp>
 
 #include <boot/generic/api/BootInformation.hpp>
+#include <boot/generic/api/Config.hpp>
 
 #include <boot/generic/Kernel.hpp>
 #include <boot/generic/multiboot2.hpp>

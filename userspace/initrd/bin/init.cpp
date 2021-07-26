@@ -5,6 +5,7 @@
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
+#include <type_traits>
 #include <stddef.h>
 
 extern "C" char _end[];

@@ -20,7 +20,7 @@ namespace core::memory
     void pageFaultHandler(irq_t irqNumber, uword_t errorCode, uintptr_t oldEip)
     {
       uintptr_t addr;
-      asm volatile ("mov %[address], cr2" : [address]"=rm"(addr) : :);
+      asm volatile ("mov %[address], cr2" : [address]"=r"(addr) : :);
       auto result = MemoryMapping::current()->handlePageFault(addr, errorCode);
       if(!result)
       {

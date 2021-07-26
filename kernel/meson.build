@@ -61,7 +61,6 @@ core_asm_obj = asm_gen.process(
 kernel = executable('kernel',
   core_src, core_asm_obj,
   include_directories : ['../boot/include/', 'include/'],
-  cpp_args : ['-fstack-protector', '-fstack-protector-strong', '-fstack-protector-all'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld', '-Wl,-no-dynamic-linker'],
   link_depends : 'link.ld',
   dependencies : [libcommon_dep, librt_dep, libelf_dep],

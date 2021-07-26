@@ -9,17 +9,18 @@ librt_src = [
   'src/cxxabi.cpp',
   'src/liballocImpl.cpp',
   'src/liballoc_1_1.c',
-  'src/containers/IntrusiveListBase.cpp'
+  'src/containers/IntrusiveListBase.cpp',
+  'src/sanitizers/ubsan.cpp'
 ]
 
 librt_inc = include_directories('include')
 
-librt        = static_library('rt',        librt_src, include_directories : librt_inc, pic : false)
+librt        = static_library('rt', librt_src, include_directories : librt_inc)
+librt_dep    = declare_dependency(include_directories : librt_inc, link_with: librt)
+
+# Test
 librt_native = static_library('rt_native', librt_src, include_directories : librt_inc, native : true)
-
-librt_dep        = declare_dependency(include_directories : librt_inc, link_with: librt)
 librt_native_dep = declare_dependency(include_directories : librt_inc, link_with: librt_native)
-
 thread_dep = dependency('threads')
 librt_test = executable('librt_test', 'src/Test.cpp',
   dependencies : [librt_native_dep, thread_dep],

@@ -76,7 +76,8 @@ namespace boot::memory
   {
     // Setup identity paging before enabling paging just so that we can continue
     // execution, before we transfer control to the kernel
-    getPageDirectoryEntry(0) = PageDirectoryEntry(0, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+    getPageDirectoryEntry(0)               = PageDirectoryEntry(0,               CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
+    getPageDirectoryEntry(LARGE_PAGE_SIZE) = PageDirectoryEntry(LARGE_PAGE_SIZE, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
 
     // Setup mapping for physical memory
     uintptr_t phyaddr = 0;

@@ -1,4 +1,4 @@
-project('LittleBook', 'cpp', default_options : ['cpp_std=c++2a', 'build.cpp_std=c++2a'])
+project('LittleBook', ['c', 'cpp'], default_options : ['cpp_std=c++2a', 'build.cpp_std=c++2a'])
 
 add_global_arguments('-fno-rtti',  language: ['cpp'])
 
