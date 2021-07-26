@@ -1,5 +1,7 @@
 #include <generic/memory/MemoryArea.hpp>
 
+#include <librt/Log.hpp>
+
 namespace core::memory
 {
   namespace { using PageFrame = char[PAGE_SIZE]; }

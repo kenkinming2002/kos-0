@@ -27,7 +27,7 @@ namespace core::interrupts
     TRAP_GATE_32      = 0xF
   };
 
-  class IDTEntry
+  class [[gnu::packed]] IDTEntry
   {
   public:
     constexpr IDTEntry() = default;
@@ -60,9 +60,9 @@ namespace core::interrupts
     uint8_t  m_zero       = 0;
     uint8_t  m_typeAttr   = 0;
     uint16_t m_offsetHigh = 0;
-  }__attribute((packed));
+  };
 
-  struct IDT
+  struct [[gnu::packed]] IDT
   {
   public:
     IDT(const IDTEntry(&idtEntries)[256])
@@ -74,5 +74,5 @@ namespace core::interrupts
   private:
     uint16_t m_size;
     uint32_t m_offset;
-  }__attribute__((packed));
+  };
 }

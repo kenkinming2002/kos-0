@@ -4,8 +4,6 @@
 
 #include <atomic>
 
-#include <librt/Log.hpp>
-
 namespace core
 {
   inline void pause() { asm volatile("pause"); }

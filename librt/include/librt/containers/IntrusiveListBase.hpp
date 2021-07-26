@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iterator>
-
 #include <librt/NonCopyable.hpp>
 #include <librt/Utility.hpp>
 #include <librt/Iterator.hpp>

@@ -1,15 +1,11 @@
 #include <generic/vfs/VFS.hpp>
 
 #include <generic/vfs/Syscalls.hpp>
+#include <generic/vfs/Mountable.hpp>
 #include <generic/vfs/Path.hpp>
 #include <generic/vfs/Initrd.hpp>
 
-#include <librt/SharedPtr.hpp>
-#include <librt/Result.hpp>
 #include <librt/Global.hpp>
-#include <librt/StringRef.hpp>
-#include <librt/UniquePtr.hpp>
-#include <librt/Pair.hpp>
 
 namespace core::vfs
 {

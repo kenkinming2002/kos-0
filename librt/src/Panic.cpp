@@ -4,8 +4,6 @@
 #include <librt/Hooks.hpp>
 #include <librt/Trace.hpp>
 
-#include <stddef.h>
-
 namespace rt
 {
   [[noreturn]] void panic(const char* format, ...)

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <librt/StringRef.hpp>
-#include <librt/Panic.hpp>
 
 #include <stdint.h>
 #include <stddef.h>

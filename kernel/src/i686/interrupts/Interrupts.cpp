@@ -4,14 +4,11 @@
 #include <i686/interrupts/ISR.hpp>
 #include <i686/internals/Segmentation.hpp>
 
-#include <x86/interrupts/8259.hpp>
-
 #include <generic/Init.hpp>
 #include <generic/tasks/Scheduler.hpp>
 
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
-#include <librt/Assert.hpp>
 
 #include <stddef.h>
 

@@ -1,12 +1,9 @@
 #pragma once
 
-#include "librt/NonCopyable.hpp"
 #include <librt/StringRef.hpp>
 
 #include <librt/UniquePtr.hpp>
 #include <librt/Algorithm.hpp>
-
-#include <type_traits>
 
 namespace rt
 {

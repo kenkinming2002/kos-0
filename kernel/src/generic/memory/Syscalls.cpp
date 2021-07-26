@@ -1,11 +1,10 @@
 #include <generic/memory/Syscalls.hpp>
 
-#include <generic/memory/Memory.hpp>
-#include <generic/memory/Virtual.hpp>
-
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/syscalls/Access.hpp>
+
+#include <generic/memory/Virtual.hpp>
 
 namespace core::memory
 {

@@ -1,51 +1,26 @@
-#include "generic/Error.hpp"
-#include "generic/tasks/Syscalls.hpp"
-#include <generic/vfs/Mountable.hpp>
-#include <generic/vfs/Path.hpp>
-#include <generic/vfs/Inode.hpp>
-#include <generic/vfs/Vnode.hpp>
 #include <generic/vfs/VFS.hpp>
 
 #include <generic/log/Log.hpp>
 #include <generic/Init.hpp>
 #include <generic/PerCPU.hpp>
-
 #include <generic/tasks/Tasks.hpp>
-#include <generic/tasks/Elf.hpp>
 #include <generic/tasks/Scheduler.hpp>
-
 #include <generic/devices/Framebuffer.hpp>
-
 #include <generic/memory/Memory.hpp>
-#include <generic/memory/Syscalls.hpp>
-
 #include <generic/BootInformation.hpp>
 
 #include <i686/syscalls/Access.hpp>
 #include <i686/internals/Internals.hpp>
-
 #include <i686/interrupts/Interrupts.hpp>
 
-#include <i686/memory/MemoryMapping.hpp>
-#include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Syscalls.hpp>
 
 #include <x86/acpi/ACPI.hpp>
 #include <x86/interrupts/PIC.hpp>
 
-#include <librt/SpinLock.hpp>
-#include <librt/Strings.hpp>
 #include <librt/StringRef.hpp>
-#include <librt/UniquePtr.hpp>
-#include <librt/Optional.hpp>
 #include <librt/Log.hpp>
-#include <librt/Panic.hpp>
 #include <librt/Assert.hpp>
-#include <librt/containers/Map.hpp>
-#include <librt/String.hpp>
-
-#include <type_traits>
-#include <atomic>
 
 static core::Result<result_t> _sys_test()
 {
@@ -124,8 +99,6 @@ namespace
 {
   std::atomic<unsigned> bsp;
   std::atomic<unsigned> initializedCoresCount;
-
-  rt::SpinLock lock;
 }
 
 extern "C" void kmain(BootInformation* bootInformation, unsigned apicid)

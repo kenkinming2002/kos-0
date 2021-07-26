@@ -1,20 +1,17 @@
 #pragma once
 
 #include <generic/vfs/Inode.hpp>
-#include <generic/vfs/Mountable.hpp>
 #include <generic/Error.hpp>
 
-#include <librt/Optional.hpp>
-#include <librt/String.hpp>
-#include <librt/StringRef.hpp>
 #include <librt/containers/Map.hpp>
+
+#include <librt/String.hpp>
 #include <librt/SharedPtr.hpp>
-#include <librt/UniquePtr.hpp>
 #include <librt/Assert.hpp>
-#include <librt/SpinLock.hpp>
 
 namespace core::vfs
 {
+  class Mountable;
   class Vnode : public rt::SharedPtrHook
   {
   public:
@@ -50,7 +47,6 @@ namespace core::vfs
     rt::containers::Map<rt::String, rt::SharedPtr<Vnode>> m_childs;
 
   private:
-    rt::SpinLock m_lock;
     enum class State { NEW, NORMAL, UMOUNTED, MOUNTED } m_state = State::NEW;
     rt::SharedPtr<Inode> m_inode;
   };

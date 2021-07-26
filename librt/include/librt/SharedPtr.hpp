@@ -4,11 +4,11 @@
 #include <librt/DefaultConstruct.hpp>
 #include <librt/NonCopyable.hpp>
 #include <librt/Assert.hpp>
-#include <librt/Log.hpp>
 
 #include <atomic>
-#include <cstddef>
 #include <type_traits>
+
+#include <stddef.h>
 
 namespace rt
 {

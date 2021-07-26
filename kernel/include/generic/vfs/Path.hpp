@@ -1,10 +1,7 @@
 #pragma once
 
-#include "librt/Panic.hpp"
 #include <librt/StringRef.hpp>
 #include <librt/Pair.hpp>
-#include <librt/Assert.hpp>
-#include <librt/Log.hpp>
 
 namespace core::vfs::path
 {

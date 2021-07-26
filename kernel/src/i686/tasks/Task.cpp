@@ -1,8 +1,5 @@
 #include <i686/tasks/Task.hpp>
 
-#include <generic/memory/Memory.hpp>
-#include <i686/memory/MemoryMapping.hpp>
-
 #include <generic/Init.hpp>
 #include <generic/PerCPU.hpp>
 #include <generic/tasks/Scheduler.hpp>
@@ -12,10 +9,7 @@
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/tasks/Entry.hpp>
 
-#include <librt/SharedPtr.hpp>
-#include <librt/UniquePtr.hpp>
 #include <librt/Global.hpp>
-#include <librt/Panic.hpp>
 
 namespace core::tasks
 {

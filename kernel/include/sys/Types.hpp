@@ -1,9 +1,8 @@
 #pragma once
 
-#include <stdint.h>
-
 #include <type_traits>
-#include <limits>
+
+#include <stdint.h>
 
 using word_t  = intptr_t;
 using uword_t = uintptr_t;

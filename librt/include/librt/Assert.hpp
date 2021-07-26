@@ -1,6 +1,5 @@
 #pragma once
 
-#include <type_traits>
 namespace rt::internals
 {
   [[noreturn]] void assertFunc(const char* file, int line, const char* func, const char* expr);

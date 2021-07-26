@@ -1,6 +1,5 @@
 #pragma once
 
-#include <generic/memory/Memory.hpp>
 #include <generic/memory/Virtual.hpp>
 
 #include <librt/Assert.hpp>

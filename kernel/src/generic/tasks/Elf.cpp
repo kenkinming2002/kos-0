@@ -1,15 +1,13 @@
-#include "i686/tasks/Task.hpp"
-#include "librt/SharedPtr.hpp"
 #include <generic/tasks/Elf.hpp>
 
 #include <common/i686/memory/Paging.hpp>
 
 #include <i686/syscalls/Access.hpp>
 #include <i686/memory/MemoryMapping.hpp>
+#include <i686/tasks/Task.hpp>
 
 #include <libelf/libelf.hpp>
 
-#include <librt/Optional.hpp>
 #include <librt/Algorithm.hpp>
 
 namespace core::tasks

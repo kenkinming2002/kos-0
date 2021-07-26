@@ -6,8 +6,6 @@
 #include <i686/syscalls/Access.hpp>
 #include <i686/tasks/Task.hpp>
 
-#include <librt/StringRef.hpp>
-
 namespace core::vfs
 {
   namespace

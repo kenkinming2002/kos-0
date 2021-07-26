@@ -4,7 +4,6 @@
 #include <librt/Assert.hpp>
 
 #include <new>
-#include <type_traits>
 
 namespace rt
 {

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <librt/Optional.hpp>
 #include <generic/BootInformation.hpp>
+
+#include <librt/Assert.hpp>
 
 #include <stddef.h>
 #include <stdint.h>

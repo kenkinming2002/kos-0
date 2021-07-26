@@ -10,6 +10,7 @@
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
 #include <librt/Global.hpp>
+
 #include <librt/containers/StaticVector.hpp>
 
 namespace core::interrupts

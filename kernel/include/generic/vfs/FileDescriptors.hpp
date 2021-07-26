@@ -1,12 +1,8 @@
 #pragma once
 
-#include "librt/SharedPtr.hpp"
 #include <generic/vfs/File.hpp>
 
-#include <librt/containers/StaticVector.hpp>
-
-#include <atomic>
-#include <type_traits>
+#include <librt/SharedPtr.hpp>
 
 namespace core::vfs
 {

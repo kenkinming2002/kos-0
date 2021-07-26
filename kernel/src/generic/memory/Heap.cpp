@@ -1,12 +1,11 @@
 #include <generic/memory/Heap.hpp>
 
-#include <generic/memory/MemoryRegions.hpp>
-#include <generic/memory/Syscalls.hpp>
-
-#include <generic/BootInformation.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
-#include <librt/Panic.hpp>
+#include <generic/memory/MemoryRegions.hpp>
+#include <generic/memory/Syscalls.hpp>
+#include <generic/BootInformation.hpp>
+
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
@@ -15,7 +14,6 @@
 #include <liballoc_1_1.h>
 
 #include <new>
-#include <type_traits>
 
 namespace core::memory
 {

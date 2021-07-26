@@ -1,11 +1,9 @@
 #pragma once
 
-#include "librt/SharedPtr.hpp"
+#include <generic/vfs/File.hpp>
 #include <i686/tasks/Task.hpp>
 
-#include <librt/Optional.hpp>
-
-#include <stddef.h>
+#include <librt/Result.hpp>
 
 namespace core::tasks
 {

@@ -2,11 +2,6 @@
 
 #include <generic/vfs/File.hpp>
 #include <generic/memory/Page.hpp>
-#include <generic/memory/Memory.hpp>
-
-#include <sys/Types.hpp>
-
-#include <librt/SharedPtr.hpp>
 
 namespace core::memory
 {
@@ -19,9 +14,6 @@ namespace core::memory
       ASSERT(addr   % PAGE_SIZE == 0);
       ASSERT(length % PAGE_SIZE == 0);
     }
-
-  public:
-    MemoryArea clone();
 
   public:
     Result<physaddr_t> getPageFrame(uintptr_t addr);

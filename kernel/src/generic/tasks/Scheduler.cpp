@@ -1,18 +1,14 @@
 #include <generic/tasks/Scheduler.hpp>
 
-#include <i686/tasks/Switch.hpp>
+#include <x86/interrupts/PIC.hpp>
 
 #include <generic/Init.hpp>
 #include <generic/PerCPU.hpp>
 #include <generic/vfs/VFS.hpp>
 #include <generic/tasks/Elf.hpp>
 
-#include <i686/interrupts/Interrupts.hpp>
-#include <x86/interrupts/PIC.hpp>
-
 #include <librt/Panic.hpp>
 #include <librt/Global.hpp>
-#include <librt/Iterator.hpp>
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 #include <librt/SpinLock.hpp>

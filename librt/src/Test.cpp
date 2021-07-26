@@ -11,6 +11,7 @@
 #include <librt/containers/Map.hpp>
 #include <librt/containers/List.hpp>
 
+#include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
 #include <thread>

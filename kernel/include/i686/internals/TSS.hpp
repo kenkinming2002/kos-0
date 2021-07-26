@@ -4,7 +4,7 @@
 
 namespace core::internals
 {
-  struct TSS
+  struct [[gnu::packed]] TSS
   {
     uint32_t prev_tss;
     uint32_t esp0;
@@ -33,5 +33,5 @@ namespace core::internals
     uint32_t ldt;
     uint16_t trap;
     uint16_t iomap_base;
-  } __attribute__((packed));
+  };
 }

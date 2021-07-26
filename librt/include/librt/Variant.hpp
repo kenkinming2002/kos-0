@@ -7,7 +7,6 @@
 #include <new>
 
 #include <stddef.h>
-#include <utility>
 
 namespace rt
 {
@@ -89,7 +88,7 @@ namespace rt
   public:
     constexpr Variant() : m_index(nullIndex), m_storage{} {}
     template<typename T, typename... Args>
-    Variant(type_constant_t<T> type, Args&&... args) : Variant() { emplace(type, std::forward<Args>(args)...); }
+    Variant(type_constant_t<T> type, Args&&... args) : Variant() { emplace(type, forward<Args>(args)...); }
 
     Variant& operator=(Variant&& other)
     {

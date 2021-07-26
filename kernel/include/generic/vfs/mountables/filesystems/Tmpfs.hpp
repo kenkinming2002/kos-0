@@ -1,9 +1,11 @@
+#pragma once
+
 #include <generic/vfs/Mountable.hpp>
-#include <generic/vfs/Inode.hpp>
+
 #include <generic/Error.hpp>
 
-#include <librt/StringRef.hpp>
-#include <librt/SharedPtr.hpp>
+#include <librt/String.hpp>
+
 #include <librt/containers/Map.hpp>
 
 namespace core::vfs

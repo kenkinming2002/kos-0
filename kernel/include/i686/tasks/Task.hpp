@@ -1,19 +1,13 @@
 #pragma once
 
 #include <generic/vfs/FileDescriptors.hpp>
-
 #include <i686/tasks/Registers.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
 #include <librt/SharedPtr.hpp>
-#include <librt/containers/Map.hpp>
-#include <librt/Optional.hpp>
-#include <librt/UniquePtr.hpp>
-#include <librt/NonCopyable.hpp>
 
 #include <stdint.h>
 #include <stddef.h>
-
 
 namespace core::tasks
 {

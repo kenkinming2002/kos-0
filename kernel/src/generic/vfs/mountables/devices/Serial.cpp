@@ -1,4 +1,3 @@
-#include "librt/SharedPtr.hpp"
 #include <generic/vfs/mountables/devices/Serial.hpp>
 
 #include <librt/Global.hpp>

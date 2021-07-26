@@ -4,9 +4,6 @@
 
 #include <librt/StringRef.hpp>
 
-#include <stdint.h>
-#include <stddef.h>
-
 namespace core::acpi
 {
   void initialize();

@@ -7,7 +7,6 @@
 
 #include <librt/containers/List.hpp>
 #include <librt/SharedPtr.hpp>
-#include <librt/NonCopyable.hpp>
 
 namespace core::memory
 {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <librt/Utility.hpp>
-#include <librt/Variant.hpp>
 
 #include <new>
 #include <type_traits>
@@ -49,7 +48,7 @@ namespace rt
     Optional(const Optional& other) : Optional(nullOptional) { *this = other; }
 
   public:
-    [[gnu::always_inline]] void reset()
+    void reset()
     {
       if(m_initialized)
         m_value.~T();

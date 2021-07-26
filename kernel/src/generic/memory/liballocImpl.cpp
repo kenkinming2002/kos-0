@@ -1,7 +1,6 @@
 #include <generic/memory/Memory.hpp>
 
 #include <librt/SpinLock.hpp>
-#include <librt/Panic.hpp>
 
 constinit static rt::SpinLock lock;
 extern "C" int liballoc_lock()

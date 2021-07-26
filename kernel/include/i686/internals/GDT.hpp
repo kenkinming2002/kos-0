@@ -23,7 +23,7 @@ namespace core::internals
     PAGE
   };
 
-  class GDTEntry
+  class [[gnu::packed]] GDTEntry
   {
   public:
     constexpr GDTEntry() = default;
@@ -55,9 +55,9 @@ namespace core::internals
     unsigned char  m_access      = 0;
     unsigned char  m_granularity = 0;
     unsigned char  m_baseHigh    = 0;
-  } __attribute((packed));
+  };
 
-  class GDT
+  class [[gnu::packed]] GDT
   {
   public:
     constexpr GDT() = default;
@@ -71,5 +71,5 @@ namespace core::internals
   private:
     uint16_t m_size;
     uint32_t m_offset;
-  } __attribute__((packed));
+  };
 }

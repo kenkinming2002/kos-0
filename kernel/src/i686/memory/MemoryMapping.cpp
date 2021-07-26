@@ -1,14 +1,12 @@
 #include <i686/memory/MemoryMapping.hpp>
 
-#include <generic/Init.hpp>
 #include <generic/PerCPU.hpp>
 #include <generic/BootInformation.hpp>
 #include <generic/tasks/Scheduler.hpp>
+
 #include <i686/interrupts/Interrupts.hpp>
 
-#include <librt/Panic.hpp>
 #include <librt/Global.hpp>
-#include <librt/Iterator.hpp>
 #include <librt/Log.hpp>
 #include <librt/Algorithm.hpp>
 #include <librt/Assert.hpp>

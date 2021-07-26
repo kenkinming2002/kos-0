@@ -1,9 +1,9 @@
 #include <generic/tasks/Tasks.hpp>
 
+#include <i686/tasks/Task.hpp>
+
 #include <generic/tasks/Syscalls.hpp>
 #include <generic/tasks/Scheduler.hpp>
-
-#include <i686/tasks/Task.hpp>
 
 namespace core::tasks
 {

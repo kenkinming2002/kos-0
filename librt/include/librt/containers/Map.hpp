@@ -4,9 +4,8 @@
 #include <librt/Pair.hpp>
 #include <librt/Utility.hpp>
 #include <librt/Assert.hpp>
-#include <librt/Log.hpp>
 
-#include <iterator>
+#include <compare>
 
 namespace rt::containers
 {
@@ -128,7 +127,6 @@ namespace rt::containers
     struct IteratorBase
     {
     public:
-      using iterator_category = std::bidirectional_iterator_tag;
       using value_type        = ValueType;
       using difference_type   = ptrdiff_t;
       using pointer           = ValueType*;

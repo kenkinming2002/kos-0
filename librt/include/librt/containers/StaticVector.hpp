@@ -2,7 +2,6 @@
 
 #include <librt/Assert.hpp>
 #include <librt/Iterator.hpp>
-#include <librt/Algorithm.hpp>
 #include <librt/Utility.hpp>
 
 #include <type_traits>
@@ -45,14 +44,14 @@ namespace rt::containers
       clear();
 
       for(auto& t : other)
-        pushBack(rt::move(t));
+        pushBack(move(t));
 
       other.clear();
       return *this;
     }
 
     constexpr StaticVector(const StaticVector& other) { *this = other; }
-    constexpr StaticVector(StaticVector&& other) { *this = rt::move(other); }
+    constexpr StaticVector(StaticVector&& other) { *this = move(other); }
 
   public:
     iterator       begin()        { return reinterpret_cast<iterator>(rt::begin(m_storage)); }
@@ -63,9 +62,9 @@ namespace rt::containers
     const_iterator cend()   const { return reinterpret_cast<const_iterator>(rt::begin(m_storage)+m_size); }
 
   public:
-    void pushBack(T&& t)      { new(end()) T(rt::move(t)); ASSERT(m_size != N); ++m_size; }
+    void pushBack(T&& t)      { new(end()) T(move(t)); ASSERT(m_size != N); ++m_size; }
     void pushBack(const T& t) { new(end()) T(t);           ASSERT(m_size != N); ++m_size; }
-    void popBack() { ASSERT(m_size != 0); --m_size; rt::prev(end())->~T(); }
+    void popBack() { ASSERT(m_size != 0); --m_size; prev(end())->~T(); }
 
   public:
     constexpr bool empty() const { return m_size == 0; }

@@ -1,5 +1,4 @@
 #include <generic/memory/Memory.hpp>
-#include <generic/devices/Framebuffer.hpp>
 
 namespace rt::hooks
 {

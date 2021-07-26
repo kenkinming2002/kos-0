@@ -1,5 +1,7 @@
 #include <generic/vfs/Tar.hpp>
 
+#include <librt/Panic.hpp>
+
 namespace core::vfs
 {
   namespace

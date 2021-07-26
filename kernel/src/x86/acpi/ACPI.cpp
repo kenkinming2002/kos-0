@@ -5,7 +5,6 @@
 #include <librt/StringRef.hpp>
 #include <librt/Log.hpp>
 #include <librt/Panic.hpp>
-#include <librt/Strings.hpp>
 
 namespace core::acpi
 {

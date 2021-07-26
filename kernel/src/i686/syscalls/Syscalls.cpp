@@ -2,17 +2,16 @@
 
 #include <i686/syscalls/Entry.hpp>
 #include <i686/syscalls/Access.hpp>
+#include <i686/tasks/Registers.hpp>
 
 #include <x86/assembly/msr.hpp>
 
 #include <generic/Init.hpp>
 #include <generic/tasks/Scheduler.hpp>
-#include <i686/tasks/Registers.hpp>
 
-#include <librt/Optional.hpp>
-#include <librt/Algorithm.hpp>
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
+#include <librt/SpinLock.hpp>
 
 namespace core::syscalls
 {

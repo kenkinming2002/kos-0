@@ -1,12 +1,9 @@
 #pragma once
 
-#include <generic/vfs/Inode.hpp>
 #include <generic/vfs/Mountable.hpp>
 
 #include <stdint.h>
 #include <stddef.h>
-#include <utility>
-#include <algorithm>
 
 namespace core::vfs
 {

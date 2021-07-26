@@ -1,8 +1,5 @@
 #include <librt/containers/IntrusiveListBase.hpp>
 
-#include <librt/Assert.hpp>
-#include <librt/Log.hpp>
-
 namespace rt::containers
 {
   namespace

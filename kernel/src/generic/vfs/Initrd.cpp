@@ -7,8 +7,6 @@
 
 #include <generic/BootInformation.hpp>
 
-#include <librt/Strings.hpp>
-#include <librt/Algorithm.hpp>
 #include <librt/StringRef.hpp>
 #include <librt/Panic.hpp>
 

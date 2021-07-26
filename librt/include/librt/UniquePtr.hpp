@@ -1,13 +1,13 @@
 #pragma once
 
 #include <librt/Utility.hpp>
-#include <librt/Algorithm.hpp>
 #include <librt/DefaultConstruct.hpp>
 #include <librt/NonCopyable.hpp>
 #include <librt/Assert.hpp>
 
-#include <cstddef>
 #include <type_traits>
+
+#include <stddef.h>
 
 namespace rt
 {

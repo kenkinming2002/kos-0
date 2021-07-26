@@ -1,21 +1,15 @@
 #pragma once
 
-#include <generic/vfs/Mountable.hpp>
-#include <generic/vfs/Vnode.hpp>
 #include <generic/vfs/File.hpp>
 #include <generic/Error.hpp>
 
-#include <librt/Result.hpp>
 #include <librt/SharedPtr.hpp>
-#include <librt/String.hpp>
-#include <librt/UniquePtr.hpp>
 #include <librt/StringRef.hpp>
-#include <librt/Span.hpp>
-
-#include <stddef.h>
 
 namespace core::vfs
 {
+  class Mountable;
+
   void initialize();
 
   rt::SharedPtr<File> root();

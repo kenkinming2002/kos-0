@@ -1,10 +1,10 @@
 #pragma once
 
-#include <x86/interrupts/PIC.hpp>
 #include <x86/assembly/msr.hpp>
 
-#include <generic/memory/Memory.hpp>
 #include <generic/memory/Virtual.hpp>
+
+#include <librt/Log.hpp>
 
 #include <stddef.h>
 #include <stdint.h>

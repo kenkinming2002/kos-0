@@ -1,11 +1,12 @@
 #pragma once
 
-#include <generic/BootInformation.hpp>
-#include <generic/memory/Memory.hpp>
 #include <generic/memory/Memory.hpp>
 
 #include <librt/containers/StaticVector.hpp>
 #include <librt/Pair.hpp>
+
+#include <stddef.h>
+#include <stdint.h>
 
 namespace core::memory
 {
