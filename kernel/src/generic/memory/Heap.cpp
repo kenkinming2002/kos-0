@@ -11,8 +11,6 @@
 
 #include <librt/SpinLock.hpp>
 
-#include <liballoc_1_1.h>
-
 #include <new>
 
 namespace core::memory
@@ -84,7 +82,7 @@ namespace core::memory
         char* memorys[200] = {};
         for(size_t i=0; i<200; ++i)
         {
-          memorys[i] = static_cast<char*>(core::memory::malloc(0x1000));
+          memorys[i] = new char[0x1000];
 
           /* Note: Don't be stupid like me and try to use break to break out of
            * nested loop and be puzzled as to why the loop does not end */
@@ -103,7 +101,8 @@ namespace core::memory
         {
           if(memorys[i] == nullptr)
             break;
-          core::memory::free(static_cast<void*>(memorys[i]));
+
+          delete[] memorys[i];
         }
       }
   end:
@@ -175,9 +174,4 @@ namespace core::memory
     head->prev = pagesHeader;
     head = pagesHeader;
   }
-
-  void* malloc(size_t size) { return ::kmalloc(size); }
-  void* realloc(void* ptr, size_t size) { return ::krealloc(ptr, size); }
-  void* calloc(size_t nmemb, size_t size) { return ::kcalloc(nmemb, size); }
-  void free(void* ptr) { return ::kfree(ptr); }
 }

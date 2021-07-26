@@ -4,9 +4,10 @@
 
 namespace rt::hooks
 {
+  void* allocPages(size_t count);
+  int freePages(void* ptr, size_t count);
+
   void log(const char* str, size_t length);
-  void* malloc(size_t size);
-  void free(void* ptr);
   bool validAddress(void* ptr);
   [[noreturn]] void abort();
 }

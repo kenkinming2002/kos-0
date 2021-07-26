@@ -17,10 +17,20 @@
 #include <thread>
 #include <vector>
 
+#include <sys/mman.h>
+
 namespace rt::hooks
 {
-  void* malloc(size_t size) { return ::malloc(size); }
-  void free(void* ptr)      { return ::free(ptr); }
+  void* allocPages(size_t count)
+  {
+    return mmap(nullptr, count * 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  }
+
+  int freePages(void* ptr, size_t count)
+  {
+    return munmap(ptr, count * 4096);
+  }
+
   [[noreturn]] void abort() { ::abort(); }
   void log(const char* str, size_t length) { printf("%.*s", (int)length, str); fflush(stdout); }
 }

@@ -25,7 +25,6 @@ core_src = files(
   'src/generic/memory/Virtual.cpp',
   'src/generic/memory/Memory.cpp',
   'src/generic/memory/Syscalls.cpp',
-  'src/generic/memory/liballocImpl.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/PIC.cpp',
@@ -59,16 +58,13 @@ core_asm_obj = asm_gen.process(
   preserve_path_from : meson.current_source_dir()
 )
 
-liballoc_proj = subproject('liballoc')
-liballoc_dep = liballoc_proj.get_variable('liballoc_dep')
-
 kernel = executable('kernel',
   core_src, core_asm_obj,
   include_directories : ['../boot/include/', 'include/'],
   cpp_args : ['-fstack-protector', '-fstack-protector-strong', '-fstack-protector-all'],
   link_args : ['-T', meson.current_source_dir()+'/link.ld', '-Wl,-no-dynamic-linker'],
   link_depends : 'link.ld',
-  dependencies : [liballoc_dep, libcommon_dep, librt_dep, libelf_dep],
+  dependencies : [libcommon_dep, librt_dep, libelf_dep],
   pie : true,
   gnu_symbol_visibility : 'hidden',
   export_dynamic : true

@@ -2,8 +2,17 @@
 
 namespace rt::hooks
 {
-  void* malloc(size_t size) { return core::memory::malloc(size); }
-  void free(void* ptr) { return core::memory::free(ptr); }
+  void* allocPages(size_t count)
+  {
+    return core::memory::allocPages(count);
+  }
+
+  int freePages(void* ptr, size_t count)
+  {
+    core::memory::freePages(ptr, count);
+    return 0;
+  }
+
   bool validAddress(void* ptr) { return reinterpret_cast<uintptr_t>(ptr) > 0xC0000000; }
   [[noreturn]] void abort() { for(;;) asm("hlt"); }
 }
