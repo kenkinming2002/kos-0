@@ -11,7 +11,7 @@ namespace core::memory
     MemoryMapping::initialize();
   }
 
-  Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset)
+  Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t fileOffset, size_t fileLength)
   {
     if(!syscalls::verifyRegionUser(addr, length))
       return ErrorCode::FAULT;
@@ -19,7 +19,7 @@ namespace core::memory
     auto task = tasks::Task::current();
     auto memoryMapping = task->memoryMapping;
 
-    return memoryMapping->map(addr, length, prot, rt::move(file), offset);
+    return memoryMapping->map(addr, length, prot, rt::move(file), fileOffset, fileLength);
   }
 
   Result<void> unmap(uintptr_t addr, size_t length)

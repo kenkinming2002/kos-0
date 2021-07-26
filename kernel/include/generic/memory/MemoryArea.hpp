@@ -13,8 +13,12 @@ namespace core::memory
   struct MemoryArea
   {
   public:
-    constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset, MapType type)
-      : addr(addr), length(length), prot(prot), file(rt::move(file)), offset(offset), type(type) {}
+    constexpr MemoryArea(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t fileOffset, size_t fileLength, MapType type)
+      : addr(addr), length(length), prot(prot), file(rt::move(file)), fileOffset(fileOffset), fileLength(fileLength), type(type)
+    {
+      ASSERT(addr   % PAGE_SIZE == 0);
+      ASSERT(length % PAGE_SIZE == 0);
+    }
 
   public:
     MemoryArea clone();
@@ -27,16 +31,16 @@ namespace core::memory
   public:
     uintptr_t addr;
     size_t length;
-
     Prot prot;
 
     rt::SharedPtr<vfs::File> file;
-    size_t offset;
+    size_t fileOffset;
+    size_t fileLength;
 
     MapType type;
 
-  public:
-    rt::containers::Map<uintptr_t, rt::SharedPtr<Page>> pages;
+  private:
+    rt::containers::Map<uintptr_t, rt::SharedPtr<Page>> m_pages;
   };
 
 }

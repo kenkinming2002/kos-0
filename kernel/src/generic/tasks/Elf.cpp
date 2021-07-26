@@ -40,7 +40,7 @@ namespace core::tasks
         if(programHeader.p_flags & PF_W)
           permission |= Prot::WRITE;
 
-        task->memoryMapping->map(programHeader.p_vaddr, programHeader.p_memsz, permission, file, programHeader.p_offset);
+        task->memoryMapping->map(programHeader.p_vaddr, programHeader.p_memsz, permission, file, programHeader.p_offset, programHeader.p_filesz);
       }
 
       return {};

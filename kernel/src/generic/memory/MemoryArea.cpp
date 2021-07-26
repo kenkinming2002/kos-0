@@ -6,24 +6,32 @@ namespace core::memory
 
   Result<physaddr_t> MemoryArea::getPageFrame(uintptr_t addr)
   {
-    if(auto it = pages.find(addr); it != pages.end())
+    /* FIXME: Also copy dirty m_pages since they are already marked writable, and
+     *        making it read-only again could have a lot of race condition */
+    if(auto it = m_pages.find(addr); it != m_pages.end())
       return it->second->physaddr();
 
+    /* Page allocation */
     auto _page = Page::allocate();
     if(!_page)
       return ErrorCode::OUT_OF_MEMORY;
 
-    auto it = pages.insert({addr, rt::move(_page)});
-    ASSERT(it != pages.end());
+    auto it = m_pages.insert({addr, rt::move(_page)});
+    ASSERT(it != m_pages.end());
     auto& page = it->second;
 
     auto& pageFrame = *static_cast<PageFrame*>(page->ptr);
     rt::fill(rt::begin(pageFrame), rt::end(pageFrame), '\0');
     if(file)
     {
-      auto offset = this->offset+(addr-this->addr);
-      file->seek(Anchor::BEGIN, offset);
-      file->read(pageFrame, sizeof pageFrame); // We do not care, if it failed, we are left with an empty page
+      auto addrOffset = addr - this->addr;
+      auto fileOffset = this->fileOffset+addrOffset;
+      auto fileLength = addrOffset           > this->fileLength ? 0
+                      : addrOffset+PAGE_SIZE < this->fileLength ? PAGE_SIZE
+                      : this->fileLength-addrOffset;
+
+      file->seek(Anchor::BEGIN, fileOffset);
+      file->read(pageFrame, fileLength); /* Discard error */
     }
 
     return page->physaddr();
@@ -32,8 +40,8 @@ namespace core::memory
   Result<physaddr_t> MemoryArea::getWritablePageFrame(uintptr_t addr)
   {
     // This is where we could implement COW semantics
-    auto it = pages.find(addr);
-    ASSERT(it != pages.end());
+    auto it = m_pages.find(addr);
+    ASSERT(it != m_pages.end());
     auto& page = it->second;
 
     if(type == MapType::PRIVATE && page.count() != 1)
@@ -57,9 +65,9 @@ namespace core::memory
 
   void MemoryArea::removePageFrame(uintptr_t addr)
   {
-    auto it = pages.find(addr);
-    ASSERT(it != pages.end());
-    pages.erase(it);
+    auto it = m_pages.find(addr);
+    ASSERT(it != m_pages.end());
+    m_pages.erase(it);
   }
 
 }

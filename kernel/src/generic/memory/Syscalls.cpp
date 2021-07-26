@@ -11,16 +11,16 @@ namespace core::memory
 {
   namespace
   {
-    Result<result_t> sys_mmap(uintptr_t addr, size_t length, Prot prot, fd_t fd, size_t offset)
+    Result<result_t> sys_mmap(uintptr_t addr, size_t length, Prot prot, fd_t fd, size_t fileOffset, size_t fileLength)
     {
       auto task = tasks::Task::current();
       auto file = fd != FD_NONE ? task->fileDescriptors.getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
       UNWRAP(file);
-      auto result = map(addr, length, prot, rt::move(*file), offset);
+      auto result = map(addr, length, prot, rt::move(*file), fileOffset, fileLength);
       UNWRAP(result);
       return 0;
     }
-    WRAP_SYSCALL5(_sys_mmap, sys_mmap)
+    WRAP_SYSCALL6(_sys_mmap, sys_mmap)
 
     Result<result_t> sys_munmap(uintptr_t addr, size_t length)
     {

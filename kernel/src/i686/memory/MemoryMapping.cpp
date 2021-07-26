@@ -157,7 +157,7 @@ namespace core::memory
     constexpr size_t roundUp(size_t index, size_t alignment) { return roundDown(index + alignment - 1, alignment); }
   }
 
-  Result<void> MemoryMapping::map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t offset)
+  Result<void> MemoryMapping::map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t fileOffset, size_t fileLength)
   {
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
@@ -172,7 +172,7 @@ namespace core::memory
       return ErrorCode::EXIST;
     }
 
-    auto memoryArea = MemoryArea(begin, end-begin, prot, rt::move(file), offset, MapType::PRIVATE);
+    auto memoryArea = MemoryArea(begin, end-begin, prot, rt::move(file), fileOffset, fileLength, MapType::PRIVATE);
     m_memoryAreas.insert(m_memoryAreas.end(), rt::move(memoryArea));
 
     return {};
@@ -379,7 +379,7 @@ namespace core::memory
   Result<void> MemoryMapping::handlePageFault(MemoryArea& memoryArea, size_t addr, uword_t errorCode)
   {
     addr = addr / PAGE_SIZE * PAGE_SIZE;
-    if(errorCode & PF_USER)
+    if(addr<0xC0000000)
     {
       if(errorCode & PF_PRESENT)
       {
