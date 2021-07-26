@@ -1,7 +1,3 @@
-liballoc_proj = subproject('liballoc')
-liballoc_dep        = liballoc_proj.get_variable('liballoc_dep')
-liballoc_native_dep = liballoc_proj.get_variable('liballoc_native_dep')
-
 librt_src = [
   'src/Log.cpp',
   'src/Strings.cpp',
@@ -12,13 +8,14 @@ librt_src = [
   'src/Hooks.cpp',
   'src/cxxabi.cpp',
   'src/liballocImpl.cpp',
+  'src/liballoc_1_1.c',
   'src/containers/IntrusiveListBase.cpp'
 ]
 
 librt_inc = include_directories('include')
 
-librt        = static_library('rt',        librt_src, dependencies : liballoc_dep,        include_directories : librt_inc, pic : false)
-librt_native = static_library('rt_native', librt_src, dependencies : liballoc_native_dep, include_directories : librt_inc, native : true)
+librt        = static_library('rt',        librt_src, include_directories : librt_inc, pic : false)
+librt_native = static_library('rt_native', librt_src, include_directories : librt_inc, native : true)
 
 librt_dep        = declare_dependency(include_directories : librt_inc, link_with: librt)
 librt_native_dep = declare_dependency(include_directories : librt_inc, link_with: librt_native)

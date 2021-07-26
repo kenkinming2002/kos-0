@@ -1,4 +1,0 @@
-[submodule "liballoc"]
-	path = subprojects/liballoc
-	url = https://github.com/blanham/liballoc.git
-  ignore = dirty
