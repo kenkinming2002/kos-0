@@ -55,10 +55,11 @@ namespace core::memory
     Result<void> remap(uintptr_t addr, size_t length, size_t newLength);
 
   private:
-    void mapReadonly(MemoryArea& memoryArea);
-    void mapWritable(MemoryArea& memoryArea);
+    void map(MemoryArea& memoryArea);
     void unmap(MemoryArea& memoryArea);
     void remap(MemoryArea& memoryArea, size_t newLength);
+
+    void remapReadonly(MemoryArea& memoryArea);
 
   private:
     void mapReadonlySingle(MemoryArea& memoryArea, uintptr_t addr);
@@ -70,9 +71,12 @@ namespace core::memory
     Result<void> handlePageFault(MemoryArea& memoryArea, size_t addr, uword_t errorCode);
 
   private:
-    rt::containers::List<MemoryArea> m_memoryAreas;
+    rt::SpinLock m_pageDirectoryLock;
+    PageDirectory* m_pageDirectory;
 
   private:
-    PageDirectory* m_pageDirectory;
+    rt::SpinLock m_memoryAreasLock;
+    rt::containers::List<MemoryArea> m_memoryAreas;
+
   };
 }

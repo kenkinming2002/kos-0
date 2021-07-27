@@ -85,11 +85,17 @@ namespace core::memory
     if(!memoryMapping)
       return nullptr;
 
-    // Remap ourselves write only
+    /* The ordering is important, we have to copy m_memoryAreas first to ensure
+     * that pages in m_memoryAreas has a refcount>=1, this ensure COW would
+     * kicks in after we remap the pages readonly, and would not undo our
+     * effort. */
+    {
+      rt::LockGuard guard(m_memoryAreasLock);
+      memoryMapping->m_memoryAreas = this->m_memoryAreas;
+    }
     for(auto& memoryArea : m_memoryAreas)
-      mapReadonly(memoryArea);
+      remapReadonly(memoryArea);
 
-    memoryMapping->m_memoryAreas = this->m_memoryAreas;
     return memoryMapping;
   }
 
@@ -160,15 +166,9 @@ namespace core::memory
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
+    rt::LockGuard guard(m_memoryAreasLock);
     if(rt::any(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr+memoryArea.length>begin && memoryArea.addr < end; }))
-    {
-      for(const auto& memoryArea: m_memoryAreas)
-        rt::logf("mapped => addr:%lx, length:%lx\n", memoryArea.addr, memoryArea.length);
-
-      rt::logf("new => addr:%lx, length:%lx\n", addr, length);
-      ASSERT(false);
       return ErrorCode::EXIST;
-    }
 
     auto memoryArea = MemoryArea(begin, end-begin, prot, rt::move(file), fileOffset, fileLength, MapType::PRIVATE);
     m_memoryAreas.insert(m_memoryAreas.end(), rt::move(memoryArea));
@@ -181,6 +181,7 @@ namespace core::memory
     uintptr_t begin = roundDown(addr, PAGE_SIZE);
     uintptr_t end   = roundUp(addr+length, PAGE_SIZE);
 
+    rt::LockGuard guard(m_memoryAreasLock);
     auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr == begin && memoryArea.length == end-begin; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
@@ -202,6 +203,7 @@ namespace core::memory
     if(newEnd == begin)
       return ErrorCode::INVALID;
 
+    rt::LockGuard guard(m_memoryAreasLock);
     auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr == begin && memoryArea.length == end-begin; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
@@ -220,16 +222,9 @@ namespace core::memory
    * becomes available at that time, which is why more fatal error need to be
    * detected beforehand.
    * */
-  void MemoryMapping::mapReadonly(MemoryArea& memoryArea)
+  void MemoryMapping::map(MemoryArea& memoryArea)
   {
-    for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
-      mapReadonlySingle(memoryArea, addr);
-  }
-
-  void MemoryMapping::mapWritable(MemoryArea& memoryArea)
-  {
-    for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
-      mapWritableSingle(memoryArea, addr);
+    return; // Demand paging
   }
 
   void MemoryMapping::unmap(MemoryArea& memoryArea)
@@ -256,6 +251,11 @@ namespace core::memory
     }
   }
 
+  void MemoryMapping::remapReadonly(MemoryArea& memoryArea)
+  {
+    for(size_t addr=memoryArea.addr; addr!=memoryArea.addr+memoryArea.length; addr+=PAGE_SIZE)
+      mapReadonlySingle(memoryArea, addr);
+  }
 
   /*
    * Internal function
@@ -281,6 +281,8 @@ namespace core::memory
 
   void MemoryMapping::mapReadonlySingle(MemoryArea& memoryArea, uintptr_t addr)
   {
+    rt::LockGuard guard(m_pageDirectoryLock);
+
     // Page Table
     auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
     auto& pageDirectory = *m_pageDirectory;
@@ -309,6 +311,8 @@ namespace core::memory
 
   void MemoryMapping::mapWritableSingle(MemoryArea& memoryArea, uintptr_t addr)
   {
+    rt::LockGuard guard(m_pageDirectoryLock);
+
     // Page Table
     auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
     auto& pageDirectory = *m_pageDirectory;
@@ -331,6 +335,8 @@ namespace core::memory
 
   void MemoryMapping::unmapSingle(MemoryArea& memoryArea, uintptr_t addr)
   {
+    rt::LockGuard guard(m_pageDirectoryLock);
+
     auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
     auto& pageDirectory = *m_pageDirectory;
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
@@ -358,6 +364,8 @@ namespace core::memory
 
   Result<void> MemoryMapping::handlePageFault(uintptr_t addr, uword_t errorCode)
   {
+    rt::LockGuard guard(m_memoryAreasLock);
+
     auto it = rt::find_if(m_memoryAreas.begin(), m_memoryAreas.end(), [&](const auto& memoryArea) { return memoryArea.addr<=addr && addr<memoryArea.addr+memoryArea.length; });
     if(it == m_memoryAreas.end())
       return ErrorCode::NOT_EXIST;
