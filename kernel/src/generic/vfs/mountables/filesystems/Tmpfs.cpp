@@ -57,6 +57,7 @@ namespace core::vfs
 
   rt::SharedPtr<TmpfsInode> TmpfsInode::allocate(Type type)
   {
+    rt::LockGuard guard(m_lock);
     return m_superBlock->allocate(m_superBlock, type);
   }
 
@@ -77,6 +78,8 @@ namespace core::vfs
 
   Result<ssize_t> TmpfsDirectoryInode::readdir(char* buf, size_t length)
   {
+    rt::LockGuard guard(m_lock);
+
     auto buffer = syscalls::OutputUserBuffer(buf, length);
     for(auto& [name, inode] : m_childs)
     {
@@ -99,6 +102,8 @@ namespace core::vfs
 
   rt::SharedPtr<Inode> TmpfsDirectoryInode::lookup(rt::StringRef name)
   {
+    rt::LockGuard guard(m_lock);
+
     auto it = m_childs.find(name);
     if(it == m_childs.end())
       return nullptr;
@@ -108,6 +113,8 @@ namespace core::vfs
 
   Result<rt::SharedPtr<Inode>> TmpfsDirectoryInode::create(rt::StringRef name, Type type)
   {
+    rt::LockGuard guard(m_lock);
+
     if(type != Type::REGULAR_FILE && type != Type::DIRECTORY)
       return ErrorCode::INVALID;
 
@@ -118,11 +125,15 @@ namespace core::vfs
 
   Result<void> TmpfsDirectoryInode::link(rt::StringRef name, rt::SharedPtr<Inode> inode)
   {
+    rt::LockGuard guard(m_lock);
+
     return ErrorCode::UNSUPPORTED;
   }
 
   Result<void> TmpfsDirectoryInode::unlink(rt::StringRef name)
   {
+    rt::LockGuard guard(m_lock);
+
     auto it = m_childs.find(name);
     ASSERT(it != m_childs.end());
     m_childs.erase(it);
@@ -133,6 +144,8 @@ namespace core::vfs
 
   Result<ssize_t> TmpfsFileInode::read(char* buf, size_t length, size_t pos)
   {
+    rt::LockGuard guard(m_lock);
+
     if(m_size<pos)
       return ErrorCode::INVALID;
 
@@ -144,6 +157,8 @@ namespace core::vfs
 
   Result<ssize_t> TmpfsFileInode::write(const char* buf, size_t length, size_t pos)
   {
+    rt::LockGuard guard(m_lock);
+
     if(m_size<pos)
       return ErrorCode::INVALID;
 
@@ -155,6 +170,8 @@ namespace core::vfs
 
   Result<void> TmpfsFileInode::resize(size_t size)
   {
+    rt::LockGuard guard(m_lock);
+
     auto newData = rt::makeUnique<char[]>(size, '\0');
     if(!newData)
       return ErrorCode::OUT_OF_MEMORY;

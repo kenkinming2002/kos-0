@@ -5,8 +5,11 @@
 #include <generic/Error.hpp>
 
 #include <librt/String.hpp>
+#include <librt/SpinLock.hpp>
 
 #include <librt/containers/Map.hpp>
+
+#include <atomic>
 
 namespace core::vfs
 {
@@ -32,7 +35,7 @@ namespace core::vfs
     rt::SharedPtr<TmpfsInode> allocate(rt::SharedPtr<TmpfsSuperBlock> self, Type type);
 
   private:
-    ino_t m_next = 0;
+    std::atomic<ino_t> m_next = 0;
   };
 
   class TmpfsInode : public Inode
@@ -49,6 +52,7 @@ namespace core::vfs
     Result<Stat> genericStat(Type type, size_t size);
 
   private:
+    rt::SpinLock m_lock;
     rt::SharedPtr<TmpfsSuperBlock> m_superBlock;
     ino_t m_ino;
   };
@@ -72,6 +76,7 @@ namespace core::vfs
     Result<void> unlink(rt::StringRef name) override;
 
   private:
+    rt::SpinLock m_lock;
     rt::containers::Map<rt::String, rt::SharedPtr<TmpfsInode>> m_childs;
   };
 
@@ -89,9 +94,9 @@ namespace core::vfs
     Result<void> resize(size_t size) override;
 
   private:
-    /* Replace with rt::Vector, which we should implement soon */
+    rt::SpinLock m_lock;
     size_t m_size = 0;
     rt::UniquePtr<char[]> m_data = nullptr;
-
+    /* Replace with rt::Vector, which we should implement soon */
   };
 }
