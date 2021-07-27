@@ -101,7 +101,6 @@ namespace core::tasks
       return nullptr;
 
     task->fileDescriptors = this->fileDescriptors;
-
     Registers registers = this->registers;
     registers.eax = 0;
     task->asUserTask(registers);

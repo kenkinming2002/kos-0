@@ -13,6 +13,113 @@ namespace core::vfs
 
   Result<ssize_t> File::seek(Anchor anchor, off_t offset)
   {
+    rt::LockGuard guard(m_lock);
+    return _seek(anchor, offset);
+  }
+
+  Result<ssize_t> File::read(char* buf, size_t length)
+  {
+    rt::LockGuard guard(m_lock);
+
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    if(length>std::numeric_limits<ssize_t>::max())
+      return ErrorCode::INVALID;
+
+    auto result = m_vnode->inode()->read(buf, length, m_pos);
+    if(!result)
+      return result.error();
+
+    _seek(Anchor::CURRENT, length);
+    return *result;
+  }
+
+  Result<ssize_t> File::write(const char* buf, size_t length)
+  {
+    rt::LockGuard guard(m_lock);
+
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    auto result = m_vnode->inode()->write(buf, length, m_pos);
+    if(!result)
+      return result.error();
+
+    _seek(Anchor::CURRENT, length);
+    return *result;
+  };
+
+  Result<void> File::resize(size_t size)
+  {
+    rt::LockGuard guard(m_lock);
+    return m_vnode->inode()->resize(size);
+  }
+
+  Result<ssize_t> File::readdir(char* buf, size_t length)
+  {
+    rt::LockGuard guard(m_lock);
+
+    /* Clamp length, which works since we need to transfer AT MOST length bytes,
+     * but not EXACTLY length bytes */
+    if(length>std::numeric_limits<ssize_t>::max())
+      length = std::numeric_limits<ssize_t>::max();
+
+    return m_vnode->inode()->readdir(buf, length);
+  }
+
+  Result<void> File::mount(Mountable& mountable, rt::StringRef arg)
+  {
+    rt::LockGuard guard(m_lock);
+    return m_vnode->mount(mountable, arg);
+  }
+
+  Result<void> File::umount()
+  {
+    rt::LockGuard guard(m_lock);
+    return m_vnode->umount();
+  }
+
+  Result<rt::SharedPtr<File>> File::lookup(rt::StringRef name)
+  {
+    rt::LockGuard guard(m_lock);
+
+    auto vnode = m_vnode->lookup(name);
+    if(!vnode)
+      return ErrorCode::NOT_EXIST;
+
+    return rt::makeShared<File>(rt::move(vnode));
+  }
+
+  Result<rt::SharedPtr<File>> File::create(rt::StringRef name, Type type)
+  {
+    rt::LockGuard guard(m_lock);
+
+    auto vnode = m_vnode->create(name, type);
+    if(!vnode)
+      return vnode.error();
+
+    return rt::makeShared<File>(rt::move(*vnode));
+  }
+
+  Result<void> File::link(rt::StringRef name, Inode& inode)
+  {
+    rt::LockGuard guard(m_lock);
+    return m_vnode->link(name, inode);
+  }
+
+  Result<void> File::unlink(rt::StringRef name)
+  {
+    rt::LockGuard guard(m_lock);
+    return m_vnode->unlink(name);
+  }
+
+  Result<ssize_t> File::_seek(Anchor anchor, off_t offset)
+  {
     size_t newPos;
     switch(anchor)
     {
@@ -46,92 +153,5 @@ namespace core::vfs
 
     m_pos = newPos;
     return newPos;
-  }
-
-  Result<ssize_t> File::read(char* buf, size_t length)
-  {
-    /* Clamp length, which works since we need to transfer AT MOST length bytes,
-     * but not EXACTLY length bytes */
-    if(length>std::numeric_limits<ssize_t>::max())
-      length = std::numeric_limits<ssize_t>::max();
-
-    if(length>std::numeric_limits<ssize_t>::max())
-      return ErrorCode::INVALID;
-
-    auto result = m_vnode->inode()->read(buf, length, m_pos);
-    if(!result)
-      return result.error();
-
-    seek(Anchor::CURRENT, length);
-    return *result;
-  }
-
-  Result<ssize_t> File::write(const char* buf, size_t length)
-  {
-    /* Clamp length, which works since we need to transfer AT MOST length bytes,
-     * but not EXACTLY length bytes */
-    if(length>std::numeric_limits<ssize_t>::max())
-      length = std::numeric_limits<ssize_t>::max();
-
-    auto result = m_vnode->inode()->write(buf, length, m_pos);
-    if(!result)
-      return result.error();
-
-    seek(Anchor::CURRENT, length);
-    return *result;
-  };
-
-  Result<void> File::resize(size_t size)
-  {
-    return m_vnode->inode()->resize(size);
-  }
-
-  Result<ssize_t> File::readdir(char* buf, size_t length)
-  {
-    /* Clamp length, which works since we need to transfer AT MOST length bytes,
-     * but not EXACTLY length bytes */
-    if(length>std::numeric_limits<ssize_t>::max())
-      length = std::numeric_limits<ssize_t>::max();
-
-    return m_vnode->inode()->readdir(buf, length);
-  }
-
-  Result<void> File::mount(Mountable& mountable, rt::StringRef arg)
-  {
-    return m_vnode->mount(mountable, arg);
-  }
-
-  Result<void> File::umount()
-  {
-    return m_vnode->umount();
-  }
-
-  Result<rt::SharedPtr<File>> File::lookup(rt::StringRef name)
-  {
-    auto vnode = m_vnode->lookup(name);
-    if(!vnode)
-      return ErrorCode::NOT_EXIST;
-
-    return rt::makeShared<File>(rt::move(vnode));
-  }
-
-  Result<rt::SharedPtr<File>> File::create(rt::StringRef name, Type type)
-  {
-    auto vnode = m_vnode->create(name, type);
-    if(!vnode)
-      return vnode.error();
-
-
-    return rt::makeShared<File>(rt::move(*vnode));
-  }
-
-  Result<void> File::link(rt::StringRef name, Inode& inode)
-  {
-    return m_vnode->link(name, inode);
-  }
-
-  Result<void> File::unlink(rt::StringRef name)
-  {
-    return m_vnode->unlink(name);
   }
 }

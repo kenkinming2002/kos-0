@@ -17,6 +17,9 @@ namespace core::vfs
     constexpr File(rt::SharedPtr<Vnode> vnode) : m_vnode(rt::move(vnode)) {}
 
   public:
+    rt::SharedPtr<File> clone() const { auto result = rt::makeShared<File>(m_vnode); result->m_pos = m_pos; return result; }
+
+  public:
     bool isOpen() const { return m_vnode; }
     void close();
 
@@ -53,6 +56,11 @@ namespace core::vfs
     Result<void> unlink(rt::StringRef name);
 
   private:
+    Result<ssize_t> _seek(Anchor anchor, off_t offset);
+
+  private:
+    rt::SpinLock m_lock;
+
     rt::SharedPtr<Vnode> m_vnode; // Keep track of path information
     size_t m_pos = 0;
   };
