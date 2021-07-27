@@ -54,11 +54,8 @@ namespace rt
     constexpr void dropRef()
     {
       if(m_ptr)
-      {
-        --static_cast<SharedPtrHook*>(m_ptr)->count;
-        if(static_cast<SharedPtrHook*>(m_ptr)->count == 0)
+        if(--static_cast<SharedPtrHook*>(m_ptr)->count == 0)
           delete m_ptr;
-      }
     }
 
   public:
