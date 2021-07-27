@@ -9,7 +9,7 @@ namespace core::vfs
     m_vnode.reset();
   }
 
-  Result<File::Stat> File::stat() { return m_vnode->inode().stat(); }
+  Result<File::Stat> File::stat() { return m_vnode->inode()->stat(); }
 
   Result<ssize_t> File::seek(Anchor anchor, off_t offset)
   {
@@ -58,7 +58,7 @@ namespace core::vfs
     if(length>std::numeric_limits<ssize_t>::max())
       return ErrorCode::INVALID;
 
-    auto result = m_vnode->inode().read(buf, length, m_pos);
+    auto result = m_vnode->inode()->read(buf, length, m_pos);
     if(!result)
       return result.error();
 
@@ -73,7 +73,7 @@ namespace core::vfs
     if(length>std::numeric_limits<ssize_t>::max())
       length = std::numeric_limits<ssize_t>::max();
 
-    auto result = m_vnode->inode().write(buf, length, m_pos);
+    auto result = m_vnode->inode()->write(buf, length, m_pos);
     if(!result)
       return result.error();
 
@@ -83,7 +83,7 @@ namespace core::vfs
 
   Result<void> File::resize(size_t size)
   {
-    return m_vnode->inode().resize(size);
+    return m_vnode->inode()->resize(size);
   }
 
   Result<ssize_t> File::readdir(char* buf, size_t length)
@@ -93,7 +93,7 @@ namespace core::vfs
     if(length>std::numeric_limits<ssize_t>::max())
       length = std::numeric_limits<ssize_t>::max();
 
-    return m_vnode->inode().readdir(buf, length);
+    return m_vnode->inode()->readdir(buf, length);
   }
 
   Result<void> File::mount(Mountable& mountable, rt::StringRef arg)
@@ -110,9 +110,9 @@ namespace core::vfs
   {
     auto vnode = m_vnode->lookup(name);
     if(!vnode)
-      return vnode.error();
+      return ErrorCode::NOT_EXIST;
 
-    return rt::makeShared<File>(rt::move(*vnode));
+    return rt::makeShared<File>(rt::move(vnode));
   }
 
   Result<rt::SharedPtr<File>> File::create(rt::StringRef name, Type type)
@@ -120,6 +120,7 @@ namespace core::vfs
     auto vnode = m_vnode->create(name, type);
     if(!vnode)
       return vnode.error();
+
 
     return rt::makeShared<File>(rt::move(*vnode));
   }

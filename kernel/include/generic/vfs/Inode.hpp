@@ -71,7 +71,7 @@ namespace core::vfs
    * Vnode interface *
    *******************/
   public:
-    virtual Result<rt::SharedPtr<Inode>> lookup(rt::StringRef name) { return ErrorCode::UNSUPPORTED; }
+    virtual rt::SharedPtr<Inode> lookup(rt::StringRef name) { return nullptr; }
 
   public:
     virtual Result<rt::SharedPtr<Inode>> create(rt::StringRef name, Type type) { return ErrorCode::UNSUPPORTED; }

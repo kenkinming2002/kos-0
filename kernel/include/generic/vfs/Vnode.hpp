@@ -8,6 +8,7 @@
 #include <librt/String.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/Assert.hpp>
+#include <librt/SpinLock.hpp>
 
 namespace core::vfs
 {
@@ -15,39 +16,37 @@ namespace core::vfs
   class Vnode : public rt::SharedPtrHook
   {
   public:
-    Vnode(Vnode* parent) : m_parent(parent) {}
-    void associate(rt::SharedPtr<Inode> inode) { ASSERT(m_state == State::NEW); m_state = State::NORMAL; m_inode = rt::move(inode); }
+    Vnode(Vnode* parent, rt::SharedPtr<Inode> inode) : m_parent(parent), m_inode(rt::move(inode)) {}
 
   public:
     const SuperBlock& superBlock() const { return m_inode->superBlock(); }
     SuperBlock& superBlock()             { return m_inode->superBlock(); }
 
   public:
-    const Inode& inode() const { return *m_inode; }
-    Inode& inode()             { return *m_inode; }
+    rt::SharedPtr<Inode> inode();
 
-  public:
-    bool negative() const { ASSERT(m_state == State::NORMAL || m_state == State::MOUNTED); return !m_inode; }
+  private:
+    rt::SharedPtr<Inode>& _inode();
 
   public:
     Result<void> mount(Mountable& mountable, rt::StringRef arg);
     Result<void> umount();
 
   public:
-    rt::SharedPtr<Vnode>& lookup_ref(rt::StringRef name);
-    Result<rt::SharedPtr<Vnode>> lookup(rt::StringRef name);
-
-  public:
+    rt::SharedPtr<Vnode> lookup(rt::StringRef name);
     Result<rt::SharedPtr<Vnode>> create(rt::StringRef name, Type type);
-    Result<void> link(rt::StringRef name, Inode& inode); // FIXME:
+    Result<void> link(rt::StringRef name, Inode& inode);
     Result<void> unlink(rt::StringRef name);
+
+  private:
+    rt::SpinLock m_lock;
 
   private:
     Vnode* m_parent; // To support walking .. directories, potential race
     rt::containers::Map<rt::String, rt::SharedPtr<Vnode>> m_childs;
 
   private:
-    enum class State { NEW, NORMAL, UMOUNTED, MOUNTED } m_state = State::NEW;
     rt::SharedPtr<Inode> m_inode;
+    rt::SharedPtr<Inode> m_mountedInode;
   };
 }

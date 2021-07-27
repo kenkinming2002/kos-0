@@ -66,7 +66,7 @@ namespace core::vfs
     Result<ssize_t> readdir(char* buf, size_t length) override;
 
   public:
-    Result<rt::SharedPtr<Inode>> lookup(rt::StringRef name) override;
+    rt::SharedPtr<Inode> lookup(rt::StringRef name) override;
     Result<rt::SharedPtr<Inode>> create(rt::StringRef name, Type type) override;
     Result<void> link(rt::StringRef name, rt::SharedPtr<Inode> inode) override;
     Result<void> unlink(rt::StringRef name) override;

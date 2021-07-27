@@ -97,11 +97,11 @@ namespace core::vfs
     return length - buffer.length();
   }
 
-  Result<rt::SharedPtr<Inode>> TmpfsDirectoryInode::lookup(rt::StringRef name)
+  rt::SharedPtr<Inode> TmpfsDirectoryInode::lookup(rt::StringRef name)
   {
     auto it = m_childs.find(name);
     if(it == m_childs.end())
-      return ErrorCode::NOT_EXIST;
+      return nullptr;
 
     return rt::SharedPtr<Inode>(it->second);
   }

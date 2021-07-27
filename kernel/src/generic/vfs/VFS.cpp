@@ -15,8 +15,7 @@ namespace core::vfs
 
     void initializeRoot()
     {
-      rootVnode.construct(rt::makeShared<Vnode>(nullptr));
-      rootVnode()->associate(rt::makeShared<Inode>());
+      rootVnode.construct(rt::makeShared<Vnode>(nullptr, rt::makeShared<Inode>()));
 
       auto* tmpfs = lookupMountable("tmpfs");
       auto rootFile = root();

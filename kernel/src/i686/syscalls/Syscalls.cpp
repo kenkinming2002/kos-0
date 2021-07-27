@@ -11,7 +11,6 @@
 
 #include <librt/Panic.hpp>
 #include <librt/Log.hpp>
-#include <librt/SpinLock.hpp>
 
 namespace core::syscalls
 {
@@ -55,24 +54,17 @@ namespace core::syscalls
     if(i>=MAX_SYSCALL_COUNT || !handlers[i])
       return ErrorCode::INVALID;
 
-    Result<result_t> result = 0;
-    {
-      /* This is analoguous to BKL in linux, remove it ASAP */
-      constinit static rt::SpinLock lock;
-      rt::LockGuard guard(lock);
+    uword_t args[6];
+    args[0] = registers.ebx;
+    args[1] = registers.esi;
+    args[2] = registers.edi;
 
-      uword_t args[6];
-      args[0] = registers.ebx;
-      args[1] = registers.esi;
-      args[2] = registers.edi;
+    auto length = 3 * sizeof args[0];
+    auto buffer = InputUserBuffer(reinterpret_cast<const char*>(registers.esp), length);
+    if(auto result = buffer.read(reinterpret_cast<char*>(&args[3]), length); !result)
+      return result.error();
 
-      auto length = 3 * sizeof args[0];
-      auto buffer = InputUserBuffer(reinterpret_cast<const char*>(registers.esp), length);
-      if(auto result = buffer.read(reinterpret_cast<char*>(&args[3]), length); !result)
-        return result.error();
-
-      result = handlers[i](args[0], args[1], args[2], args[3], args[4], args[5]);
-    }
+    auto result = handlers[i](args[0], args[1], args[2], args[3], args[4], args[5]);
     tasks::onResume();
     return result;
   }
