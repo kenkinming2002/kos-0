@@ -97,17 +97,17 @@ void testInitCall()
 
 namespace
 {
-  std::atomic<unsigned> bsp;
+  std::atomic<bool> bsp;
   std::atomic<unsigned> initializedCoresCount;
 }
 
 extern "C" void kmain(BootInformation* bootInformation, unsigned apicid)
 {
-  ++initializedCoresCount;
-  while(initializedCoresCount != bootInformation->coresCount) asm volatile("pause");
+  initializedCoresCount.fetch_add(1, std::memory_order_release);
+  while(initializedCoresCount.load(std::memory_order_acquire) != bootInformation->coresCount)
+    asm volatile("pause");
 
-  //if(bsp.exchange(1) == 0)
-  if(apicid == 0)
+  if(bsp.exchange(true, std::memory_order_relaxed) == false)
     runBSP(bootInformation, apicid); // This is not necessarily BSP
   else
     runAP();

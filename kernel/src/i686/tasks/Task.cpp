@@ -91,7 +91,7 @@ namespace core::tasks
       .esp = reinterpret_cast<uintptr_t>(kernelStackPage) + STACK_SIZE
     };
 
-    return rt::makeShared<Task>(nextPid++, stack);
+    return rt::makeShared<Task>(nextPid.fetch_add(1, std::memory_order_relaxed), stack);
   }
 
   rt::SharedPtr<Task> Task::clone()

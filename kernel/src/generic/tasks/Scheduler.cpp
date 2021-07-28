@@ -52,7 +52,7 @@ namespace core::tasks
 
       void addTask(rt::SharedPtr<Task> task)
       {
-        unsigned cpuid = nextCpuid++ % getCpusCount(); // There may be a bit of wrapping issue at the end but who cares?
+        unsigned cpuid = nextCpuid.fetch_add(1, std::memory_order_relaxed) % getCpusCount(); // There may be a bit of wrapping issue at the end but who cares?
         return addTask(rt::move(task), cpuid);
       }
 

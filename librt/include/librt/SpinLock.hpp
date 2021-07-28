@@ -8,8 +8,8 @@ namespace rt
   class SpinLock
   {
   public:
-    void lock() { while(m_flag.test_and_set()) pause(); }
-    void unlock() { m_flag.clear(); }
+    void lock() { while(m_flag.test_and_set(std::memory_order_acquire)) pause(); }
+    void unlock() { m_flag.clear(std::memory_order_release); }
 
   private:
     std::atomic_flag m_flag;

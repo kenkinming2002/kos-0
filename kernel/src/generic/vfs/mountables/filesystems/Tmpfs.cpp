@@ -36,12 +36,13 @@ namespace core::vfs
   rt::SharedPtr<TmpfsInode> TmpfsSuperBlock::allocate(rt::SharedPtr<TmpfsSuperBlock> self, Type type)
   {
     // FIXME: detect m_next wrap around
+    ino_t ino = m_next.fetch_add(1, std::memory_order_relaxed);
     switch(type)
     {
     case Type::DIRECTORY:
-      return rt::makeShared<TmpfsDirectoryInode>(rt::move(self), m_next++);
+      return rt::makeShared<TmpfsDirectoryInode>(rt::move(self), ino);
     case Type::REGULAR_FILE:
-      return rt::makeShared<TmpfsFileInode>(rt::move(self), m_next++);
+      return rt::makeShared<TmpfsFileInode>(rt::move(self), ino);
     case Type::SYMBOLIC_LINK:
     case Type::OTHER:
     default:
