@@ -5,33 +5,25 @@
 namespace rt
 {
   inline void pause() { asm volatile("pause"); }
-
   class ConditionalVariable
   {
   public:
-    void notify(unsigned total)
+    void notify(size_t count = 1)
     {
-      // (1)
-      count.store(0, std::memory_order_release);
-      flag.store(true, std::memory_order_release);
-
-      // (3)
-      while(count.load(std::memory_order_acquire) != total) pause();
-      flag.store(false, std::memory_order_release);
+      for(size_t i=0; i<count; ++i)
+      {
+        m_flag.store(true, std::memory_order_release);
+        while(m_flag.load(std::memory_order_acquire)) pause();
+      }
     }
 
+  public:
     void wait()
     {
-      // (2)
-      while(!flag.load(std::memory_order_acquire)) pause();
-      count.fetch_add(1, std::memory_order_release);
-
-      // (4)
-      while(flag.load(std::memory_order_acquire)) pause(); // (7)
+      while(!m_flag.exchange(false, std::memory_order_acq_rel)) pause();
     }
 
   private:
-    std::atomic<bool> flag = false;
-    std::atomic<unsigned> count = 0;
+    std::atomic<bool> m_flag = false;
   };
 }
