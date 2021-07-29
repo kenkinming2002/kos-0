@@ -317,13 +317,19 @@ namespace core::memory
     auto pageDirectoryIndex = (addr / LARGE_PAGE_SIZE) % 1024;
     auto& pageDirectory = *m_pageDirectory;
     auto& pageDirectoryEntry = pageDirectory[pageDirectoryIndex];
-    ASSERT(pageDirectoryEntry.present());
+    if(!pageDirectoryEntry.present())
+    {
+      auto phyaddr = allocPageTable();
+      if(!phyaddr)
+        return;
+
+      pageDirectoryEntry = PageDirectoryEntry(*phyaddr, CacheMode::ENABLED, WriteMode::WRITE_BACK, Access::ALL, Permission::READ_WRITE);
+    }
 
     // Page Frame
     size_t pageTableIndex = (addr / PAGE_SIZE) % 1024;
     auto& pageTable       = *reinterpret_cast<PageTable*>(physToVirt(pageDirectoryEntry.address()));
     auto& pageTableEntry  = pageTable[pageTableIndex];
-    ASSERT(pageTableEntry.present());
 
     auto phyaddr = memoryArea.getWritablePageFrame(addr);
     if(!phyaddr)
@@ -385,26 +391,28 @@ namespace core::memory
   Result<void> MemoryMapping::handlePageFault(MemoryArea& memoryArea, size_t addr, uword_t errorCode)
   {
     addr = addr / PAGE_SIZE * PAGE_SIZE;
-    if(addr<0xC0000000)
+    if(addr>=0xC0000000)
+      ASSERT_UNREACHABLE;
+
+    if(errorCode & PF_WRITE)
     {
-      if(errorCode & PF_PRESENT)
+      if((memoryArea.prot & Prot::WRITE) != Prot::WRITE)
       {
-        if(errorCode & PF_IFETCH)
-          return ErrorCode::FAULT;
-
-        if((errorCode & PF_WRITE) && (memoryArea.prot & Prot::WRITE) != Prot::WRITE)
-        {
-          rt::log("Write protection violation\n");
-          return ErrorCode::FAULT;
-        }
-
-        mapWritableSingle(memoryArea, addr);
+        rt::log("Write protection violation\n");
+        return ErrorCode::FAULT;
       }
-      else
-        mapReadonlySingle(memoryArea, addr);
+      mapWritableSingle(memoryArea, addr);
     }
     else
-      ASSERT_UNREACHABLE;
+    {
+      if(errorCode & PF_IFETCH)
+        return ErrorCode::FAULT;
+
+      if(errorCode & PF_PRESENT)
+        return ErrorCode::FAULT;
+
+      mapReadonlySingle(memoryArea, addr);
+    }
 
     return {};
   }

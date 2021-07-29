@@ -18,6 +18,9 @@ namespace core::memory
   public:
     Result<physaddr_t> getPageFrame(uintptr_t addr);
     Result<physaddr_t> getWritablePageFrame(uintptr_t addr);
+
+  public:
+    rt::SharedPtr<Page> addPageFrrame(uintptr_t addr);
     void removePageFrame(uintptr_t addr);
 
   public:
