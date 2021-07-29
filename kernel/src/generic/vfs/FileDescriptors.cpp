@@ -8,14 +8,17 @@ namespace core::vfs
   template<typename T>
   auto asSigned(T t) { return std::make_signed<T>(t); }
 
-  FileDescriptors::FileDescriptors(const FileDescriptors& other) { *this = other; }
-  FileDescriptors& FileDescriptors::operator=(const FileDescriptors& other)
+  rt::SharedPtr<FileDescriptors> FileDescriptors::clone()
   {
-    for(size_t i=0; i<MAX_FD; ++i)
-      if(other.m_files[i])
-        m_files[i] = other.m_files[i]->clone();
+    auto result = rt::makeShared<FileDescriptors>();
+    if(!result)
+      return nullptr;
 
-    return *this;
+    for(size_t i=0; i<MAX_FD; ++i)
+      if(result->m_files[i])
+        result->m_files[i] = m_files[i]->clone();
+
+    return result;
   }
 
   Result<fd_t> FileDescriptors::addFile(rt::SharedPtr<File> file)

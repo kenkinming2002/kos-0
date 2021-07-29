@@ -100,18 +100,21 @@ namespace core::tasks
     if(!task)
       return nullptr;
 
-    task->fileDescriptors = this->fileDescriptors;
     Registers registers = this->registers;
     registers.eax = 0;
-    task->asUserTask(registers);
-
     if(this->memoryMapping)
     {
       task->memoryMapping = this->memoryMapping->clone();
       if(!task->memoryMapping)
         return nullptr; // Clone failed
     }
-
+    if(this->fileDescriptors)
+    {
+      task->fileDescriptors = this->fileDescriptors;
+      if(!task->fileDescriptors)
+        return nullptr; // Clone failed
+    }
+    task->asUserTask(registers);
     return task;
   }
 
@@ -170,10 +173,19 @@ namespace core::tasks
     push(kernelStack, POISON); // This can really be any value, we are just simulating eip pushed when executing a call instruction
     push(kernelStack, &newUserTask);
 
-    ASSERT(!memoryMapping);
-    memoryMapping = memory::MemoryMapping::allocate();
     if(!memoryMapping)
-      return ErrorCode::OUT_OF_MEMORY;
+    {
+      memoryMapping = memory::MemoryMapping::allocate();
+      if(!memoryMapping)
+        return ErrorCode::OUT_OF_MEMORY;
+    }
+
+    if(!fileDescriptors)
+    {
+      fileDescriptors = rt::makeShared<vfs::FileDescriptors>();
+      if(!fileDescriptors)
+        return ErrorCode::OUT_OF_MEMORY;
+    }
 
     return {};
   }

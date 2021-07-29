@@ -56,11 +56,9 @@ namespace core::tasks
     status_t status;
 
   public:
-    vfs::FileDescriptors fileDescriptors;
-
-  public:
     Registers registers;
     rt::SharedPtr<memory::MemoryMapping> memoryMapping;
+    rt::SharedPtr<vfs::FileDescriptors> fileDescriptors;
     Stack kernelStack;
 
   public:

@@ -8,12 +8,10 @@
 namespace core::vfs
 {
   static constexpr size_t MAX_FD = 16;
-  class FileDescriptors
+  class FileDescriptors : public rt::SharedPtrHook
   {
   public:
-    constexpr FileDescriptors() = default;
-    FileDescriptors(const FileDescriptors& other);
-    FileDescriptors& operator=(const FileDescriptors& other);
+    rt::SharedPtr<FileDescriptors> clone();
 
   public:
     Result<fd_t> addFile(rt::SharedPtr<File> file);
