@@ -20,10 +20,6 @@ namespace core::vfs
     rt::SharedPtr<File> clone() const { auto result = rt::makeShared<File>(m_vnode); result->m_pos = m_pos; return result; }
 
   public:
-    bool isOpen() const { return m_vnode; }
-    void close();
-
-  public:
     Result<Stat> stat();
 
   /******************

@@ -4,11 +4,6 @@
 
 namespace core::vfs
 {
-  void File::close()
-  {
-    m_vnode.reset();
-  }
-
   Result<File::Stat> File::stat() { return m_vnode->inode()->stat(); }
 
   Result<ssize_t> File::seek(Anchor anchor, off_t offset)
