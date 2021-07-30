@@ -53,19 +53,16 @@ void lsdir(fd_t fd, size_t depth = 0)
 
 void test1()
 {
-  auto rootfd = sys_root();
-  ASSERT_ALWAYS(rootfd >= 0);
+  ASSERT_ALWAYS(sys_openAt(ROOT_FD, "test") < 0);
+  ASSERT_ALWAYS(sys_openAt(ROOT_FD, "test4") < 0);
+  ASSERT_ALWAYS(sys_openAt(ROOT_FD, "test3") < 0);
 
-  ASSERT_ALWAYS(sys_openAt(rootfd, "test") < 0);
-  ASSERT_ALWAYS(sys_openAt(rootfd, "test4") < 0);
-  ASSERT_ALWAYS(sys_openAt(rootfd, "test3") < 0);
-
-  ASSERT_ALWAYS(sys_createAt(rootfd, "test",  Type::REGULAR_FILE) >= 0);
-  ASSERT_ALWAYS(sys_createAt(rootfd, "test4", Type::REGULAR_FILE) >= 0);
-  ASSERT_ALWAYS(sys_createAt(rootfd, "test3", Type::REGULAR_FILE) >= 0);
+  ASSERT_ALWAYS(sys_createAt(ROOT_FD, "test",  Type::REGULAR_FILE) >= 0);
+  ASSERT_ALWAYS(sys_createAt(ROOT_FD, "test4", Type::REGULAR_FILE) >= 0);
+  ASSERT_ALWAYS(sys_createAt(ROOT_FD, "test3", Type::REGULAR_FILE) >= 0);
 
   {
-    auto testfd = sys_openAt(rootfd, "test");
+    auto testfd = sys_openAt(ROOT_FD, "test");
     ASSERT_ALWAYS(testfd >= 0);
 
     constexpr auto OFFSET = 0xFF8;
@@ -83,8 +80,27 @@ void test1()
     rt::log("Result:");
     rt::log(readBuf, 5);
     rt::log("\n");
+
+
+    VfsCommand command = {};
+
+    command.opcode      = VfsCommand::Opcode::SEEK;
+    command.fd          = testfd;
+    command.seek.anchor = Anchor::BEGIN;
+    command.seek.offset = OFFSET;
+    sys_async_submit(&command);
+
+    command.opcode      = VfsCommand::Opcode::READ;
+    command.fd          = testfd;
+    command.read.buf    = readBuf;
+    command.read.length = sizeof readBuf;
+    sys_async_submit(&command);
+
+    result_t result = 0;
+    while(sys_async_wait(&result) != -1);
   }
-  lsdir(rootfd);
+  lsdir(ROOT_FD);
+
 }
 
 void test2()
@@ -96,10 +112,7 @@ void test2()
   _exit(127);
   rt::log("After exiting...\n");
 
-  auto rootfd = sys_root();
-  ASSERT_ALWAYS(rootfd >= 0);
-
-  auto serial1fd = sys_createAt(rootfd, "serial1", Type::REGULAR_FILE);
+  auto serial1fd = sys_createAt(ROOT_FD, "serial1", Type::REGULAR_FILE);
   ASSERT_ALWAYS(serial1fd >= 0);
   ASSERT_ALWAYS(sys_mountAt(serial1fd, "", "serial", "1") == 0);
 

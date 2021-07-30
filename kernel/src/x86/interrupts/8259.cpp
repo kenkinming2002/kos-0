@@ -46,26 +46,26 @@ namespace core::interrupts
     {
       rt::log("Configuring 8259 PIC...");
 
-      // Initialization Command Word 1 - starts the initialization sequence (in cascade mode)
+      // Initialization VfsCommand Word 1 - starts the initialization sequence (in cascade mode)
       assembly::outb(MASTER_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);
       assembly::ioWait();
       assembly::outb(SLAVE_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);
       assembly::ioWait();
 
-      // Initialization Command Word 2 - set master and slave offset
+      // Initialization VfsCommand Word 2 - set master and slave offset
       assembly::outb(MASTER_DATA_PORT, OFFSET);
       assembly::ioWait();
       assembly::outb(SLAVE_DATA_PORT, OFFSET+8);
       assembly::ioWait();
 
-      // Initialization Command Word 3 - specify we use IRQ2 line to communicate
+      // Initialization VfsCommand Word 3 - specify we use IRQ2 line to communicate
       //                                 between master and slave PIC
       assembly::outb(MASTER_DATA_PORT, 1 << 2);
       assembly::ioWait();
       assembly::outb(SLAVE_DATA_PORT, 2);
       assembly::ioWait();
 
-      // Initialization Command Word 4
+      // Initialization VfsCommand Word 4
       assembly::outb(MASTER_DATA_PORT, ICW4_8086);
       assembly::ioWait();
       assembly::outb(SLAVE_DATA_PORT, ICW4_8086);

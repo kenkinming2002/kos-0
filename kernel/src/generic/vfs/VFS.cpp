@@ -101,5 +101,4 @@ namespace core::vfs
 
     return (*file)->unlink(basename);
   }
-
 }

@@ -6,196 +6,161 @@
 #include <i686/syscalls/Access.hpp>
 #include <i686/tasks/Task.hpp>
 
+#include <librt/Log.hpp>
+
 namespace core::vfs
 {
   namespace
   {
-    Result<fd_t> sys_root()
+    template<typename T> inline result_t makeError(const Result<T>& result) { return -static_cast<result_t>(result.error()); }
+    template<typename T> inline result_t convertResult(const Result<T>& result) { return result ? *result : makeError(result); }
+    template<>           inline result_t convertResult(const Result<void>& result) { return result ? 0 : makeError(result); }
+
+    auto success()
     {
-      auto rootFile = root();
-      return tasks::Task::current()->fileDescriptors->addFile(rootFile);
+      return result_t(0);
     }
-    WRAP_SYSCALL0(_sys_root, sys_root)
 
-    Result<result_t> sys_mountAt(fd_t atfd, const char* _mountpoint, const char* _mountableName, const char* _arg)
+    auto addFile(rt::SharedPtr<File> file)
     {
-      auto at = tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
-
-      auto mountpoint = syscalls::stringFromUser(_mountpoint);
-      UNWRAP(mountpoint);
-
-      auto mountableName = syscalls::stringFromUser(_mountableName);
-      UNWRAP(mountableName);
-
-      auto arg = syscalls::stringFromUser(_arg);
-      UNWRAP(arg);
-
-      auto result = mountAt(rt::move(*at), *mountpoint, *mountableName, *arg);
-      UNWRAP(result);
-      return 0;
+      return tasks::Task::current()->fileDescriptors->addFile(rt::move(file));
     }
-    WRAP_SYSCALL4(_sys_mountAt, sys_mountAt)
 
-    Result<result_t> sys_umountAt(fd_t atfd, const char* _mountpoint)
+    Result<result_t> dispatch(const VfsCommand& command)
     {
-      auto at = tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
+      auto at = command.fd != ROOT_FD ? tasks::Task::current()->fileDescriptors->getFile(command.fd) : root();
+      if(!at)
+        return makeError(at);
 
-      auto mountpoint = syscalls::stringFromUser(_mountpoint);
-      UNWRAP(mountpoint);
+      switch(command.opcode)
+      {
+        case VfsCommand::Opcode::MOUNT:
+        {
+          auto mountpoint = syscalls::stringFromUser(command.mount.mountpoint);
+          if(!mountpoint)
+            return mountpoint.error();
 
-      auto result = umountAt(rt::move(*at), *mountpoint);
-      UNWRAP(result);
-      return 0;
+          auto mountableName = syscalls::stringFromUser(command.mount.mountableName);
+          if(!mountableName)
+            return mountableName.error();
+
+          auto arg = syscalls::stringFromUser(command.mount.arg);
+          if(!arg)
+            return arg.error();
+
+          return mountAt(*at, *mountpoint, *mountableName, *arg).map(&success);
+        }
+        case VfsCommand::Opcode::UMOUNT:
+        {
+          auto mountpoint = syscalls::stringFromUser(command.umount.mountpoint);
+          if(!mountpoint)
+            return mountpoint.error();
+
+          return umountAt(*at, *mountpoint).map(&success);
+        }
+        case VfsCommand::Opcode::OPEN:
+        {
+          auto path = syscalls::stringFromUser(command.open.path);
+          if(!path)
+            return path.error();
+
+          return openAt(*at, *path).andThen(&addFile);
+        }
+        case VfsCommand::Opcode::CREATE:
+        {
+          auto path = syscalls::stringFromUser(command.create.path);
+          if(!path)
+            return path.error();
+
+          auto type = command.create.type;
+          switch(static_cast<Type>(type))
+          {
+          case Type::REGULAR_FILE:
+          case Type::DIRECTORY:
+          case Type::SYMBOLIC_LINK:
+          case Type::OTHER:
+            break;
+          default:
+            return ErrorCode::INVALID;
+          }
+          return createAt(*at, *path, type).andThen(&addFile);
+        }
+        case VfsCommand::Opcode::LINK:
+        {
+          auto path = syscalls::stringFromUser(command.link.path);
+          if(!path)
+            return path.error();
+
+          auto target = syscalls::stringFromUser(command.link.target);
+          if(!target)
+            return target.error();
+
+          return linkAt(*at, *path, *target).map(&success);
+        }
+        case VfsCommand::Opcode::UNLINK:
+        {
+          auto path = syscalls::stringFromUser(command.unlink.path);
+          if(!path)
+            return path.error();
+
+          return unlinkAt(*at, *path).map(&success);
+        }
+        case VfsCommand::Opcode::READDIR:
+          return (*at)->readdir(command.readdir.buf, command.readdir.length);
+        case VfsCommand::Opcode::SEEK:
+        {
+          auto anchor = command.seek.anchor;
+          switch(static_cast<Anchor>(anchor))
+          {
+          case Anchor::BEGIN:
+          case Anchor::CURRENT:
+          case Anchor::END:
+            break;
+          default:
+            return ErrorCode::INVALID;
+          }
+          return (*at)->seek(anchor, command.seek.offset);
+        }
+        case VfsCommand::Opcode::READ:
+          return (*at)->read(command.read.buf, command.read.length);
+        case VfsCommand::Opcode::WRITE:
+          return (*at)->write(command.write.buf, command.write.length);
+        case VfsCommand::Opcode::RESIZE:
+          return (*at)->resize(command.resize.size).map(&success);
+        case VfsCommand::Opcode::CLOSE:
+          return tasks::Task::current()->fileDescriptors->removeFile(command.fd).map(&success);
+        default:
+          return ErrorCode::INVALID;
+      }
     }
-    WRAP_SYSCALL2(_sys_umountAt, sys_umountAt)
 
-    Result<fd_t> sys_openAt(fd_t atfd, const char* _path)
+    Result<vfs_command_t> sys_async_submit(VfsCommand* command)
     {
-      auto at = tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
-
-      auto path = syscalls::stringFromUser(_path);
-      UNWRAP(path);
-
-      auto file = openAt(rt::move(*at), *path);
-      UNWRAP(file);
-      return tasks::Task::current()->fileDescriptors->addFile(rt::move(*file));
+      // TODO: Verify command ptr is valid
+      return tasks::Task::current()->commandQueue.submit(*command);
     }
-    WRAP_SYSCALL2(_sys_openAt, sys_openAt)
+    WRAP_SYSCALL1(_sys_async_submit, sys_async_submit)
 
-    Result<fd_t> sys_createAt(fd_t atfd, const char* _path, uword_t _type)
+    Result<vfs_command_t> sys_async_wait(result_t* _result)
     {
-      auto at =   tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
+      VfsCommand command;
+      vfs_command_t handle;
 
-      auto path = syscalls::stringFromUser(_path);
-      UNWRAP(path);
+      // TODO: Decide smartly which command to dispatch
+      handle = tasks::Task::current()->commandQueue.retrive(command);
+      if(handle == -1)
+        return ErrorCode::INVALID; // We are ask to dispatch an io operation but none are submitted
 
-      auto type = syscalls::typeFromUser(_type);
-      UNWRAP(type);
-
-      auto file = createAt(rt::move(*at), *path, *type);
-      UNWRAP(file);
-
-      return tasks::Task::current()->fileDescriptors->addFile(rt::move(*file));
+      auto result = dispatch(command);
+      *_result = result ? *result : -static_cast<result_t>(result.error());
+      return handle;
     }
-    WRAP_SYSCALL3(_sys_createAt, sys_createAt)
-
-    Result<result_t> sys_linkAt(fd_t atfd, const char* _path, const char* _target)
-    {
-      auto at =     tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
-
-      auto path =   syscalls::stringFromUser(_path);
-      UNWRAP(path);
-
-      auto target = syscalls::stringFromUser(_target);
-      UNWRAP(target);
-
-      auto result = linkAt(rt::move(*at), *path, *target);
-      UNWRAP(result);
-      return 0;
-    }
-    WRAP_SYSCALL3(_sys_linkAt, sys_linkAt)
-
-    Result<result_t> sys_unlinkAt(fd_t atfd, const char* _path)
-    {
-      auto at =     tasks::Task::current()->fileDescriptors->getFile(atfd);
-      UNWRAP(at);
-
-      auto path =   syscalls::stringFromUser(_path);
-      UNWRAP(path);
-
-      auto result = unlinkAt(rt::move(*at), *path);
-      UNWRAP(result);
-      return 0;
-    }
-    WRAP_SYSCALL2(_sys_unlinkAt, sys_unlinkAt)
-
-    struct DirectoryEntry
-    {
-      uword_t length; // This is needed to maintain forward compatiblility - length of the entire structure
-      uword_t ino;
-      uword_t type;
-
-      char name[];
-    };
-
-    Result<ssize_t> sys_readdir(fd_t fd, char* buf, size_t length)
-    {
-      auto file = tasks::Task::current()->fileDescriptors->getFile(fd);
-      UNWRAP(file);
-
-      return (*file)->readdir(buf, length);
-    }
-    WRAP_SYSCALL3(_sys_readdir, sys_readdir)
-
-    Result<ssize_t> sys_seek(fd_t fd, uword_t _anchor, off_t offset)
-    {
-      auto file = tasks::Task::current()->fileDescriptors->getFile(fd);
-      UNWRAP(file);
-
-      auto anchor = syscalls::anchorFromUser(_anchor);
-      UNWRAP(anchor);
-
-      return (*file)->seek(*anchor, offset);
-    }
-    WRAP_SYSCALL3(_sys_seek, sys_seek)
-
-    Result<ssize_t> sys_read(fd_t fd, char* buf, size_t length)
-    {
-      auto file = tasks::Task::current()->fileDescriptors->getFile(fd);
-      UNWRAP(file);
-
-      return (*file)->read(buf, length);
-    }
-    WRAP_SYSCALL3(_sys_read, sys_read)
-
-    Result<ssize_t> sys_write(fd_t fd, const char* buf, size_t length)
-    {
-      auto file = tasks::Task::current()->fileDescriptors->getFile(fd);
-      UNWRAP(file);
-
-      return (*file)->write(buf, length);
-    }
-    WRAP_SYSCALL3(_sys_write, sys_write)
-
-    Result<result_t> sys_resize(fd_t fd, size_t size)
-    {
-      auto file = tasks::Task::current()->fileDescriptors->getFile(fd);
-      UNWRAP(file);
-
-      auto result = (*file)->resize(size);
-      UNWRAP(result);
-      return 0;
-    }
-    WRAP_SYSCALL2(_sys_resize, sys_resize)
-
-    Result<result_t> sys_close(fd_t fd)
-    {
-      auto result = tasks::Task::current()->fileDescriptors->removeFile(fd);
-      UNWRAP(result);
-      return 0;
-    }
-    WRAP_SYSCALL1(_sys_close, sys_close)
+    WRAP_SYSCALL1(_sys_async_wait, sys_async_wait)
   }
 
   void initializeSyscalls()
   {
-    syscalls::installHandler(SYS_ROOT    , &_sys_root    );
-    syscalls::installHandler(SYS_MOUNTAT , &_sys_mountAt );
-    syscalls::installHandler(SYS_UMOUNTAT, &_sys_umountAt);
-    syscalls::installHandler(SYS_OPENAT  , &_sys_openAt  );
-    syscalls::installHandler(SYS_CREATEAT, &_sys_createAt);
-    syscalls::installHandler(SYS_LINKAT  , &_sys_linkAt  );
-    syscalls::installHandler(SYS_UNLINKAT, &_sys_unlinkAt);
-    syscalls::installHandler(SYS_READDIR , &_sys_readdir );
-    syscalls::installHandler(SYS_SEEK    , &_sys_seek    );
-    syscalls::installHandler(SYS_READ    , &_sys_read    );
-    syscalls::installHandler(SYS_WRITE   , &_sys_write   );
-    syscalls::installHandler(SYS_RESIZE  , &_sys_resize  );
-    syscalls::installHandler(SYS_CLOSE   , &_sys_close   );
+    syscalls::installHandler(SYS_ASYNC_SUBMIT, &_sys_async_submit);
+    syscalls::installHandler(SYS_ASYNC_WAIT  , &_sys_async_wait);
   }
 }

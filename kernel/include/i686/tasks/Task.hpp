@@ -1,6 +1,7 @@
 #pragma once
 
 #include <generic/vfs/FileDescriptors.hpp>
+#include <generic/vfs/CommandQueue.hpp>
 #include <i686/tasks/Registers.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
@@ -60,6 +61,9 @@ namespace core::tasks
     rt::SharedPtr<memory::MemoryMapping> memoryMapping;
     rt::SharedPtr<vfs::FileDescriptors> fileDescriptors;
     Stack kernelStack;
+
+  public:
+    vfs::CommandQueue commandQueue;
 
   public:
     enum class State { RUNNING, RUNNABLE, DEAD } state = State::RUNNABLE;
