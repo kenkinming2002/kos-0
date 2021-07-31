@@ -22,20 +22,24 @@ namespace core::tasks
     struct Scheduler
     {
       std::atomic<unsigned> nextCpuid = 0;
+      struct CpuInfo
+      {
+        rt::SpinLock activeTasksListLock;
+        rt::SpinLock terminatedTasksListLock;
 
-      PerCPU<rt::containers::List<rt::SharedPtr<Task>>> activeTasksList;
-      PerCPU<rt::SpinLock>                              activeTasksListLock;
-
-      rt::containers::List<rt::SharedPtr<Task>> terminatedTasksList;
-      rt::SpinLock                              terminatedTasksListLock;
+        rt::containers::List<rt::SharedPtr<Task>> activeTasksList;
+        rt::containers::List<rt::SharedPtr<Task>> terminatedTasksList;
+      };
+      PerCPU<CpuInfo> cpuInfos;
 
       void reap()
       {
-        rt::LockGuard guard(terminatedTasksListLock);
-        if(!terminatedTasksList.empty())
+        auto& cpuInfo = cpuInfos.current();
+        rt::LockGuard guard(cpuInfo.terminatedTasksListLock);
+        if(!cpuInfo.terminatedTasksList.empty())
         {
-          auto task = *terminatedTasksList.begin();
-          terminatedTasksList.remove(terminatedTasksList.begin());
+          auto task = *cpuInfo.terminatedTasksList.begin();
+          cpuInfo.terminatedTasksList.remove(cpuInfo.terminatedTasksList.begin());
           rt::logf("Reaping process pid = %ld, status = %ld\n", task->pid, task->status);
         }
       }
@@ -43,11 +47,10 @@ namespace core::tasks
       void addTask(rt::SharedPtr<Task> task, unsigned cpuid)
       {
         rt::logf("Adding task to cpuid: %u\n", cpuid);
-        auto& activeTasksListLockTarget = activeTasksListLock.get(cpuid);
-        auto& activeTasksListTarget     = activeTasksList.get(cpuid);
 
-        rt::LockGuard guard(activeTasksListLockTarget);
-        activeTasksListTarget.insert(activeTasksListTarget.end(), rt::move(task));
+        auto& cpuInfo = cpuInfos.get(cpuid);
+        rt::LockGuard guard(cpuInfo.activeTasksListLock);
+        cpuInfo.activeTasksList.insert(cpuInfo.activeTasksList.end(), rt::move(task));
       }
 
       void addTask(rt::SharedPtr<Task> task)
@@ -58,15 +61,12 @@ namespace core::tasks
 
       rt::SharedPtr<Task> getNextTask()
       {
-        auto& activeTasksListLockCurrent = activeTasksListLock.current();
-        auto& activeTasksListCurrent     = activeTasksList.current();
-        rt::LockGuard guard(activeTasksListLockCurrent);
+        auto& cpuInfo = cpuInfos.current();
+        rt::LockGuard guard(cpuInfo.activeTasksListLock);
+        ASSERT(!cpuInfo.activeTasksList.empty());
 
-        if(activeTasksListCurrent.empty())
-          return nullptr;
-
-        auto nextTask = *activeTasksListCurrent.begin();
-        activeTasksListCurrent.splice(activeTasksListCurrent.end(), activeTasksListCurrent, activeTasksListCurrent.begin(), rt::next(activeTasksListCurrent.begin()));
+        auto nextTask = *cpuInfo.activeTasksList.begin();
+        cpuInfo.activeTasksList.splice(cpuInfo.activeTasksList.end(), cpuInfo.activeTasksList, cpuInfo.activeTasksList.begin(), rt::next(cpuInfo.activeTasksList.begin()));
         return nextTask;
       }
 
@@ -74,16 +74,15 @@ namespace core::tasks
       {
         for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)
         {
-          auto& activeTasksListLockTarget = activeTasksListLock.get(cpuid);
-          auto& activeTasksListTarget     = activeTasksList.get(cpuid);
-          rt::LockGuard guard1(activeTasksListLockTarget);
+          auto& cpuInfo = cpuInfos.get(cpuid);
+          rt::LockGuard guard1(cpuInfo.activeTasksListLock);
 
-          auto it = rt::find_if(activeTasksListTarget.begin(), activeTasksListTarget.end(), [pid](const rt::SharedPtr<Task>& task) { return task->pid == pid; });
-          if(it == activeTasksListTarget.end())
+          auto it = rt::find_if(cpuInfo.activeTasksList.begin(), cpuInfo.activeTasksList.end(), [pid](const rt::SharedPtr<Task>& task) { return task->pid == pid; });
+          if(it == cpuInfo.activeTasksList.end())
             continue;
 
-          rt::LockGuard guard2(terminatedTasksListLock);
-          terminatedTasksList.splice(terminatedTasksList.end(), activeTasksListTarget, it, next(it));
+          rt::LockGuard guard2(cpuInfo.terminatedTasksListLock);
+          cpuInfo.terminatedTasksList.splice(cpuInfo.terminatedTasksList.end(), cpuInfo.activeTasksList, it, next(it));
           (*it)->kill(status);
           return 0;
         }
@@ -101,14 +100,9 @@ namespace core::tasks
       schedule();
     }
 
-    // This should be a extremely low priority task
-    void reaper()
+    void initializeTimer()
     {
-      for(;;)
-      {
-        scheduler().reap();
-        schedule();
-      }
+      interrupts::addTimerCallback(&timerHandler);
     }
 
     // This should be a task with lowest possibly imaginable priority
@@ -122,9 +116,14 @@ namespace core::tasks
       }
     }
 
-    void initializeTimer()
+    // This should be a extremely low priority task
+    void reaper()
     {
-      interrupts::addTimerCallback(&timerHandler);
+      for(;;)
+      {
+        scheduler().reap();
+        schedule();
+      }
     }
 
     void initializeKernelTasks()
@@ -134,11 +133,11 @@ namespace core::tasks
         auto idleTask = Task::allocate();
         idleTask->asKernelTask(&idle);
         addTask(rt::move(idleTask), cpuid);
-      }
 
-      auto reaperTask = Task::allocate();
-      reaperTask->asKernelTask(&reaper);
-      addTask(rt::move(reaperTask));
+        auto reaperTask = Task::allocate();
+        reaperTask->asKernelTask(&reaper);
+        addTask(rt::move(reaperTask), cpuid);
+      }
     }
 
     void initializeInitTasks()
