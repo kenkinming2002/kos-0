@@ -99,22 +99,24 @@ namespace core::interrupts
 
   private:
     inline static timer_callback_t m_callback = nullptr;
+    inline static void* m_data = nullptr;
 
   public:
     static void timerHandler(irq_t irq, uword_t, uintptr_t)
     {
       interrupts::acknowledge(irq);
       if(m_callback)
-        m_callback();
+        m_callback(m_data);
     }
 
   public:
-    void registerTimerCallback(timer_callback_t callback) override
+    void registerTimerCallback(timer_callback_t callback, void* data) override
     {
       // TODO: Support multiple callback
       ASSERT(!m_callback);
       interrupts::installHandler(LocalAPIC::TIMER_VECTOR, &timerHandler, PrivilegeLevel::RING0, true);
       m_callback = callback;
+      m_data = data;
     }
 
     void resetTimer() override

@@ -88,8 +88,7 @@ namespace core::interrupts
 
     handlers[irqNumber](irqNumber, errorCode, oldEip);
 
-    if(oldEip<0xC0000000) // We could have interrupted a syscall, so make sure
-      tasks::onResume();
+    tasks::onResume();
   }
 
   void setKernelStack(uintptr_t ptr, size_t size)

@@ -33,15 +33,9 @@ namespace core::tasks
 
   void Task::makeCurrent(rt::SharedPtr<Task> task)
   {
-    if(current() && current()->state == State::RUNNING)
-      current()->state = State::RUNNABLE;
-
     current() = task;
     if(task)
     {
-      ASSERT(current()->state == State::RUNNABLE);
-      current()->state = State::RUNNING;
-
       interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
       syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
       if(task->memoryMapping)
@@ -77,7 +71,6 @@ namespace core::tasks
 
   namespace
   {
-    static constinit std::atomic<pid_t> nextPid = 0;
   }
 
   rt::SharedPtr<Task> Task::allocate()
@@ -91,7 +84,7 @@ namespace core::tasks
       .esp = reinterpret_cast<uintptr_t>(kernelStackPage) + STACK_SIZE
     };
 
-    return rt::makeShared<Task>(nextPid.fetch_add(1, std::memory_order_relaxed), stack);
+    return rt::makeShared<Task>(stack);
   }
 
   rt::SharedPtr<Task> Task::clone()
@@ -118,20 +111,13 @@ namespace core::tasks
     return task;
   }
 
-  Task::Task(pid_t pid, Stack kernelStack)
-    : pid(pid), kernelStack(kernelStack) {}
+  Task::Task(Stack kernelStack)
+    : kernelStack(kernelStack) {}
 
   Task::~Task()
   {
     memory::freePages(kernelStack.ptr, STACK_PAGES_COUNT);
   }
-
-  void Task::kill(status_t status)
-  {
-    this->state = State::DEAD;
-    this->status = status;
-  }
-
   namespace
   {
     template<typename T>
@@ -141,9 +127,9 @@ namespace core::tasks
       *reinterpret_cast<T*>(stack.esp) = value;
     }
 
-    void newKernelTask(void(*kernelTask)())
+    void newKernelTask(void(*kernelTask)(void*), void* data)
     {
-      kernelTask();
+      kernelTask(data);
       killCurrent(0);
       schedule();
       ASSERT_UNREACHABLE;
@@ -156,8 +142,9 @@ namespace core::tasks
     }
   }
 
-  Result<void> Task::asKernelTask(void(*kernelTask)())
+  Result<void> Task::asKernelTask(void(*kernelTask)(void*), void* data)
   {
+    push(kernelStack, data);
     push(kernelStack, kernelTask);
     push(kernelStack, POISON); // This can really be any value, we are just simulating eip pushed when executing a call instruction
     push(kernelStack, &newKernelTask);

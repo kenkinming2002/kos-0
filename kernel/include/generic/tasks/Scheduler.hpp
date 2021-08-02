@@ -10,7 +10,9 @@ namespace core::tasks
   void addTask(rt::SharedPtr<Task> task);
 
   void schedule();
-  void killCurrent(status_t status);
+
+  void block(rt::SharedPtr<Task>& blockedTask);
+  void unblock(rt::SharedPtr<Task> blockedTask);
 
   /* Called when we are about to return to userspace, possibly from a
    * interrupt/syscall handler, to reschedule if the current task is killed for
@@ -18,6 +20,7 @@ namespace core::tasks
    * from any other context */
   void onResume();
 
+  void killCurrent(status_t status);
   pid_t getpid();
   Result<result_t> kill(pid_t pid, status_t status);
   Result<pid_t> fork();

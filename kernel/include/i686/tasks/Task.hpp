@@ -2,6 +2,8 @@
 
 #include <generic/vfs/FileDescriptors.hpp>
 #include <generic/vfs/CommandQueue.hpp>
+#include <generic/tasks/SchedInfo.hpp>
+
 #include <i686/tasks/Registers.hpp>
 #include <i686/memory/MemoryMapping.hpp>
 
@@ -38,23 +40,16 @@ namespace core::tasks
     rt::SharedPtr<Task> clone();
 
   public:
-    Task(pid_t pid, Stack kernelStack);
+    Task(Stack kernelStack);
     ~Task();
 
   public:
-    void kill(status_t status);
-
-  public:
-    Result<void> asKernelTask(void(*kernelTask)());
+    Result<void> asKernelTask(void(*kernelTask)(void*), void* data);
     Result<void> asUserTask(Registers registers);
 
   public:
     bool isKernelTask() const { return !memoryMapping; }
     bool isUserTask()   const { return memoryMapping; }
-
-  public:
-    pid_t pid;
-    status_t status;
 
   public:
     Registers registers;
@@ -66,7 +61,6 @@ namespace core::tasks
     vfs::CommandQueue commandQueue;
 
   public:
-    enum class State { RUNNING, RUNNABLE, DEAD } state = State::RUNNABLE;
-
+    SchedInfo schedInfo;
   };
 }
