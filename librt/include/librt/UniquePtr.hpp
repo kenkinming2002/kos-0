@@ -27,7 +27,7 @@ namespace rt
     friend class UniquePtr;
 
   public:
-    constexpr UniquePtr(pointer ptr = nullptr) { reset(ptr); }
+    constexpr UniquePtr(pointer ptr = nullptr) : m_ptr(ptr) {}
     constexpr ~UniquePtr()                     { reset(); }
 
   public:

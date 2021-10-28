@@ -104,6 +104,20 @@ namespace rt::containers
     void clear() { Base::clear_and_dispose(disposer); }
 
   public:
+    using Base::empty;
+
+  public:
+    value_type& front() { ASSERT(!empty()); return *begin(); }
+    value_type& back()  { ASSERT(!empty()); return *prev(end()); }
+
+    const value_type& front() const { ASSERT(!empty()); return *begin(); }
+    const value_type& back()  const { ASSERT(!empty()); return *prev(end()); }
+
+  public:
+    void popFront() { ASSERT(!empty()); remove(begin()); }
+    void popBack()  { ASSERT(!empty()); remove(prev(end())); }
+
+  public:
     void splice(const_iterator position, List& other, const_iterator first, const_iterator last)
     {
       Base::splice(position, other, first, last);

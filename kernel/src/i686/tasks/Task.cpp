@@ -15,7 +15,6 @@ namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
-  // FIXME: Implement for multiprocessor
   namespace
   {
     constinit rt::Global<PerCPU<rt::SharedPtr<Task>>> currentTask;
@@ -67,10 +66,6 @@ namespace core::tasks
       core_tasks_switch_esp(&dummyEsp, &task->kernelStack.esp);
       __builtin_unreachable();
     }
-  }
-
-  namespace
-  {
   }
 
   rt::SharedPtr<Task> Task::allocate()

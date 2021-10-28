@@ -1,6 +1,7 @@
 #pragma once
 
 #include <librt/UniquePtr.hpp>
+#include <librt/SpinLock.hpp>
 
 namespace core
 {
@@ -13,17 +14,26 @@ namespace core
   class PerCPU
   {
   public:
-    PerCPU() { m_values = rt::makeUnique<T[]>(getCpusCount()); }
+    constexpr PerCPU() = default;
+
+  private:
+    void ensure() const
+    {
+      rt::LockGuard guard(m_lock);
+      if(!m_values)
+        m_values = rt::makeUnique<T[]>(getCpusCount());
+    }
 
   public:
-    const T& get(unsigned cpuid) const { return m_values[cpuid]; }
-    T& get(unsigned cpuid)             { return m_values[cpuid]; }
+    const T& get(unsigned cpuid) const { ensure(); return m_values[cpuid]; }
+    T& get(unsigned cpuid)             { ensure(); return m_values[cpuid]; }
 
   public:
     const T& current() const { return get(cpuidCurrent()); }
     T& current()             { return get(cpuidCurrent()); }
 
   private:
-    rt::UniquePtr<T[]> m_values;
+    mutable rt::SpinLock m_lock;
+    mutable rt::UniquePtr<T[]> m_values = nullptr;
   };
 }
