@@ -82,40 +82,51 @@ namespace core::tasks
     Task::switchTo(rt::move(nextTask));
   }
 
-  /* prepareToBlock() and block() run synchronously
-   * signal() run asynchronously
-   *
-   * prepareToBlock() must be ran before any call to block() and signal()
-   * That mean before you run any "task" that may generate asynchrous signal,
-   * you *must* call prepareToBlock() or you risk losing the signal.
-   * */
-
-  void prepareToBlock(WaitQueue& wq)
+  template<typename Predicate>
+  WaitResult waitEvent(WaitQueue& wq, Predicate predicate)
   {
-    auto currentTask = Task::current();
+    WaitResult result;
+    auto& currentTask = Task::current();
+
+    auto it = wq.add(Task::current());
     currentTask->schedInfo.state.store(SchedInfo::State::BLOCKED);
-    wq.enqueue(currentTask);
-  }
+    // Wakeup after this point would works
+    for(;;)
+    {
+      if(predicate())
+      {
+        result = WaitResult::SUCCESS;
+        break;
+      }
 
-  void block()
-  {
-    auto currentTask = Task::current();
-    while(!currentTask->schedInfo.siginfo.pendingSignal())
+      // TODO: Optimize for task e.g. kernel task with which all signals are blocked
+      if(currentTask->schedInfo.siginfo.pendingSignal())
+      {
+        result = WaitResult::INTERRUPTED;
+        break;
+      }
+
       schedule();
+    }
+
     currentTask->schedInfo.state.store(SchedInfo::State::RUNNING);
+    wq.remove(it);
+    return result;
   }
 
-  void signal(rt::SharedPtr<Task>& task, Signal sig)
+  void wakeUp(rt::SharedPtr<Task>& task)
   {
-    task->schedInfo.siginfo.actions[static_cast<unsigned>(sig)].pending = true;
+    // TODO: Synchronize across multiple wake up
     if(task->schedInfo.state.load() == SchedInfo::State::BLOCKED)
     {
-      task->schedInfo.state.store(SchedInfo::State::RUNNABLE);
+      if(task->schedInfo.state.exchange(SchedInfo::State::RUNNABLE) == SchedInfo::State::RUNNABLE)
+        return; // Somebody got here ahead of us bail out
+
       rqs.get(task->schedInfo.cpuid).enqueue(task);
     }
   }
 
-  void signal(const WaitQueue& wq, Signal sig)
+  void wakeUp(WaitQueue& wq)
   {
     auto task = wq.get();
     if(!task)
@@ -123,21 +134,13 @@ namespace core::tasks
       rt::log("Warning: no task in wait queue\n");
       return;
     }
-
-    signal(task, sig);
+    wakeUp(task);
   }
 
-
-  void signalOnce(WaitQueue& wq, Signal sig)
+  void signal(rt::SharedPtr<Task>& task, Signal sig)
   {
-    auto task = wq.dequeue(); // Sometimes, we do not want to dequeue the task
-    if(!task)
-    {
-      rt::log("Warning: no task in wait queue\n");
-      return;
-    }
-
-    signal(task, sig);
+    task->schedInfo.siginfo.actions[static_cast<unsigned>(sig)].pending = true;
+    wakeUp(task);
   }
 
   void handleSignal()
@@ -155,6 +158,8 @@ namespace core::tasks
     {
       currentTask->schedInfo.state.store(SchedInfo::State::TERMINATED);
       tqs.current().enqueue(currentTask);
+      wakeUp(wqsReaper.current());
+
       rt::log("Reschedule as current task is terminated\n");
       schedule();
       ASSERT_UNREACHABLE;
@@ -178,8 +183,7 @@ namespace core::tasks
 
 
     task->schedInfo.status = status;
-    signal(task,                                 Signal::KILL);
-    signal(wqsReaper.get(task->schedInfo.cpuid), Signal::IO);
+    signal(task, Signal::KILL);
     return 0;
   }
 
@@ -215,18 +219,9 @@ namespace core::tasks
 
     static void reaper(void* data)
     {
-      /* It is possible that we are woken up before we have a chance to call
-       * prepareToBlock(). That does not matter, since this only happen in
-       * system start up and we would clean up the next time we are woken up
-       *
-       * Ideally, we would be the first task scheduled and that *should* not be
-       * a problem. */
-      prepareToBlock(wqsReaper.current());
       for(;;)
       {
-        block();
-        auto signal = Task::current()->schedInfo.siginfo.get();
-        ASSERT(signal == Signal::IO);
+        waitEvent(wqsReaper.current(), [&](){ return !tqs.current().empty(); });
         tqs.current().reap(tasksMap);
       }
     }

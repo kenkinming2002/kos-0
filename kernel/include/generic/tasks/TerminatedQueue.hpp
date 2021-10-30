@@ -16,8 +16,16 @@ namespace core::tasks
   struct TerminatedQueue
   {
   public:
-    rt::SpinLock lock;
+    mutable rt::SpinLock lock;
     rt::containers::List<rt::SharedPtr<Task>> terminatedTasksList;
+
+  public:
+    bool empty() const
+    {
+      rt::LockGuard guard(lock);
+      return terminatedTasksList.empty();
+    }
+
 
   public:
     void enqueue(rt::SharedPtr<Task> task)
@@ -44,7 +52,7 @@ namespace core::tasks
       while(auto task = dequeue())
       {
         tasksMap.removeTask(task->schedInfo.pid);
-        rt::logf("Terminateded process pid = %ld, status = %ld\n", task->schedInfo.pid, task->schedInfo.status);
+        rt::logf("Terminated process pid = %ld, status = %ld\n", task->schedInfo.pid, task->schedInfo.status);
       }
     }
   };

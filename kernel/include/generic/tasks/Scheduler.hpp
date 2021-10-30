@@ -14,8 +14,10 @@ namespace core::tasks
 
   void schedule();
 
-  void prepareToBlock(WaitQueue& wq);
-  void block();
+  /* @return true if predicate is true, false if signal is received */
+  enum class WaitResult { SUCCESS, INTERRUPTED };
+  template<typename Predicate>
+  WaitResult waitEvent(WaitQueue& wq, Predicate predicate);
 
   void signal(rt::SharedPtr<Task>& task, Signal signal);
   void signal(const WaitQueue& wq, Signal sig);

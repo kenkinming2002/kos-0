@@ -20,22 +20,26 @@ namespace core::tasks
     rt::containers::List<rt::SharedPtr<Task>> tasksList;
 
   public:
-    void enqueue(rt::SharedPtr<Task> task)
+    auto add(rt::SharedPtr<Task> task)
     {
       rt::LockGuard guard1(lock);
-      tasksList.insert(tasksList.end(), rt::move(task));
+      return tasksList.insert(tasksList.end(), rt::move(task));
+    }
+
+    void remove(rt::containers::List<rt::SharedPtr<Task>>::const_iterator it)
+    {
+      rt::LockGuard guard1(lock);
+      tasksList.remove(it);
     }
 
   public:
-    rt::SharedPtr<Task> dequeue()
+    rt::SharedPtr<Task> get()
     {
       rt::LockGuard guard(lock);
       if(tasksList.empty())
         return nullptr;
 
-      auto task = tasksList.front();
-      tasksList.popFront();
-      return task;
+      return tasksList.front();
     }
 
   public:
