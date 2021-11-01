@@ -4,6 +4,8 @@
 
 #include <i686/tasks/Task.hpp>
 
+#include <librt/FunctionRef.hpp>
+
 #include <limits.h>
 
 namespace core::tasks
@@ -16,8 +18,7 @@ namespace core::tasks
 
   /* @return true if predicate is true, false if signal is received */
   enum class WaitResult { SUCCESS, INTERRUPTED };
-  template<typename Predicate>
-  WaitResult waitEvent(WaitQueue& wq, Predicate predicate);
+  WaitResult waitEvent(WaitQueue& wq, rt::FunctionRef<bool()> predicate);
 
   void signal(rt::SharedPtr<Task>& task, Signal signal);
   void signal(const WaitQueue& wq, Signal sig);

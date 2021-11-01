@@ -82,8 +82,7 @@ namespace core::tasks
     Task::switchTo(rt::move(nextTask));
   }
 
-  template<typename Predicate>
-  WaitResult waitEvent(WaitQueue& wq, Predicate predicate)
+  WaitResult waitEvent(WaitQueue& wq, rt::FunctionRef<bool()> predicate)
   {
     WaitResult result;
     auto& currentTask = Task::current();
@@ -221,7 +220,7 @@ namespace core::tasks
     {
       for(;;)
       {
-        waitEvent(wqsReaper.current(), [&](){ return !tqs.current().empty(); });
+        waitEvent(wqsReaper.current(), [](){ return !tqs.current().empty(); });
         tqs.current().reap(tasksMap);
       }
     }
