@@ -99,7 +99,7 @@ namespace core::tasks
       }
 
       // TODO: Optimize for task e.g. kernel task with which all signals are blocked
-      if(currentTask->schedInfo.siginfo.pendingSignal())
+      if(currentTask->sigInfo.pendingSignal())
       {
         result = WaitResult::INTERRUPTED;
         break;
@@ -138,14 +138,14 @@ namespace core::tasks
 
   void signal(rt::SharedPtr<Task>& task, Signal sig)
   {
-    task->schedInfo.siginfo.actions[static_cast<unsigned>(sig)].pending = true;
+    task->sigInfo.actions[static_cast<unsigned>(sig)].pending = true;
     wakeUp(task);
   }
 
   void handleSignal()
   {
     auto& currentTask = Task::current();
-    for(auto& sigaction : currentTask->schedInfo.siginfo.actions)
+    for(auto& sigaction : currentTask->sigInfo.actions)
       if(sigaction.pending && sigaction.kill)
         currentTask->schedInfo.pendingKill = true;
   }

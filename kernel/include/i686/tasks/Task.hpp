@@ -3,6 +3,7 @@
 #include <generic/vfs/FileDescriptors.hpp>
 #include <generic/vfs/CommandQueue.hpp>
 #include <generic/tasks/SchedInfo.hpp>
+#include <generic/tasks/Signals.hpp>
 
 #include <i686/tasks/Registers.hpp>
 #include <i686/memory/MemoryMapping.hpp>
@@ -61,6 +62,7 @@ namespace core::tasks
     vfs::CommandQueue commandQueue;
 
   public:
+    SigInfo sigInfo;
     SchedInfo schedInfo;
   };
 }

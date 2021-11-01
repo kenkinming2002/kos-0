@@ -32,9 +32,9 @@ namespace core::tasks
     bool kill    : 1;
   };
 
-  struct Siginfo
+  struct SigInfo
   {
-    constexpr Siginfo()
+    constexpr SigInfo()
     {
       for(auto& action : actions)
         action = Sigaction{.pending = false, .kill = false};

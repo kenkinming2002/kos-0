@@ -1,7 +1,5 @@
 #pragma once
 
-#include <generic/tasks/Signals.hpp>
-
 #include <librt/containers/Bitset.hpp>
 #include <librt/SpinLock.hpp>
 
@@ -40,7 +38,6 @@ namespace core::tasks
 
   public:
     /* Signal handling and return status */
-    Siginfo siginfo;
     status_t status = 0;
     bool pendingKill = false;
   };
