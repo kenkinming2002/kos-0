@@ -42,14 +42,4 @@ namespace core::interrupts
   {
     return pic->translateGSI(gsi);
   }
-
-  void addTimerCallback(PIC::timer_callback_t callback, void* data)
-  {
-    pic->registerTimerCallback(callback, data);
-  }
-
-  void resetTimer()
-  {
-    pic->resetTimer();
-  }
 }

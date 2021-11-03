@@ -34,14 +34,7 @@ namespace core::interrupts
     virtual irq_t translateISA(unsigned isa) = 0;
     virtual irq_t translateGSI(unsigned gsi) = 0;
 
-  /* timer interrupts */
   public:
-    typedef void(*timer_callback_t)(void*);
-
-  public:
-    virtual void registerTimerCallback(timer_callback_t callback, void* data) = 0;
-    virtual void resetTimer() = 0;
-
     virtual ~PIC() = default;
   };
 
@@ -64,7 +57,4 @@ namespace core::interrupts
    * APIC */
   static constexpr size_t GSI_IRQ_COUNT = 223;
   irq_t translateGSI(unsigned gsi);
-
-  void addTimerCallback(PIC::timer_callback_t callback, void* data);
-  void resetTimer();
 }

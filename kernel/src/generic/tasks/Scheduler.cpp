@@ -7,6 +7,8 @@
 #include <generic/vfs/VFS.hpp>
 #include <generic/tasks/Elf.hpp>
 
+#include <generic/timers/Timer.hpp>
+
 #include <generic/tasks/TasksMap.hpp>
 #include <generic/tasks/RunQueue.hpp>
 #include <generic/tasks/TerminatedQueue.hpp>
@@ -43,6 +45,8 @@ namespace core::tasks
     constinit PerCPU<RunQueue>        rqs;
     constinit PerCPU<TerminatedQueue> tqs;
     constinit PerCPU<WaitQueue>       wqsReaper;
+
+    timers::Timer* timer;
   }
 
   void addTask(rt::SharedPtr<Task> task, unsigned cpuid)
@@ -78,7 +82,7 @@ namespace core::tasks
   void schedule()
   {
     auto nextTask = _schedule();
-    interrupts::resetTimer();
+    timer->reset();
     Task::switchTo(rt::move(nextTask));
   }
 
@@ -229,7 +233,9 @@ namespace core::tasks
   void initializeScheduler()
   {
     // Preemption
-    interrupts::addTimerCallback(&timerHandler, nullptr);
+    timer = timers::getSchedulerTimer();
+    ASSERT(timer);
+    timer->addCallback(&timerHandler, nullptr);
 
     // Idle and reaper task
     for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)

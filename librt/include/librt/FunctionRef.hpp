@@ -27,20 +27,21 @@ namespace rt
   private:
     union
     {
-      func_ptr_t         m_func;         // If !m_capture
-      func_capture_ptr_t m_func_capture; // If m_capture
+      func_ptr_t         m_func = nullptr; // If !m_capture
+      func_capture_ptr_t m_func_capture;   // If m_capture
     };
-    void* m_capture;
+    void* m_capture = nullptr;
 
   public:
+    constexpr FunctionRef() = default;
     /* Free Function */
     template<typename U>
-    FunctionRef(U u) requires(std::is_convertible_v<U, func_ptr_t>)
+    constexpr FunctionRef(U u) requires(std::is_convertible_v<U, func_ptr_t>)
       : m_func(u), m_capture(nullptr) {}
 
     template<typename U>
-    FunctionRef(U& u) requires(!std::is_convertible_v<U, func_ptr_t>)
-      : m_func_capture(), m_capture(&u) {}
+    constexpr FunctionRef(U& u) requires(!std::is_convertible_v<U, func_ptr_t>)
+      : m_func_capture(makeFuncCapture<U>()), m_capture(&u) {}
 
   public:
     Ret operator()(T&&... args) const

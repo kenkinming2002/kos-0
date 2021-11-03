@@ -2,8 +2,10 @@
 
 #include <x86/interrupts/PIC.hpp>
 #include <x86/interrupts/IOAPIC.hpp>
-#include <x86/interrupts/LocalAPIC.hpp>
+#include <x86/LocalAPIC.hpp>
 #include <x86/acpi/ACPI.hpp>
+
+#include <x86/assembly/msr.hpp>
 
 #include <generic/Init.hpp>
 
@@ -18,6 +20,11 @@ namespace core::interrupts
   class APIC : public PIC
   {
   public:
+    static constexpr uint32_t IA32_APIC_BASE_MSR        = 0x1B;
+    static constexpr uint64_t IA32_APIC_BASE_MSR_ENABLE = 0x800;
+    static constexpr irq_t SPURIOUS_INTERRUPT_VECTOR = 0xFF;
+
+  public:
     APIC()
     {
       /* Assume identity mapping from isa irq to gsi until otherwise specified in
@@ -30,7 +37,6 @@ namespace core::interrupts
       if(!madt)
         rt::panic("Failed to find MADT\n");
 
-      m_localAPIC = LocalAPIC(madt->localAPICAddress);
       for(auto* madtEntry = madt->entries; madtEntry<MADTEntryEnd(madt); madtEntry = MADTEntryNext(madtEntry))
         switch(madtEntry->type)
         {
@@ -53,6 +59,11 @@ namespace core::interrupts
           default:
             break;
         }
+
+      foreachCPUInitCall([]() {
+        assembly::wrmsr(IA32_APIC_BASE_MSR, assembly::rdmsr(IA32_APIC_BASE_MSR) | IA32_APIC_BASE_MSR_ENABLE);
+        LocalAPIC::write(LocalAPIC::SPURIOUS_INTERRUPT_VECTOR_REGISTER, 0x1 << 8 | SPURIOUS_INTERRUPT_VECTOR);
+      });
     }
 
   private:
@@ -90,39 +101,12 @@ namespace core::interrupts
     void acknowledge(irq_t irq) override
     {
       // Consider checking if it is indeed the current interrupt
-      m_localAPIC->acknowledge(irq);
+      LocalAPIC::write(LocalAPIC::EOI_REGISTER, 0);
     }
 
   public:
     irq_t translateISA(unsigned isa) override { return translateGSI(m_isaTranslations[isa]); }
     irq_t translateGSI(unsigned gsi) override { return OFFSET + gsi; }
-
-  private:
-    inline static timer_callback_t m_callback = nullptr;
-    inline static void* m_data = nullptr;
-
-  public:
-    static void timerHandler(irq_t irq, uword_t, uintptr_t)
-    {
-      interrupts::acknowledge(irq);
-      if(m_callback)
-        m_callback(m_data);
-    }
-
-  public:
-    void registerTimerCallback(timer_callback_t callback, void* data) override
-    {
-      // TODO: Support multiple callback
-      ASSERT(!m_callback);
-      interrupts::installHandler(LocalAPIC::TIMER_VECTOR, &timerHandler, PrivilegeLevel::RING0, true);
-      m_callback = callback;
-      m_data = data;
-    }
-
-    void resetTimer() override
-    {
-      m_localAPIC->resetTimer();
-    }
 
   private:
     unsigned m_isaTranslations[ISA_IRQ_COUNT];
@@ -151,14 +135,8 @@ namespace core::interrupts
       }
     };
 
-    GSIConfig m_gsiConfigs[GSI_IRQ_COUNT];
-
-  public:
-    void enableLocalAPIC()      { m_localAPIC->enable(); }
-    void enableLocalAPICTimer() { m_localAPIC->enableTimer(); }
-
   private:
-    rt::Optional<LocalAPIC> m_localAPIC;
+    GSIConfig m_gsiConfigs[GSI_IRQ_COUNT];
     rt::containers::StaticVector<IOAPIC, 4> m_ioapics;
   };
 
@@ -167,7 +145,6 @@ namespace core::interrupts
   void initializeAPIC()
   {
     apic.construct();
-    foreachCPUInitCall([]() { apic().enableLocalAPIC(); apic().enableLocalAPICTimer(); });
     registerPIC(apic());
   }
 }

@@ -7,6 +7,7 @@
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/devices/Framebuffer.hpp>
 #include <generic/memory/Memory.hpp>
+#include <generic/timers/Timer.hpp>
 #include <generic/BootInformation.hpp>
 
 #include <i686/syscalls/Access.hpp>
@@ -15,6 +16,7 @@
 
 #include <i686/syscalls/Syscalls.hpp>
 
+#include <x86/LocalAPIC.hpp>
 #include <x86/acpi/ACPI.hpp>
 #include <x86/interrupts/PIC.hpp>
 
@@ -72,11 +74,17 @@ void testInitCall()
   core::interrupts::initialize();
   core::syscalls::initialize();
 
-  // Boot information in form of ACPI, also very important
+  // Platform specific initialization
+  //
+  // Boot information in form of ACPI
+  // and Local APIC - VERY IMPORTANT
   core::acpi::initialize();
+  core::LocalAPIC::initialize();
+
   core::interrupts::initializePIC();
 
   core::vfs::initialize();
+  core::timers::initialize();
   core::tasks::initialize();
 
   core::syscalls::installHandler(SYS_TEST, &sys_test);

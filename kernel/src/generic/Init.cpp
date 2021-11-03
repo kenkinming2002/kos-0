@@ -10,7 +10,7 @@ namespace core
 {
   namespace
   {
-    constinit init_func_t currentFunc;
+    constinit rt::FunctionRef<void()> currentFunc;
     constinit rt::ConditionalVariable cond_newFunction;
     constinit rt::ConditionalVariable cond_completion;
   }
@@ -18,7 +18,7 @@ namespace core
   /* 1) Signal other CPU that a new function is available
    * 2) Wait for all function call to complete */
 
-  void foreachCPUInitCall(init_func_t func)
+  void foreachCPUInitCall(rt::FunctionRef<void()> func)
   {
     currentFunc = func;
     cond_newFunction.notify(bootInformation->coresCount-1);

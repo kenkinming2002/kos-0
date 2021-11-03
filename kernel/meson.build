@@ -18,6 +18,13 @@ core_src = files(
   'src/generic/vfs/mountables/filesystems/Tmpfs.cpp',
   'src/generic/vfs/mountables/devices/Serial.cpp',
 
+  'src/x86/LocalAPIC.cpp',
+
+  'src/generic/timers/Timer.cpp',
+  'src/x86/timers/Timer.cpp',
+  'src/x86/timers/PIT.cpp',
+  'src/x86/timers/APICTimer.cpp',
+
   'src/generic/devices/Framebuffer.cpp',
 
   'src/generic/memory/MemoryArea.cpp',
