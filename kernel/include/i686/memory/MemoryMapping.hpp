@@ -71,11 +71,11 @@ namespace core::memory
     Result<void> handlePageFault(MemoryArea& memoryArea, size_t addr, uword_t errorCode);
 
   private:
-    rt::SpinLock m_pageDirectoryLock;
+    core::SpinLock m_pageDirectoryLock;
     PageDirectory* m_pageDirectory;
 
   private:
-    rt::SpinLock m_memoryAreasLock;
+    core::SpinLock m_memoryAreasLock;
     rt::containers::List<MemoryArea> m_memoryAreas;
 
   };

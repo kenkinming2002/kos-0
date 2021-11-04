@@ -8,7 +8,7 @@
 #include <librt/String.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/Assert.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 namespace core::vfs
 {
@@ -39,7 +39,7 @@ namespace core::vfs
     Result<void> unlink(rt::StringRef name);
 
   private:
-    rt::SpinLock m_lock;
+    core::SpinLock m_lock;
 
   private:
     Vnode* m_parent; // To support walking .. directories, potential race

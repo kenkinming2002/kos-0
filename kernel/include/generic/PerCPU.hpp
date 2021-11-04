@@ -1,7 +1,7 @@
 #pragma once
 
 #include <librt/UniquePtr.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 namespace core
 {
@@ -19,7 +19,7 @@ namespace core
   private:
     void ensure() const
     {
-      rt::LockGuard guard(m_lock);
+      core::LockGuard guard(m_lock);
       if(!m_values)
         m_values = rt::makeUnique<T[]>(getCpusCount());
     }
@@ -33,7 +33,7 @@ namespace core
     T& current()             { return get(cpuidCurrent()); }
 
   private:
-    mutable rt::SpinLock m_lock;
+    mutable core::SpinLock m_lock;
     mutable rt::UniquePtr<T[]> m_values = nullptr;
   };
 }

@@ -55,7 +55,7 @@ namespace core::vfs
     Result<ssize_t> _seek(Anchor anchor, off_t offset);
 
   private:
-    rt::SpinLock m_lock;
+    core::SpinLock m_lock;
 
     rt::SharedPtr<Vnode> m_vnode; // Keep track of path information
     size_t m_pos = 0;

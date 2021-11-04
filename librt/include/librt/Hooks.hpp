@@ -10,4 +10,7 @@ namespace rt::hooks
   void log(const char* str, size_t length);
   bool validAddress(void* ptr);
   [[noreturn]] void abort();
+
+  int lockAllocator();
+  int unlockAllocator();
 }

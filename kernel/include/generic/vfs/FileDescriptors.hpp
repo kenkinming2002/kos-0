@@ -3,7 +3,7 @@
 #include <generic/vfs/File.hpp>
 
 #include <librt/SharedPtr.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 namespace core::vfs
 {
@@ -19,7 +19,7 @@ namespace core::vfs
     Result<void> removeFile(fd_t fd);
 
   private:
-    rt::SpinLock m_lock;
+    core::SpinLock m_lock;
     rt::SharedPtr<File> m_files[MAX_FD];
   };
 }

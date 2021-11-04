@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-namespace rt
+namespace core
 {
   inline void pause() { asm volatile("pause"); }
   class SpinLock

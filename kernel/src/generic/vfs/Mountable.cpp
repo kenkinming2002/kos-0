@@ -5,14 +5,14 @@
 
 #include <librt/Algorithm.hpp>
 #include <librt/Global.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 namespace core::vfs
 {
   namespace
   {
     // TODO: Maybe someform of reference wrappers or intrusive list?
-    constinit rt::SpinLock lock;
+    constinit core::SpinLock lock;
     constinit rt::Global<rt::containers::IntrusiveList<Mountable>> mountables;
   }
 
@@ -25,13 +25,13 @@ namespace core::vfs
 
   void registerMountable(Mountable& mountable)
   {
-    rt::LockGuard guard(lock);
+    core::LockGuard guard(lock);
     mountables().insert(mountables().end(), mountable);
   }
 
   void deregisterMountable(Mountable& mountable)
   {
-    rt::LockGuard guard(lock);
+    core::LockGuard guard(lock);
     auto it = rt::find_if(mountables().begin(), mountables().end(), [&mountable](Mountable& _mountable){
         return mountable.name() == _mountable.name();
     });
@@ -42,7 +42,7 @@ namespace core::vfs
 
   Mountable* lookupMountable(rt::StringRef name)
   {
-    rt::LockGuard guard(lock);
+    core::LockGuard guard(lock);
     auto it = rt::find_if(mountables().begin(), mountables().end(), [&name](Mountable& mountable){
         return mountable.name() == name;
     });

@@ -25,7 +25,7 @@ namespace core::vfs
   {
     ASSERT(file);
 
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     for(size_t fd=0; fd<MAX_FD; ++fd)
       if(!m_files[fd])
       {
@@ -41,7 +41,7 @@ namespace core::vfs
     if(fd<0 || asUnsigned(fd)>=MAX_FD)
       return ErrorCode::BADFD;
 
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     if(!m_files[fd])
       return ErrorCode::BADFD;
 
@@ -53,7 +53,7 @@ namespace core::vfs
     if(fd<0 || asUnsigned(fd)>=MAX_FD)
       return ErrorCode::BADFD;
 
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     if(!m_files[fd])
       return ErrorCode::BADFD;
 

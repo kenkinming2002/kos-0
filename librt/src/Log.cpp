@@ -2,7 +2,6 @@
 
 #include <librt/Strings.hpp>
 #include <librt/Hooks.hpp>
-#include <librt/SpinLock.hpp>
 
 #include <limits.h>
 
@@ -10,25 +9,16 @@ namespace rt
 {
   void log(const char* str, size_t length)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     hooks::log(str, length);
   }
 
   void log(const char* str)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     log(str, strlen(str));
   }
 
   void log(unsigned value, unsigned base)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     if(base==0 || base>16)
       return log("NaN");
 
@@ -52,9 +42,6 @@ namespace rt
 
   void log(long unsigned value, unsigned base)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     if(base==0 || base>16)
       return log("NaN");
 
@@ -78,9 +65,6 @@ namespace rt
 
   void log(int value, unsigned base)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     if(value>=0)
     {
       log(static_cast<unsigned>(value), base);
@@ -94,9 +78,6 @@ namespace rt
 
   void log(long int value, unsigned base)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     if(value>=0)
     {
       log(static_cast<long unsigned>(value), base);
@@ -110,9 +91,6 @@ namespace rt
 
   void logf(const char* format, ...)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     va_list ap;
     va_start(ap, format);
     vlogf(format, ap);
@@ -121,9 +99,6 @@ namespace rt
 
   void vlogf(const char* format, va_list ap)
   {
-    static SpinLock lock;
-    LockGuard guard(lock);
-
     const char *begin = format, *it = format;
     auto flush = [&](){ log(begin, it-begin); };
 

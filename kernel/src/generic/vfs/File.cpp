@@ -8,13 +8,13 @@ namespace core::vfs
 
   Result<ssize_t> File::seek(Anchor anchor, off_t offset)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return _seek(anchor, offset);
   }
 
   Result<ssize_t> File::read(char* buf, size_t length)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
 
     /* Clamp length, which works since we need to transfer AT MOST length bytes,
      * but not EXACTLY length bytes */
@@ -34,7 +34,7 @@ namespace core::vfs
 
   Result<ssize_t> File::write(const char* buf, size_t length)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
 
     /* Clamp length, which works since we need to transfer AT MOST length bytes,
      * but not EXACTLY length bytes */
@@ -51,13 +51,13 @@ namespace core::vfs
 
   Result<void> File::resize(size_t size)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return m_vnode->inode()->resize(size);
   }
 
   Result<ssize_t> File::readdir(char* buf, size_t length)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
 
     /* Clamp length, which works since we need to transfer AT MOST length bytes,
      * but not EXACTLY length bytes */
@@ -69,19 +69,19 @@ namespace core::vfs
 
   Result<void> File::mount(Mountable& mountable, rt::StringRef arg)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return m_vnode->mount(mountable, arg);
   }
 
   Result<void> File::umount()
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return m_vnode->umount();
   }
 
   Result<rt::SharedPtr<File>> File::lookup(rt::StringRef name)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
 
     auto vnode = m_vnode->lookup(name);
     if(!vnode)
@@ -92,7 +92,7 @@ namespace core::vfs
 
   Result<rt::SharedPtr<File>> File::create(rt::StringRef name, Type type)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
 
     auto vnode = m_vnode->create(name, type);
     if(!vnode)
@@ -103,13 +103,13 @@ namespace core::vfs
 
   Result<void> File::link(rt::StringRef name, Inode& inode)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return m_vnode->link(name, inode);
   }
 
   Result<void> File::unlink(rt::StringRef name)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return m_vnode->unlink(name);
   }
 

@@ -8,7 +8,7 @@ namespace core::vfs
 {
   rt::SharedPtr<Inode> Vnode::inode()
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     return _inode();
   }
 
@@ -19,7 +19,7 @@ namespace core::vfs
 
   rt::SharedPtr<Vnode> Vnode::lookup(rt::StringRef name)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     auto it = m_childs.find(name);
     if(it != m_childs.end())
       return it->second;
@@ -35,7 +35,7 @@ namespace core::vfs
 
   Result<void> Vnode::mount(Mountable& mountable, rt::StringRef arg)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     if(m_mountedInode)
       return ErrorCode::EXIST;
 
@@ -50,7 +50,7 @@ namespace core::vfs
 
   Result<void> Vnode::umount()
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     if(!m_mountedInode)
       return ErrorCode::NOT_EXIST;
 
@@ -61,7 +61,7 @@ namespace core::vfs
 
   Result<rt::SharedPtr<Vnode>> Vnode::create(rt::StringRef name, Type type)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     auto it = m_childs.find(name);
     if(it != m_childs.end())
       return ErrorCode::EXIST;
@@ -84,7 +84,7 @@ namespace core::vfs
 
   Result<void> Vnode::unlink(rt::StringRef name)
   {
-    rt::LockGuard guard(m_lock);
+    core::LockGuard guard(m_lock);
     auto it = m_childs.find(name);
     if(it == m_childs.end())
       return ErrorCode::NOT_EXIST;

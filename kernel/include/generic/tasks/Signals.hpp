@@ -1,7 +1,7 @@
 #pragma once
 
 #include <librt/Assert.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 #include <stddef.h>
 
@@ -44,12 +44,12 @@ namespace core::tasks
       actions[static_cast<unsigned>(Signal::KILL)].kill = true;
     }
 
-    mutable rt::SpinLock lock;
+    mutable core::SpinLock lock;
     Sigaction actions[SIG_MAX];
 
     bool pendingSignal() const
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       for(const auto& action : actions)
         if(action.pending)
           return true;
@@ -59,7 +59,7 @@ namespace core::tasks
 
     Signal get()
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       for(size_t i=0; i<SIG_MAX; ++i)
         if(actions[i].pending)
         {

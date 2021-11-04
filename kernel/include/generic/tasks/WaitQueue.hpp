@@ -5,7 +5,7 @@
 #include <i686/tasks/Task.hpp>
 
 #include <librt/Log.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/containers/List.hpp>
 
@@ -16,26 +16,26 @@ namespace core::tasks
   struct WaitQueue
   {
   private:
-    mutable rt::SpinLock lock;
+    mutable core::SpinLock lock;
     rt::containers::List<rt::SharedPtr<Task>> tasksList;
 
   public:
     auto add(rt::SharedPtr<Task> task)
     {
-      rt::LockGuard guard1(lock);
+      core::LockGuard guard1(lock);
       return tasksList.insert(tasksList.end(), rt::move(task));
     }
 
     void remove(rt::containers::List<rt::SharedPtr<Task>>::const_iterator it)
     {
-      rt::LockGuard guard1(lock);
+      core::LockGuard guard1(lock);
       tasksList.remove(it);
     }
 
   public:
     rt::SharedPtr<Task> get()
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       if(tasksList.empty())
         return nullptr;
 
@@ -45,7 +45,7 @@ namespace core::tasks
   public:
     rt::SharedPtr<Task> get() const
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       if(tasksList.empty())
         return nullptr;
 

@@ -16,6 +16,7 @@
 
 #include <thread>
 #include <vector>
+#include <mutex>
 
 #include <sys/mman.h>
 
@@ -33,6 +34,19 @@ namespace rt::hooks
 
   [[noreturn]] void abort() { ::abort(); }
   void log(const char* str, size_t length) { printf("%.*s", (int)length, str); fflush(stdout); }
+
+  static inline std::mutex lock;
+  int lockAllocator()
+  {
+    lock.lock();
+    return 0;
+  }
+
+  int unlockAllocator()
+  {
+    lock.unlock();
+    return 0;
+  }
 }
 
 static void testString()

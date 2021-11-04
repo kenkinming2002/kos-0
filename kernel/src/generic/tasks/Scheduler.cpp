@@ -17,7 +17,7 @@
 #include <librt/Global.hpp>
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 #include <librt/containers/List.hpp>
 

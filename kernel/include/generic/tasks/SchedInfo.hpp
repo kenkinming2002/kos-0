@@ -1,7 +1,7 @@
 #pragma once
 
 #include <librt/containers/Bitset.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 #include <sys/Types.hpp>
 

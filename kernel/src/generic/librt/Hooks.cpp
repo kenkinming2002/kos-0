@@ -15,4 +15,17 @@ namespace rt::hooks
 
   bool validAddress(void* ptr) { return reinterpret_cast<uintptr_t>(ptr) > 0xC0000000; }
   [[noreturn]] void abort() { for(;;) asm("hlt"); }
+
+  static constinit core::SpinLock lock;
+  int lockAllocator()
+  {
+    lock.lock();
+    return 0;
+  }
+
+  int unlockAllocator()
+  {
+    lock.unlock();
+    return 0;
+  }
 }

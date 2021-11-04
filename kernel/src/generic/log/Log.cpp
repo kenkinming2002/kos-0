@@ -1,6 +1,7 @@
 #include <generic/log/Log.hpp>
 
 #include <generic/devices/Framebuffer.hpp>
+#include <generic/SpinLock.hpp>
 
 #include <x86/assembly/io.hpp>
 
@@ -57,8 +58,10 @@ namespace
 
 namespace rt::hooks
 {
+  core::SpinLock lock;
   void log(const char* str, size_t length)
   {
+    core::LockGuard guard(lock);
     core::log::logger(str, length);
     serial_write(str, length);
   }

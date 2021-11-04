@@ -9,7 +9,7 @@
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 
 #include <new>
 
@@ -117,11 +117,11 @@ namespace core::memory
     test();
   }
 
-  constinit static rt::SpinLock lock;
+  constinit static core::SpinLock lock;
 
   void* allocPages(size_t count)
   {
-    rt::LockGuard guard(lock);
+    core::LockGuard guard(lock);
     for(auto* pagesHeader = head; pagesHeader;  pagesHeader = pagesHeader->next)
     {
       if(pagesHeader->count < count)
@@ -165,7 +165,7 @@ namespace core::memory
 
   void freePages(void* pages, size_t count)
   {
-    rt::LockGuard guard(lock);
+    core::LockGuard guard(lock);
     auto* pagesHeader = static_cast<PagesHeader*>(pages);
     pagesHeader->count = count;
     pagesHeader->prev = nullptr;

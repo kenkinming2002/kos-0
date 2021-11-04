@@ -5,7 +5,7 @@
 #include <i686/tasks/Task.hpp>
 
 #include <librt/Log.hpp>
-#include <librt/SpinLock.hpp>
+#include <generic/SpinLock.hpp>
 #include <librt/SharedPtr.hpp>
 #include <librt/containers/List.hpp>
 
@@ -16,13 +16,13 @@ namespace core::tasks
   struct TerminatedQueue
   {
   public:
-    mutable rt::SpinLock lock;
+    mutable core::SpinLock lock;
     rt::containers::List<rt::SharedPtr<Task>> terminatedTasksList;
 
   public:
     bool empty() const
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       return terminatedTasksList.empty();
     }
 
@@ -30,14 +30,14 @@ namespace core::tasks
   public:
     void enqueue(rt::SharedPtr<Task> task)
     {
-      rt::LockGuard guard1(lock);
+      core::LockGuard guard1(lock);
       terminatedTasksList.insert(terminatedTasksList.end(), rt::move(task));
     }
 
   private:
     rt::SharedPtr<Task> dequeue()
     {
-      rt::LockGuard guard(lock);
+      core::LockGuard guard(lock);
       if(terminatedTasksList.empty())
         return nullptr;
 
