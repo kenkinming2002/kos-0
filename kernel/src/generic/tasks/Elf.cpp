@@ -67,8 +67,6 @@ namespace core::tasks
     registers.eip = header.e_entry;
     task->asUserTask(registers);
 
-    auto previousTask = tasks::Task::current();
-    tasks::Task::makeCurrent(task);
     {
       // FIXME: Set an upper limit
       Elf32_Phdr programHeaders[header.e_phnum];
@@ -79,7 +77,6 @@ namespace core::tasks
           return result.error();
 
     }
-    tasks::Task::makeCurrent(rt::move(previousTask));
     return {};
   }
 }
