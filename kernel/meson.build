@@ -32,6 +32,7 @@ core_src = files(
   'src/generic/memory/Virtual.cpp',
   'src/generic/memory/Memory.cpp',
   'src/generic/memory/Syscalls.cpp',
+  'src/i686/memory/KMap.cpp',
   'src/i686/memory/MemoryMapping.cpp',
 
   'src/x86/interrupts/PIC.cpp',

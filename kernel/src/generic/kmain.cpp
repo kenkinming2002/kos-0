@@ -4,6 +4,7 @@
 #include <generic/Init.hpp>
 #include <generic/PerCPU.hpp>
 #include <generic/tasks/Tasks.hpp>
+#include <generic/tasks/Elf.hpp>
 #include <generic/tasks/Scheduler.hpp>
 #include <generic/devices/Framebuffer.hpp>
 #include <generic/memory/Memory.hpp>
@@ -87,9 +88,28 @@ void testInitCall()
   core::timers::initialize();
   core::tasks::initialize();
 
+  // Userspace specific initialization
+  core::memory::initializeVirtual();
+
   core::syscalls::installHandler(SYS_TEST, &sys_test);
   core::syscalls::installHandler(SYS_LOG,  &sys_log);
   core::interrupts::installHandler(0x80, &irq_test , core::PrivilegeLevel::RING3, true);
+
+
+  // Actual userspace init task
+  {
+    auto root = core::vfs::root();
+    auto init = core::vfs::openAt(root, "init");
+    if(!init)
+      rt::panic("init not found\n");
+
+    auto task = core::tasks::Task::allocate();
+    if(!task)
+      rt::panic("Failed to create task\n");
+
+    core::tasks::loadElf(task, *init);
+    addTask(task);
+  }
 
   core::foreachCPUInitCall([](){
     core::tasks::schedule();

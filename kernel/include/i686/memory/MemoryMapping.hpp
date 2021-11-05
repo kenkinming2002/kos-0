@@ -43,11 +43,6 @@ namespace core::memory
     MemoryMapping(PageDirectory* pageDirectory);
     ~MemoryMapping();
 
-  // Kernel address space
-  public:
-    uintptr_t kmap(physaddr_t physaddr);
-    void kunmap(uintptr_t addr);
-
   // User address space
   public:
     Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t fileOffset, size_t fileLength);

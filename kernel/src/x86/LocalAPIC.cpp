@@ -1,6 +1,7 @@
 #include <x86/LocalAPIC.hpp>
 
 #include <x86/acpi/ACPI.hpp>
+#include <i686/memory/KMap.hpp>
 
 #include <librt/Panic.hpp>
 

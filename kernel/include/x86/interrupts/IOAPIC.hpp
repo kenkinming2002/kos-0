@@ -5,6 +5,8 @@
 #include <librt/Assert.hpp>
 #include <librt/Strings.hpp>
 
+#include <i686/memory/KMap.hpp>
+
 #include <stdint.h>
 #include <stddef.h>
 

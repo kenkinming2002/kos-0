@@ -108,50 +108,6 @@ namespace core::memory
     freePages(m_pageDirectory, 1);
   }
 
-  /* We use to to have a spinlock here for both kmap and kunmap, but that turns
-   * out to be a major source of lock contention.
-   *
-   * How do we solve it?
-   *
-   * We reserve the last n PageDirectoryEntry use 1 for each core, so that there
-   * could never be any collision. */
-  uintptr_t MemoryMapping::kmap(physaddr_t physaddr)
-  {
-    size_t pageDirectoryEntryIndex = 1024 - getCpusCount() + cpuidCurrent();
-
-    size_t offset            = physaddr % LARGE_PAGE_SIZE;
-
-    physaddr_t physaddr_base = physaddr / LARGE_PAGE_SIZE * LARGE_PAGE_SIZE;
-    uintptr_t addr_base      = pageDirectoryEntryIndex * LARGE_PAGE_SIZE;
-    uintptr_t addr           = addr_base + offset;
-
-    auto& pageDirectory = *m_pageDirectory;
-    auto& lastPageDirectoryEntry = pageDirectory[pageDirectoryEntryIndex];
-
-    ASSERT(!lastPageDirectoryEntry.present());
-    lastPageDirectoryEntry = PageDirectoryEntry(physaddr_base, CacheMode::DISABLED, WriteMode::WRITE_BACK, Access::SUPERVISOR_ONLY, Permission::READ_WRITE, PageSize::LARGE);
-    ASSERT(lastPageDirectoryEntry.present());
-
-    asm volatile ( "invlpg [%[addr_base]]" : : [addr_base]"r"(addr_base) : "memory");
-    return addr;
-  }
-
-  void MemoryMapping::kunmap(uintptr_t addr)
-  {
-    size_t pageDirectoryEntryIndex = 1024 - getCpusCount() + cpuidCurrent();
-
-    uintptr_t addr_base = addr / LARGE_PAGE_SIZE * LARGE_PAGE_SIZE;
-
-    auto& pageDirectory = *m_pageDirectory;
-    auto& lastPageDirectoryEntry = pageDirectory[pageDirectoryEntryIndex];
-
-    ASSERT(lastPageDirectoryEntry.present());
-    lastPageDirectoryEntry = PageDirectoryEntry();
-    ASSERT(!lastPageDirectoryEntry.present());
-
-    asm volatile ( "invlpg [%[addr_base]]" : : [addr_base]"r"(addr_base) : "memory");
-  }
-
   /*
    * Public interface
    */

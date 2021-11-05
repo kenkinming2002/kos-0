@@ -1,5 +1,7 @@
 #include <generic/memory/Virtual.hpp>
 
+#include <generic/memory/Syscalls.hpp>
+
 #include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Access.hpp>
 
@@ -8,6 +10,7 @@ namespace core::memory
   void initializeVirtual()
   {
     MemoryMapping::initialize();
+    initializeSyscalls();
   }
 
   Result<void> map(uintptr_t addr, size_t length, Prot prot, rt::SharedPtr<vfs::File> file, size_t fileOffset, size_t fileLength)
@@ -44,15 +47,5 @@ namespace core::memory
     auto memoryMapping = task->memoryMapping;
 
     return memoryMapping->remap(addr, length, newLength);
-  }
-
-  uintptr_t kmap(physaddr_t phyaddr)
-  {
-    return MemoryMapping::current()->kmap(phyaddr);
-  }
-
-  void kunmap(uintptr_t addr)
-  {
-    return MemoryMapping::current()->kunmap(addr);
   }
 }

@@ -248,19 +248,6 @@ namespace core::tasks
       reaperTask->asKernelTask(&reaper, nullptr);
       addTask(rt::move(reaperTask), cpuid);
     }
-
-    // Actual userspace init task
-    auto root = vfs::root();
-    auto init = vfs::openAt(root, "init");
-    if(!init)
-      rt::panic("init not found\n");
-
-    auto task = Task::allocate();
-    if(!task)
-      rt::panic("Failed to create task\n");
-
-    core::tasks::loadElf(task, *init);
-    addTask(task);
   }
 
 }
