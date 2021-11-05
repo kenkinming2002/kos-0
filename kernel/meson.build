@@ -54,7 +54,8 @@ core_src = files(
 
   'src/x86/assembly/io.cpp',
   'src/x86/assembly/msr.cpp',
-  'src/x86/acpi/ACPI.cpp'
+  'src/x86/acpi/ACPI.cpp',
+  'src/x86/SMP.cpp'
 )
 
 core_asm_obj = asm_gen.process(

@@ -18,6 +18,7 @@
 #include <i686/syscalls/Syscalls.hpp>
 
 #include <x86/LocalAPIC.hpp>
+#include <x86/SMP.hpp>
 #include <x86/acpi/ACPI.hpp>
 #include <x86/interrupts/PIC.hpp>
 
@@ -60,7 +61,7 @@ void testInitCall()
   ASSERT(count == COUNT * bootInformation->coresCount);
 }
 
-[[noreturn]] static void runBSP(BootInformation* bootInformation, unsigned apicid)
+[[noreturn]] static void initialize(BootInformation* bootInformation, unsigned apicid)
 {
   ::bootInformation = bootInformation;
 
@@ -118,25 +119,8 @@ void testInitCall()
   __builtin_unreachable();
 }
 
-[[noreturn]] static void runAP()
-{
-  core::foreachCPUInitHandleLoop();
-}
-
-namespace
-{
-  std::atomic<bool> bsp;
-  std::atomic<unsigned> initializedCoresCount;
-}
-
 extern "C" void kmain(BootInformation* bootInformation, unsigned apicid)
 {
-  initializedCoresCount.fetch_add(1, std::memory_order_release);
-  while(initializedCoresCount.load(std::memory_order_acquire) != bootInformation->coresCount)
-    asm volatile("pause");
-
-  if(bsp.exchange(true, std::memory_order_relaxed) == false)
-    runBSP(bootInformation, apicid); // This is not necessarily BSP
-  else
-    runAP();
+  core::initializeSMP(bootInformation, apicid);
+  initialize(bootInformation, apicid);
 }
