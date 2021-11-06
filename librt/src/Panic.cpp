@@ -8,7 +8,7 @@ namespace rt
 {
   [[noreturn]] void panic(const char* format, ...)
   {
-    log("Panic:\n  ");
+    logf("Panic:\n  ");
 
     va_list ap;
     va_start(ap, format);

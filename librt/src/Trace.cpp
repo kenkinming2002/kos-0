@@ -17,7 +17,7 @@ namespace rt
   constexpr static size_t MAX_STACK_FRAME = 8;
   void traceStackFrame()
   {
-    log("StackTrace\n");
+    logf("StackTrace\n");
 
     const auto* stackFrame = static_cast<StackFrame*>(__builtin_frame_address(0));
     for(size_t i=0; i<MAX_STACK_FRAME; ++i)

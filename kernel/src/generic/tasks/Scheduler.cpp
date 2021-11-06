@@ -129,7 +129,7 @@ namespace core::tasks
     auto task = wq.get();
     if(!task)
     {
-      rt::log("Warning: no task in wait queue\n");
+      rt::logf("Warning: no task in wait queue\n");
       return;
     }
     wakeUp(task);
@@ -158,7 +158,7 @@ namespace core::tasks
       tqs.current().enqueue(currentTask);
       wakeUp(wqsReaper.current());
 
-      rt::log("Reschedule as current task is terminated\n");
+      rt::logf("Reschedule as current task is terminated\n");
       schedule();
       ASSERT_UNREACHABLE;
     }

@@ -60,7 +60,7 @@ namespace core::interrupts
 
   void initialize()
   {
-    rt::log("Loading Interrupt Descriptor Table and configuring interrupt handlers...");
+    rt::logf("Loading Interrupt Descriptor Table and configuring interrupt handlers...");
 
     // Setup the idt
     for(size_t i=0; i<IDT_SIZE; ++i)
@@ -72,7 +72,7 @@ namespace core::interrupts
       asm volatile ( "lidt %[idt]" : : [idt]"m"(idt) : "ax");
     });
 
-    rt::log("Done\n");
+    rt::logf("Done\n");
   }
 
   extern "C" void isr(uword_t irqNumber, uword_t errorCode, uintptr_t oldEip)

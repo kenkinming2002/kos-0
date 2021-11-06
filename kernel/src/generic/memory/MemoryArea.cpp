@@ -33,7 +33,7 @@ namespace core::memory
       if(type == MapType::PRIVATE && page.count() != 1)
       {
         // Copy on write
-        rt::log("Copy on write triggered\n");
+        rt::logf("Copy on write triggered\n");
         auto _newPage = Page::allocate();
         if(!_newPage)
           return ErrorCode::OUT_OF_MEMORY;

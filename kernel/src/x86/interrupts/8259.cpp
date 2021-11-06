@@ -44,7 +44,7 @@ namespace core::interrupts
   public:
     PIC8259()
     {
-      rt::log("Configuring 8259 PIC...");
+      rt::logf("Configuring 8259 PIC...");
 
       // Initialization VfsCommand Word 1 - starts the initialization sequence (in cascade mode)
       assembly::outb(MASTER_COMMAND_PORT, ICW1_INIT | ICW1_ICW4);
@@ -75,7 +75,7 @@ namespace core::interrupts
       assembly::outb(MASTER_DATA_PORT, 0b11111011);
       assembly::outb(SLAVE_DATA_PORT,  0b11111111);
 
-      rt::log("Done\n");
+      rt::logf("Done\n");
     }
 
   public:

@@ -176,7 +176,7 @@ namespace boot
   namespace { uint8_t coresCount; }
   void initializeSMP()
   {
-    rt::log("Finding rsdp descriptor...\n");
+    rt::logf("Finding rsdp descriptor...\n");
     auto* rsdp = findRSDP();
     if(!rsdp)
       rt::panic("Failed to find rsdp descriptor\n");

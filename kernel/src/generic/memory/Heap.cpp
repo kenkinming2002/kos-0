@@ -75,7 +75,7 @@ namespace core::memory
 
     void test()
     {
-      rt::log("Testing memory allocation and deallocation...\n");
+      rt::logf("Testing memory allocation and deallocation...\n");
 
       for(size_t j=0; j<128;++j)
       {
@@ -107,7 +107,7 @@ namespace core::memory
       }
   end:
 
-      rt::log("Done\n");
+      rt::logf("Done\n");
     }
   }
 

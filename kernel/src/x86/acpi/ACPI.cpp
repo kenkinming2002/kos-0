@@ -61,13 +61,13 @@ namespace core::acpi
 
   void initialize()
   {
-    rt::log("Finding rsdp descriptor...\n");
+    rt::logf("Finding rsdp descriptor...\n");
     auto* rsdp = findRSDP();
     if(!rsdp)
       rt::panic("Failed to find rsdp descriptor\n");
 
     parseRSDP(rsdp);
-    rt::log("Done\n");
+    rt::logf("Done\n");
   }
 
   const SDT* findSDT(rt::StringRef name)

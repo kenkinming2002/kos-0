@@ -20,7 +20,7 @@ namespace core::internals
 
   void initializeSegmentation()
   {
-    rt::log("Loading Global Descriptor Table and Segment Registers...");
+    rt::logf("Loading Global Descriptor Table and Segment Registers...");
 
     gdtEntries.construct();
     tss.construct();
@@ -58,7 +58,7 @@ namespace core::internals
         : : [gdt]"m"(gdt) : "ax"
       );
     });
-    rt::log("Done\n");
+    rt::logf("Done\n");
   }
 
   void setKernelStack(uint32_t ss, uint32_t esp)

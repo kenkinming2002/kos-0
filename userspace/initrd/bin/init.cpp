@@ -33,7 +33,7 @@ void lsdir(fd_t fd, size_t depth = 0)
   while(offset < size_t(count))
   {
     for(size_t i=0; i<depth; ++i)
-      rt::log("  ");
+      rt::logf("  ");
 
     auto* entry = reinterpret_cast<const Dirent*>(buf+offset);
     rt::logf("%s\n", entry->name);
@@ -41,7 +41,7 @@ void lsdir(fd_t fd, size_t depth = 0)
     auto child_fd = sys_openAt(fd, entry->name);
     if(child_fd < 0)
     {
-      rt::log("openAt\n");
+      rt::logf("openAt\n");
       continue;
     }
     lsdir(child_fd, depth+1);
@@ -77,9 +77,9 @@ void test1()
     ASSERT_ALWAYS(sys_seek(testfd, Anchor::BEGIN, OFFSET+2) == OFFSET+2);
     ASSERT_ALWAYS(sys_read(testfd, readBuf, sizeof readBuf) == sizeof readBuf);
 
-    rt::log("Result:");
-    rt::log(readBuf, 5);
-    rt::log("\n");
+    rt::logf("Result:");
+    rt::logf(readBuf, 5);
+    rt::logf("\n");
 
 
     VfsCommand command = {};
@@ -105,12 +105,12 @@ void test1()
 
 void test2()
 {
-  rt::log("Triggering page fault...\n");
+  rt::logf("Triggering page fault...\n");
   const_cast<char*>("str")[0] = 'a';
 
-  rt::log("Exiting...\n");
+  rt::logf("Exiting...\n");
   _exit(127);
-  rt::log("After exiting...\n");
+  rt::logf("After exiting...\n");
 
   auto serial1fd = sys_createAt(ROOT_FD, "serial1", Type::REGULAR_FILE);
   ASSERT_ALWAYS(serial1fd >= 0);
@@ -123,10 +123,10 @@ void test2()
 
     result = sys_read(serial1fd, buf, sizeof buf);
 
-    rt::log(buf, result);
+    rt::logf(buf, result);
     result = sys_write(serial1fd, buf, sizeof buf);
     if(result<0)
-      rt::log("Error occured\n");
+      rt::logf("Error occured\n");
   }
 }
 
@@ -161,11 +161,11 @@ extern "C" void main()
   switch(sys_fork())
   {
   case 0:
-    rt::log("Child process\n");
+    rt::logf("Child process\n");
     test1();
     break;
   default:
-    rt::log("Parent process\n");
+    rt::logf("Parent process\n");
     test2();
     break;
   }

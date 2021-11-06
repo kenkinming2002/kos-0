@@ -28,7 +28,7 @@
 
 static core::Result<result_t> _sys_test()
 {
-  rt::log("Hello from kernel\n");
+  rt::logf("Hello from kernel\n");
   return 0;
 }
 WRAP_SYSCALL0(sys_test, _sys_test)
@@ -47,7 +47,7 @@ WRAP_SYSCALL2(sys_log, _sys_log)
 
 static void irq_test(irq_t, uword_t, uintptr_t)
 {
-  rt::log("User Interrupt\n");
+  rt::logf("User Interrupt\n");
 }
 
 static std::atomic<unsigned> count = 0;

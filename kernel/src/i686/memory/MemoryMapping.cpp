@@ -354,7 +354,7 @@ namespace core::memory
     {
       if((memoryArea.prot & Prot::WRITE) != Prot::WRITE)
       {
-        rt::log("Write protection violation\n");
+        rt::logf("Write protection violation\n");
         return ErrorCode::FAULT;
       }
       mapWritableSingle(memoryArea, addr);
