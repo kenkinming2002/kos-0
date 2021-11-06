@@ -33,7 +33,7 @@ namespace rt
     for(; value != 0; value /= base)
     {
       auto digit = value % base;
-      *ptr-- = digit<10 ? '0' + digit : digit<16 ? 'A' + digit : 'X';
+      *ptr-- = digit<10 ? '0' + digit : digit<16 ? 'A' + (digit-10) : 'X';
     }
     if(ptr ==  end - 1)
       *ptr-- = '0';
