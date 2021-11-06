@@ -244,7 +244,7 @@ namespace core::tasks
       auto task = rt::makeShared<Task>(stack);
 
       task->schedInfo.cpuid = cpuidCurrent();
-      task->schedInfo.state.store(SchedInfo::State::RUNNABLE);
+      task->schedInfo.state.store(SchedInfo::State::RUNNING);
 
       tasksMap.addTask(task);
       rqs.current().current = rt::move(task);

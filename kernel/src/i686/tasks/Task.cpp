@@ -75,6 +75,7 @@ namespace core::tasks
   {
     memory::freePages(kernelStack.ptr, STACK_PAGES_COUNT);
   }
+
   namespace
   {
     template<typename T>
@@ -88,7 +89,7 @@ namespace core::tasks
     {
       kernelTask(data);
       killCurrent(0);
-      schedule();
+      onResume();
       ASSERT_UNREACHABLE;
     }
 

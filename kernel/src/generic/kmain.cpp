@@ -114,7 +114,9 @@ void testInitCall()
 
   core::foreachCPUInitCall([](){
     core::tasks::schedule();
-    __builtin_unreachable();
+    core::tasks::killCurrent(0);
+    core::tasks::onResume();
+    ASSERT_UNREACHABLE;
   });
   __builtin_unreachable();
 }
