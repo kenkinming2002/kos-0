@@ -1,8 +1,8 @@
 #include <generic/memory/Virtual.hpp>
 
 #include <generic/memory/Syscalls.hpp>
+#include <generic/tasks/Scheduler.hpp>
 
-#include <i686/tasks/Task.hpp>
 #include <i686/syscalls/Access.hpp>
 
 namespace core::memory
@@ -18,9 +18,7 @@ namespace core::memory
     if(!syscalls::verifyRegionUser(addr, length))
       return ErrorCode::FAULT;
 
-    auto task = tasks::Task::current();
-    auto memoryMapping = task->memoryMapping;
-
+    auto memoryMapping = tasks::current().memoryMapping;
     return memoryMapping->map(addr, length, prot, rt::move(file), fileOffset, fileLength);
   }
 
@@ -29,9 +27,7 @@ namespace core::memory
     if(!syscalls::verifyRegionUser(addr, length))
       return ErrorCode::FAULT;
 
-    auto task = tasks::Task::current();
-    auto memoryMapping = task->memoryMapping;
-
+    auto memoryMapping = tasks::current().memoryMapping;
     return memoryMapping->unmap(addr, length);
   }
 
@@ -43,9 +39,7 @@ namespace core::memory
     if(!syscalls::verifyRegionUser(addr, newLength))
       return ErrorCode::FAULT;
 
-    auto task = tasks::Task::current();
-    auto memoryMapping = task->memoryMapping;
-
+    auto memoryMapping = tasks::current().memoryMapping;
     return memoryMapping->remap(addr, length, newLength);
   }
 }

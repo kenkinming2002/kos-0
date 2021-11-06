@@ -1,10 +1,10 @@
 #include <generic/vfs/Syscalls.hpp>
 
 #include <generic/vfs/VFS.hpp>
+#include <generic/tasks/Scheduler.hpp>
 
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/syscalls/Access.hpp>
-#include <i686/tasks/Task.hpp>
 
 #include <librt/Log.hpp>
 
@@ -23,12 +23,12 @@ namespace core::vfs
 
     auto addFile(rt::SharedPtr<File> file)
     {
-      return tasks::Task::current()->fileDescriptors->addFile(rt::move(file));
+      return tasks::current().fileDescriptors->addFile(rt::move(file));
     }
 
     Result<result_t> dispatch(const VfsCommand& command)
     {
-      auto at = command.fd != ROOT_FD ? tasks::Task::current()->fileDescriptors->getFile(command.fd) : root();
+      auto at = command.fd != ROOT_FD ? tasks::current().fileDescriptors->getFile(command.fd) : root();
       if(!at)
         return makeError(at);
 
@@ -128,7 +128,7 @@ namespace core::vfs
         case VfsCommand::Opcode::RESIZE:
           return (*at)->resize(command.resize.size).map(&success);
         case VfsCommand::Opcode::CLOSE:
-          return tasks::Task::current()->fileDescriptors->removeFile(command.fd).map(&success);
+          return tasks::current().fileDescriptors->removeFile(command.fd).map(&success);
         default:
           return ErrorCode::INVALID;
       }
@@ -137,7 +137,7 @@ namespace core::vfs
     Result<vfs_command_t> sys_async_submit(VfsCommand* command)
     {
       // TODO: Verify command ptr is valid
-      return tasks::Task::current()->commandQueue.submit(*command);
+      return tasks::current().commandQueue.submit(*command);
     }
     WRAP_SYSCALL1(_sys_async_submit, sys_async_submit)
 
@@ -147,7 +147,7 @@ namespace core::vfs
       vfs_command_t handle;
 
       // TODO: Decide smartly which command to dispatch
-      handle = tasks::Task::current()->commandQueue.retrive(command);
+      handle = tasks::current().commandQueue.retrive(command);
       if(handle == -1)
         return ErrorCode::INVALID; // We are ask to dispatch an io operation but none are submitted
 

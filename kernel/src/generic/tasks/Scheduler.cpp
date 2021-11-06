@@ -62,36 +62,31 @@ namespace core::tasks
     rqs.get(cpuid).enqueue(task);
   }
 
-  /* RUNNING <=> RUNNABLE */
-  rt::SharedPtr<Task> _schedule()
-  {
-    auto previousTask = Task::current();
-    if(previousTask && previousTask->schedInfo.state.load() == SchedInfo::State::RUNNING)
-    {
-      previousTask->schedInfo.state.store(SchedInfo::State::RUNNABLE);
-      rqs.current().enqueue(rt::move(previousTask));
-    }
-
-    auto nextTask = rqs.current().dequeue();
-    ASSERT(nextTask->schedInfo.state.load() == SchedInfo::State::RUNNABLE);
-    nextTask->schedInfo.state.store(SchedInfo::State::RUNNING);
-    return rt::move(nextTask);
-  }
-
   /* Run with preemption disabled */
   void schedule()
   {
-    auto nextTask = _schedule();
+    auto previousTask = rqs.current().current;
+    if(previousTask && previousTask->schedInfo.state.load() == SchedInfo::State::RUNNING)
+    {
+      previousTask->schedInfo.state.store(SchedInfo::State::RUNNABLE);
+      rqs.current().enqueue(previousTask);
+    }
+
+    auto& nextTask = rqs.current().current;
+    nextTask = rqs.current().dequeue();
+    ASSERT(nextTask->schedInfo.state.load() == SchedInfo::State::RUNNABLE);
+    nextTask->schedInfo.state.store(SchedInfo::State::RUNNING);
     timer->reset();
-    Task::switchTo(rt::move(nextTask));
+
+    Task::switchTo(previousTask ? previousTask.get() : nullptr, *nextTask);
   }
 
   WaitResult waitEvent(WaitQueue& wq, rt::FunctionRef<bool()> predicate)
   {
     WaitResult result;
-    auto& currentTask = Task::current();
+    auto& currentTask = rqs.current().current;
 
-    auto it = wq.add(Task::current());
+    auto it = wq.add(currentTask);
     currentTask->schedInfo.state.store(SchedInfo::State::BLOCKED);
     // Wakeup after this point would works
     for(;;)
@@ -148,15 +143,15 @@ namespace core::tasks
 
   void handleSignal()
   {
-    auto& currentTask = Task::current();
-    for(auto& sigaction : currentTask->sigInfo.actions)
+    auto& currentTask = current();
+    for(auto& sigaction : currentTask.sigInfo.actions)
       if(sigaction.pending && sigaction.kill)
-        currentTask->schedInfo.pendingKill = true;
+        currentTask.schedInfo.pendingKill = true;
   }
 
   void handlePendingKill()
   {
-    auto& currentTask = Task::current();
+    auto& currentTask = rqs.current().current;
     if(currentTask->schedInfo.pendingKill)
     {
       currentTask->schedInfo.state.store(SchedInfo::State::TERMINATED);
@@ -190,10 +185,10 @@ namespace core::tasks
     return 0;
   }
 
-  pid_t getpid() { return Task::current()->schedInfo.pid; }
+  pid_t getpid() { return current().schedInfo.pid; }
   Result<pid_t> fork()
   {
-    auto clone = Task::current()->clone();
+    auto clone = current().clone();
     if(!clone)
       return ErrorCode::OUT_OF_MEMORY;
 
@@ -228,6 +223,11 @@ namespace core::tasks
         tqs.current().reap(tasksMap);
       }
     }
+  }
+
+  Task& current()
+  {
+    return *rqs.current().current;
   }
 
   void initializeScheduler()

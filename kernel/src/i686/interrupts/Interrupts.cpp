@@ -80,9 +80,9 @@ namespace core::interrupts
     if(!handlers[irqNumber])
     {
       if(irqNumber<0x20)
-        rt::panic("Unhandled exception %lu\n", irqNumber);
+        rt::panic("Unhandled exception %lu - error code: 0x%lx, old eip: 0x%lx\n", irqNumber, errorCode, oldEip);
 
-      rt::logf("Unhandled Interrupt %lu\n", irqNumber); // TODO: Implement warning
+      rt::logf("Unhandled interrupts %lu - error code: 0x%lx, old eip: 0x%lx\n", irqNumber, errorCode, oldEip);
       return;
     }
 

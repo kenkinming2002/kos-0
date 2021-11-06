@@ -1,6 +1,7 @@
 #include <generic/memory/Syscalls.hpp>
 
-#include <i686/tasks/Task.hpp>
+#include <generic/tasks/Scheduler.hpp>
+
 #include <i686/syscalls/Syscalls.hpp>
 #include <i686/syscalls/Access.hpp>
 
@@ -12,8 +13,7 @@ namespace core::memory
   {
     Result<result_t> sys_mmap(uintptr_t addr, size_t length, Prot prot, fd_t fd, size_t fileOffset, size_t fileLength)
     {
-      auto task = tasks::Task::current();
-      auto file = fd != FD_NONE ? task->fileDescriptors->getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
+      auto file = fd != FD_NONE ? tasks::current().fileDescriptors->getFile(fd) : rt::SharedPtr<vfs::File>(nullptr);
       UNWRAP(file);
       auto result = map(addr, length, prot, rt::move(*file), fileOffset, fileLength);
       UNWRAP(result);

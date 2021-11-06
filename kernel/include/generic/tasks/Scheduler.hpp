@@ -35,5 +35,6 @@ namespace core::tasks
   Result<result_t> kill(pid_t pid, status_t status);
   Result<pid_t> fork();
 
+  Task& current();
   inline void killCurrent(status_t status) { kill(getpid(), status); }
 }

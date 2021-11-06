@@ -15,58 +15,20 @@ namespace core::tasks
 {
   static constexpr uintptr_t POISON = 0xDEADBEEF;
 
-  namespace
+  void Task::switchTo(Task* oldTask, Task& newTask)
   {
-    constinit rt::Global<PerCPU<rt::SharedPtr<Task>>> currentTask;
+    interrupts::setKernelStack(reinterpret_cast<uintptr_t>(newTask.kernelStack.ptr), STACK_SIZE);
+    syscalls::setKernelStack(reinterpret_cast<uintptr_t>(newTask.kernelStack.ptr), STACK_SIZE);
+    if(newTask.memoryMapping)
+      memory::MemoryMapping::makeCurrent(newTask.memoryMapping);
+
+    uintptr_t dummyEsp;
+    uintptr_t& oldEsp = oldTask ? oldTask->kernelStack.esp : dummyEsp;
+    uintptr_t& newEsp = newTask.kernelStack.esp;
+    core_tasks_switch_esp(&oldEsp, &newEsp);
+    // Only return if oldEsp is not a dummy
   }
 
-  void Task::intialize()
-  {
-    currentTask.construct();
-  }
-
-  rt::SharedPtr<Task>& Task::current()
-  {
-    return currentTask().current();
-  }
-
-  void Task::makeCurrent(rt::SharedPtr<Task> task)
-  {
-    current() = task;
-    if(task)
-    {
-      interrupts::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
-      syscalls::setKernelStack(reinterpret_cast<uintptr_t>(task->kernelStack.ptr), STACK_SIZE);
-      if(task->memoryMapping)
-        memory::MemoryMapping::makeCurrent(task->memoryMapping); // Kernel task do not have memory mapping and would use the old one
-    }
-  }
-
-  void Task::switchTo(rt::SharedPtr<Task> task)
-  {
-    if(current().get() != nullptr)
-    {
-      auto previousTask = current();
-
-      makeCurrent(task);
-      core_tasks_switch_esp(&previousTask->kernelStack.esp, &task->kernelStack.esp);
-    }
-    else
-    {
-      /*
-       * There is no previous task, so we use a dummy esp
-       *
-       * Note: We cannot call startUserspaceTask ourself, because we have to
-       *       switch the stack first. Otherwise, all hell may break loose if we
-       *       receive a interrupt after we enable interrupt but before using the
-       *       new stack.
-       */
-      uintptr_t dummyEsp;
-      makeCurrent(task);
-      core_tasks_switch_esp(&dummyEsp, &task->kernelStack.esp);
-      __builtin_unreachable();
-    }
-  }
 
   rt::SharedPtr<Task> Task::allocate()
   {

@@ -15,6 +15,9 @@ namespace core::tasks
 {
   struct RunQueue
   {
+  public:
+    rt::SharedPtr<Task> current;
+
   private:
     core::SpinLock lock;
     rt::containers::List<rt::SharedPtr<Task>> activeTasksList;

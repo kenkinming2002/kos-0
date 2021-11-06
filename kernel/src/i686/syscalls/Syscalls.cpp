@@ -74,9 +74,9 @@ namespace core::syscalls
   // The registers arg could be modified if necessary
   extern "C" result_t core_syscalls_dispatch(tasks::Registers& registers)
   {
-    tasks::Task::current()->registers = registers;
+    tasks::current().registers = registers;
     auto result = syscallsDispatch(registers);
-    registers = tasks::Task::current()->registers;
+    registers = tasks::current().registers;
     return result ? *result : makeError(result.error());
   }
 }
