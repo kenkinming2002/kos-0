@@ -24,7 +24,7 @@ namespace core::tasks
 
   class Task : public rt::SharedPtrHook
   {
-  private:
+  public:
     static constexpr size_t STACK_PAGES_COUNT = 1;
     static constexpr size_t STACK_SIZE        =  STACK_PAGES_COUNT * memory::PAGE_SIZE;
 

@@ -237,6 +237,20 @@ namespace core::tasks
     ASSERT(timer);
     timer->addCallback(&timerHandler, nullptr);
 
+    auto cb = [](){
+      Stack stack;
+      stack.esp = reinterpret_cast<uintptr_t>(__builtin_frame_address(0));
+      stack.ptr = reinterpret_cast<void*>(stack.esp & (Task::STACK_SIZE-1));
+      auto task = rt::makeShared<Task>(stack);
+
+      task->schedInfo.cpuid = cpuidCurrent();
+      task->schedInfo.state.store(SchedInfo::State::RUNNABLE);
+
+      tasksMap.addTask(task);
+      rqs.current().current = rt::move(task);
+    };
+    foreachCPUInitCall(cb);
+
     // Idle and reaper task
     for(unsigned cpuid = 0; cpuid < getCpusCount(); ++cpuid)
     {
