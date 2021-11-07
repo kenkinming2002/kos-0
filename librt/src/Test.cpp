@@ -14,7 +14,9 @@
 #include <librt/Log.hpp>
 #include <librt/Assert.hpp>
 
+#include <random>
 #include <thread>
+#include <map>
 #include <vector>
 #include <mutex>
 
@@ -100,27 +102,31 @@ static void testVariant()
 
 static void testMap()
 {
-  rt::containers::Map<int, int> map;
+  std::default_random_engine engine;
+  std::uniform_int_distribution dist_key(0,50);
+  std::uniform_int_distribution dist_action(0,1);
 
-  map.insert(rt::Pair(3, 3));
-  map.insert(rt::Pair(1, 1));
-  map.insert(rt::Pair(2, 3));
-  map.insert(rt::Pair(6, 3));
-  map.insert(rt::Pair(4, 3));
-  ASSERT(map.find(3) != map.end());
-  ASSERT(map.find(1) != map.end());
-  ASSERT(map.find(2) != map.end());
-  ASSERT(map.find(6) != map.end());
-  ASSERT(map.find(4) != map.end());
-  ASSERT(map.find(7) == map.end());
+  std::map<int, int> std_map;
+  rt::containers::Map<int, int> rt_map;
+  for(size_t i=0; i<5000; ++i)
+  {
+    auto k = dist_key(engine);
+    switch(dist_action(engine))
+    {
+    case 0:
+      std_map.insert({k,0});
+      rt_map.insert({k,0});
+      break;
+    case 1:
+      if(auto it = std_map.find(k); it != std_map.end())
+        std_map.erase(it);
 
-  map.erase(++(++map.begin()));
-  map.erase(++(++map.begin()));
-  ASSERT(map.find(3) == map.end());
-  ASSERT(map.find(1) != map.end());
-  ASSERT(map.find(2) != map.end());
-  ASSERT(map.find(6) != map.end());
-  ASSERT(map.find(4) == map.end());
+      if(auto it = rt_map.find(k); it != rt_map.end())
+        rt_map.erase(it);
+
+      break;
+    }
+  }
 }
 
 struct ListElem { ListElem(int value) : value(value) {} int value; };

@@ -4,6 +4,7 @@
 #include <librt/Pair.hpp>
 #include <librt/Utility.hpp>
 #include <librt/Assert.hpp>
+#include <librt/Log.hpp>
 
 #include <compare>
 
@@ -46,6 +47,8 @@ namespace rt::containers
 
       Node* insert(mutable_value_type value)
       {
+        ASSERT(isRoot() || isLeftChild() || isRightChild());
+
         if(value.first<this->value.first)
         {
           if(left)
@@ -76,6 +79,8 @@ namespace rt::containers
 
       rt::UniquePtr<Node> erase(rt::UniquePtr<Node>& root)
       {
+        ASSERT(isRoot() || isLeftChild() || isRightChild());
+
         auto& node = isRoot() ? root : owned();
         ASSERT(node.get() == this);
 
@@ -86,6 +91,9 @@ namespace rt::containers
         {
           left->parent = parent;
           left->right = move(right);
+          if(left->right)
+            left->right->parent = left.get();
+
           return exchange(node, move(left));
         }
 
@@ -93,6 +101,9 @@ namespace rt::containers
         {
           right->parent = parent;
           right->left = move(left);
+          if(right->left)
+            right->left->parent = right.get();
+
           return exchange(node, move(right));
         }
 
@@ -102,8 +113,11 @@ namespace rt::containers
         replacement->parent = parent;
         replacement->left   = move(left);
         replacement->right  = move(right);
-        replacement->left->parent  = replacement.get();
-        replacement->right->parent = replacement.get();
+        if(replacement->left)
+          replacement->left->parent = replacement.get();
+
+        if(replacement->right)
+          replacement->right->parent = replacement.get();
 
         return exchange(node, move(replacement));
       }
@@ -111,6 +125,8 @@ namespace rt::containers
       template<typename K>
       const Node* find(const K& key) const
       {
+        ASSERT(isRoot() || isLeftChild() || isRightChild());
+
         if(key<this->value.first)
           return left ? left->find(key) : nullptr;
         else if(this->value.first<key)
